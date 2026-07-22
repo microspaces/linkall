@@ -1,0 +1,9 @@
+{
+  "name": "@linkall/backend-redwave",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Anonymous local Convex deployment wrapper for the RedWave brand. Shares ../../convex.",
+  "dependencies": {
+    "convex": "^1.24.0"
+  }
+}

@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+
+/* FunFirst brand theme (keep in sync with @linkall/brands). */
+@theme {
+  --color-brand: #ea580c;
+  --color-brand-dark: #9a3412;
+  --color-brand-light: #fff7ed;
+  --color-accent: #db2777;
+}

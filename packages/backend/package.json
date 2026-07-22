@@ -1,0 +1,22 @@
+{
+  "name": "@linkall/backend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "convex dev",
+    "dev:surroundshow": "convex dev --env-file .env.surroundshow",
+    "dev:funfirst": "convex dev --env-file .env.funfirst",
+    "dev:redwave": "convex dev --env-file .env.redwave",
+    "seed:surroundshow": "convex run seed:surroundshow --env-file .env.surroundshow",
+    "seed:funfirst": "convex run seed:funfirst --env-file .env.funfirst",
+    "seed:redwave": "convex run seed:redwave --env-file .env.redwave",
+    "codegen": "convex codegen",
+    "typecheck": "tsc --noEmit -p convex"
+  },
+  "dependencies": {
+    "convex": "^1.24.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "linkall-platform",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "dev:surroundshow": "turbo dev --filter=surroundshow-web",
+    "dev:funfirst": "turbo dev --filter=funfirst-web",
+    "dev:redwave": "turbo dev --filter=redwave-web",
+    "dev:mobile": "pnpm --filter mobile start",
+    "backend": "pnpm --filter @linkall/backend dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.0.0",
+      "react-dom": "19.0.0",
+      "@types/react": "~19.0.10",
+      "@types/react-dom": "~19.0.4"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+
+/* RedWave brand theme (keep in sync with @linkall/brands). */
+@theme {
+  --color-brand: #dc2626;
+  --color-brand-dark: #991b1b;
+  --color-brand-light: #fef2f2;
+  --color-accent: #1e3a8a;
+}

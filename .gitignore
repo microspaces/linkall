@@ -1,0 +1,20 @@
+node_modules/
+.next/
+.turbo/
+.expo/
+dist/
+build/
+
+# env files (keep the .example files)
+.env
+.env.local
+.env.*.local
+.env.surroundshow
+.env.funfirst
+.env.redwave
+
+# convex local state
+.convex/
+
+*.log
+.DS_Store
