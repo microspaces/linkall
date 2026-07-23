@@ -1,6 +1,0 @@
-{
-  "buildCommand": "pnpm --filter surroundshow-web build",
-  "outputDirectory": "apps/surroundshow-web/.next",
-  "framework": "nextjs",
-  "installCommand": "pnpm install"
-}
