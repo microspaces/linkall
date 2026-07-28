@@ -1,0 +1,49 @@
+name: Deploy Convex Backends
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/backend/convex/**'
+      - 'packages/backend/package.json'
+      - '.github/workflows/convex-deploy.yml'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: surroundshow
+            secret_name: CONVEX_DEPLOY_KEY_SURROUNDSHOW
+          - app: funfirst
+            secret_name: CONVEX_DEPLOY_KEY_FUNFIRST
+          - app: redwave
+            secret_name: CONVEX_DEPLOY_KEY_REDWAVE
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Convex
+        working-directory: packages/backend
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets[matrix.secret_name] }}
+        run: npx convex deploy
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Convex Deploy: ${{ matrix.app }}" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

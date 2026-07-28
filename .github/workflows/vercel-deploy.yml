@@ -1,0 +1,55 @@
+name: Deploy Vercel Frontends
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - '.github/workflows/vercel-deploy.yml'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: surroundshow-web
+            project_id: prj_ElqhpBaOnf7kDJFjrkDSkpGZZaZE
+          - app: funfirst-web
+            project_id: prj_NFXWp5SbKoVzjBer0bhaoqLs2ZtB
+          - app: redwave-web
+            project_id: prj_5OKwRqa0bCTGwTLKOyOvy1MlkBXI
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build --filter=${{ matrix.app }}
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Deploy to Vercel
+        working-directory: apps/${{ matrix.app }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel --token $VERCEL_TOKEN --yes --prod
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Vercel Deploy: ${{ matrix.app }}" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
