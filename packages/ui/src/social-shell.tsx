@@ -23,7 +23,10 @@ type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
 
 const CHROMELESS_PREFIXES = ["/player", "/screens/", "/performance/screens/", "/battle-loco"];
 
-function isChromeless(pathname: string) {
+const CHROMELESS_HOSTS = ["battleloco.com", "www.battleloco.com"];
+
+function isChromeless(pathname: string, host?: string) {
+  if (host && CHROMELESS_HOSTS.includes(host)) return true;
   return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
@@ -259,7 +262,13 @@ function MobileGroupsMenu() {
 export function SocialShell({ children }: { children: ReactNode }) {
   const brand = useBrand();
   const pathname = usePathname();
-  const chromeless = isChromeless(pathname);
+  const [host, setHost] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setHost(window.location.host);
+  }, []);
+
+  const chromeless = isChromeless(pathname, host);
 
   if (chromeless) {
     return <>{children}</>;
