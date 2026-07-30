@@ -1,6 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "pnpm --filter funfirst-web build",
-  "installCommand": "pnpm install",
-  "outputDirectory": "apps/funfirst-web/.next"
-}
