@@ -121,23 +121,6 @@ html {
   to { transform: translate3d(-50px, -40px, 0); }
 }
 
-/* Header */
-.site-header {
-  position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 40;
-  border-bottom: 1px solid transparent;
-  background: linear-gradient(to bottom, rgba(7, 6, 13, 0.85), rgba(7, 6, 13, 0));
-  backdrop-filter: blur(0px);
-  transition: background 0.35s ease, border-color 0.35s ease, backdrop-filter 0.35s ease;
-}
-
-.site-header.is-scrolled {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-  background: rgba(7, 6, 13, 0.82);
-  backdrop-filter: blur(14px);
-}
-
 .brand-mark {
   display: inline-flex;
   align-items: baseline;
@@ -160,15 +143,6 @@ html {
 .brand-mark__loco {
   color: var(--neon-pink);
   text-shadow: 0 0 18px rgba(255, 45, 149, 0.55);
-}
-
-.nav-link {
-  transition: color 0.2s ease;
-}
-
-.nav-link:hover,
-.nav-link:focus-visible {
-  color: white;
 }
 
 .footer-link {
