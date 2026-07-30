@@ -2,5 +2,27 @@
   "framework": "nextjs",
   "buildCommand": "pnpm --filter funfirst-web build",
   "installCommand": "pnpm install",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "battleloco.com"
+        }
+      ],
+      "destination": "/battle-loco"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.battleloco.com"
+        }
+      ],
+      "destination": "/battle-loco"
+    }
+  ]
 }
