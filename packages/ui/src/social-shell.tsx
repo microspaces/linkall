@@ -21,7 +21,7 @@ import { UserSwitcher } from "./current-user";
 
 type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
 
-const CHROMELESS_PREFIXES = ["/player", "/screens/", "/performance/screens/"];
+const CHROMELESS_PREFIXES = ["/player", "/screens/", "/performance/screens/", "/battle-loco"];
 
 function isChromeless(pathname: string) {
   return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
