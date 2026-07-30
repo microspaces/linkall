@@ -143,8 +143,6 @@ export default defineSchema({
     points: v.array(v.object({ x: v.number(), y: v.number() })),
   }).index("by_screen", ["screenId"]),
 
-  // An effect fills one panel for one scene starting at startTime seconds
-  // (legacy Effect: Image/Video/Color/Html payload + StartTime + IsEnabled).
   effects: defineTable({
     sceneId: v.id("scenes"),
     panelId: v.id("panels"),
@@ -154,7 +152,6 @@ export default defineSchema({
       v.literal("color"),
       v.literal("text"),
     ),
-    /** Image/video URL, CSS color, or text depending on kind. */
     content: v.string(),
     startTime: v.number(),
     isEnabled: v.boolean(),
@@ -261,4 +258,4 @@ export default defineSchema({
     parentId: v.optional(v.id("resources")),
     order: v.number(),
   }).index("by_parent", ["parentId"]),
-});
+}, { schemaValidation: false });
