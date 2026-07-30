@@ -4,18 +4,9 @@ import { useEffect } from "react";
 
 export default function BattleLocoClient() {
   useEffect(() => {
-    const header = document.getElementById("bl-header");
     const form = document.getElementById("waitlist-form") as HTMLFormElement | null;
     const successEl = document.getElementById("form-success");
     const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
-
-    // --- Sticky header ---
-    const onScroll = () => {
-      if (!header) return;
-      header.classList.toggle("is-scrolled", window.scrollY > 24);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
 
     // --- Section reveal ---
     const selectors = [
@@ -154,7 +145,6 @@ export default function BattleLocoClient() {
 
     // --- Cleanup ---
     return () => {
-      window.removeEventListener("scroll", onScroll);
       io?.disconnect();
       clickHandlers.forEach(({ el, fn }) => el.removeEventListener("click", fn));
       inputHandlers.forEach(({ el, fn }) => el.removeEventListener("input", fn));

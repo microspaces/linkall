@@ -12,22 +12,6 @@ export default function BattleLocoPage() {
       <div className="orb orb-a" aria-hidden="true" />
       <div className="orb orb-b" aria-hidden="true" />
 
-      {/* HEADER */}
-      <header className="site-header" id="bl-header">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 md:px-8">
-          <a href="#top" className="brand-mark" aria-label="Battle Loco home">
-            <span className="brand-mark__battle">Battle</span>
-            <span className="brand-mark__loco">Loco</span>
-          </a>
-          <nav className="hidden items-center gap-8 text-sm font-medium text-white/70 md:flex" aria-label="Primary">
-            <a href="#what" className="nav-link">The Show</a>
-            <a href="#experience" className="nav-link">The Experience</a>
-            <a href="#waitlist" className="nav-link">Waitlist</a>
-          </nav>
-          <a href="#waitlist" className="btn btn-pink btn-sm">Get In</a>
-        </div>
-      </header>
-
       <main id="top">
         {/* HERO */}
         <section className="hero" aria-labelledby="hero-heading">
@@ -43,7 +27,7 @@ export default function BattleLocoPage() {
             <div className="hero__veil" aria-hidden="true" />
           </div>
 
-          <div className="hero__content mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-end px-5 pb-16 pt-32 md:justify-center md:px-8 md:pb-24 md:pt-28">
+          <div className="hero__content mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-end px-5 pb-16 pt-16 md:justify-center md:px-8 md:pb-24 md:pt-20">
             <p className="hero__location reveal">
               <span className="pulse-dot" aria-hidden="true" />
               Hyperex Arena · Luxor, Las Vegas
