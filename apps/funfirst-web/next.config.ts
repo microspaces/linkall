@@ -2,9 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@linkall/ui", "@linkall/brands", "@linkall/backend"],
-  // Domain mapping: battleloco.com → /battle-loco
-  // Add battleloco.com as a custom domain in Vercel project settings,
-  // then add a rewrite so the root path serves the /battle-loco route.
+  // Domain mapping:
+  //   battleloco.com  → /battle-loco
+  //   wrestleloco.com → /wrestle-loco
+  // Add custom domains in Vercel project settings for funfirst-web.
   async rewrites() {
     return [
       {
@@ -16,6 +17,16 @@ const nextConfig: NextConfig = {
           },
         ],
         destination: "/battle-loco",
+      },
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "wrestleloco.com",
+          },
+        ],
+        destination: "/wrestle-loco",
       },
     ];
   },

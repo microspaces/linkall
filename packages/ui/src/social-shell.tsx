@@ -21,9 +21,20 @@ import { UserSwitcher } from "./current-user";
 
 type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
 
-const CHROMELESS_PREFIXES = ["/player", "/screens/", "/performance/screens/", "/battle-loco"];
+const CHROMELESS_PREFIXES = [
+  "/player",
+  "/screens/",
+  "/performance/screens/",
+  "/battle-loco",
+  "/wrestle-loco",
+];
 
-const CHROMELESS_HOSTS = ["battleloco.com", "www.battleloco.com"];
+const CHROMELESS_HOSTS = [
+  "battleloco.com",
+  "www.battleloco.com",
+  "wrestleloco.com",
+  "www.wrestleloco.com",
+];
 
 function isChromeless(pathname: string, host?: string) {
   if (host && CHROMELESS_HOSTS.includes(host)) return true;
