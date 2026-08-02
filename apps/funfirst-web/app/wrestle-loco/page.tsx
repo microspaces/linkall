@@ -134,7 +134,7 @@ export default function WrestleLocoPage() {
               </article>
               <article className="xp-item">
                 <div className="xp-item__num" aria-hidden="true">03</div>
-                <h3 className="xp-item__title">Theatrical Silliness</h3>
+                <h3 className="xp-item__title">Loco Energy</h3>
                 <p className="xp-item__text">
                   Screaming contests. Fan referees. Weapons awarded by kids
                   who just out-yelled the other side. Peak loco energy.
