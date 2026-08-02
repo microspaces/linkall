@@ -38,8 +38,8 @@ export default function WrestleLocoPage() {
             </h1>
 
             <p className="hero__tagline reveal reveal-delay-2">
-              Live wrestling. Crowd weapons. Fan refs.<br className="hidden sm:block" />
-              Savannah Bananas energy with body slams.
+              Live wrestling. Crowd action. Fan refs.<br className="hidden sm:block" />
+              Loco energy with body slams.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center reveal reveal-delay-3">
@@ -65,8 +65,7 @@ export default function WrestleLocoPage() {
                 <span style={{ color: "var(--neon-pink)" }}>Total chaos.</span>
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
-                Five wrestlers vs five wrestlers in a night of multi-round matches —
-                mostly 1-on-1 and 2-on-2 — scored by wins. Between bouts the crowd
+                Five wrestlers vs five wrestlers in a night of multi-round matches — scored by wins. Between rounds the crowd
                 takes over: kids screaming matches that earn weapons, fans becoming
                 the ref, phones lighting up the big screens. Then the finale hits —
                 a multi-pin free-for-all where every pin is a point.
@@ -78,7 +77,7 @@ export default function WrestleLocoPage() {
                 </li>
                 <li>
                   <span className="feature-list__icon feature-list__icon--green" aria-hidden="true" />
-                  Crowd bits, weapons, fan refs — Savannah Bananas–level silliness
+                  Crowd bits, weapons, fan refs — Loco–level silliness
                 </li>
                 <li>
                   <span className="feature-list__icon feature-list__icon--blue" aria-hidden="true" />
@@ -111,7 +110,7 @@ export default function WrestleLocoPage() {
                 Loud. Chaotic. Deliberately unhinged.
               </h2>
               <p className="mt-4 text-base text-white/65 md:text-lg">
-                Pro wrestling heat meets theatrical nonsense —
+                Pro wrestling heat meets fan energy —
                 and your phone is part of the cast.
               </p>
             </div>
@@ -138,7 +137,7 @@ export default function WrestleLocoPage() {
                 <h3 className="xp-item__title">Theatrical Silliness</h3>
                 <p className="xp-item__text">
                   Screaming contests. Fan referees. Weapons awarded by kids
-                  who just out-yelled the other side. Peak bananas energy.
+                  who just out-yelled the other side. Peak loco energy.
                 </p>
               </article>
               <article className="xp-item">
