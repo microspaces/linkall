@@ -61,7 +61,7 @@ export default function BattleLocoPage() {
               <p className="eyebrow">What is Battle Loco?</p>
               <h2 id="what-heading" className="section-title">
                 Competitive rounds.<br />
-                Theatrical nonsense.<br />
+                Loco Energy.<br />
                 <span style={{ color: "var(--neon-pink)" }}>Zero chill.</span>
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
@@ -133,7 +133,7 @@ export default function BattleLocoPage() {
               </article>
               <article className="xp-item">
                 <div className="xp-item__num" aria-hidden="true">03</div>
-                <h3 className="xp-item__title">Theatrical Energy</h3>
+                <h3 className="xp-item__title">Loco Energy</h3>
                 <p className="xp-item__text">
                   Bits, bits, and more bits. Punishments that sting (in a fun way).
                   Rewards that get the whole arena screaming.
