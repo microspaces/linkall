@@ -9,6 +9,13 @@ export function middleware(request: NextRequest) {
   ) {
     return NextResponse.rewrite(new URL("/battle-loco", request.url));
   }
+  // Serve /wrestle-loco for wrestleloco.com root path
+  if (
+    (host === "wrestleloco.com" || host === "www.wrestleloco.com") &&
+    request.nextUrl.pathname === "/"
+  ) {
+    return NextResponse.rewrite(new URL("/wrestle-loco", request.url));
+  }
   return NextResponse.next();
 }
 
