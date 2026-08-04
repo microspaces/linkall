@@ -16,9 +16,9 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Wrestle Loco | Hyperex Arena · Luxor Las Vegas",
+  title: "Wrestle Loco | Location TBA Las Vegas",
   description:
-    "Wrestle Loco — live pro wrestling chaos at Hyperex Arena, Luxor Las Vegas. Two teams. Crowd weapons. Fan refs. Phone-powered mayhem. Join the waitlist.",
+    "Wrestle Loco — live pro wrestling chaos at Location TBA Las Vegas. Two teams. Crowd weapons. Fan refs. Phone-powered mayhem. Join the waitlist.",
 };
 
 export default function WrestleLocoLayout({ children }: { children: ReactNode }) {
