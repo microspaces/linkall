@@ -30,7 +30,7 @@ export default function WrestleLocoPage() {
           <div className="hero__content mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-end px-5 pb-16 pt-16 md:justify-center md:px-8 md:pb-24 md:pt-20">
             <p className="hero__location reveal">
               <span className="pulse-dot" aria-hidden="true" />
-              HyperX Arena · Luxor, Las Vegas
+              Location TBA, Las Vegas
             </p>
 
             <h1 id="hero-heading" className="hero__brand reveal reveal-delay-1">
@@ -144,7 +144,7 @@ export default function WrestleLocoPage() {
                 <div className="xp-item__num" aria-hidden="true">04</div>
                 <h3 className="xp-item__title">Vegas Setting</h3>
                 <p className="xp-item__text">
-                  HyperX Arena at the Luxor. Neon. Noise. The kind of night
+                  Location TBA. Neon. Noise. The kind of night
                   you&apos;ll swear you invented when you tell the story later.
                 </p>
               </article>
@@ -245,7 +245,7 @@ export default function WrestleLocoPage() {
               <span className="brand-mark__loco">Loco</span>
             </a>
             <p className="mt-2 text-sm text-white/45">
-              HyperX Arena · Luxor Hotel &amp; Casino · Las Vegas
+            Location TBA Hotel &amp; Casino · Las Vegas
             </p>
           </div>
 
