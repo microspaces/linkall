@@ -155,9 +155,19 @@ export default defineSchema({
     content: v.string(),
     startTime: v.number(),
     isEnabled: v.boolean(),
+    /** Optional duration in seconds; null = runs to end of scene. */
+    durationSec: v.optional(v.number()),
   })
     .index("by_scene", ["sceneId"])
     .index("by_panel", ["panelId"]),
+
+  // ---- display profiles (saved screen/panel arrangements for reuse) ----
+  displayProfiles: defineTable({
+    name: v.string(),
+    ownerId: v.id("users"),
+    /** JSON blob: { screens: [{ name, width, height, panels: [{ name, zIndex, points }] }] } */
+    config: v.any(),
+  }).index("by_owner", ["ownerId"]),
 
   // ---- comedy game engine (legacy: Crazyball LLPerformance* tables +
   //      the game-1.0.1.js next-button state machine) ----
