@@ -311,6 +311,7 @@ function AlignTab() {
   const [target, setTarget] = useState<"panel" | "point" | "side">("panel");
   const [pointIndex, setPointIndex] = useState(0);
   const [step, setStep] = useState(5);
+  const [snapToGrid, setSnapToGrid] = useState(false);
 
   const layoutDoc =
     layouts?.find((l) => l._id === selectedLayoutId) ?? layouts?.[0] ?? null;
@@ -327,12 +328,7 @@ function AlignTab() {
   const setAlignPanel = useMutation(api.designer.setAlignPanel);
   const updatePanel = useMutation(api.designer.updatePanel);
 
-  if (layouts === undefined) return <Loading />;
-
-  const screenUrl =
-    typeof window !== "undefined" && screen
-      ? `${window.location.origin}/screens/${screen._id}`
-      : "";
+  const snapVal = (v: number) => (snapToGrid ? Math.round(v / 10) * 10 : v);
 
   const nudge = async (dx: number, dy: number) => {
     if (!screen || !alignedPanel) return;
@@ -346,13 +342,45 @@ function AlignTab() {
     const points = alignedPanel.points.map((p, i) =>
       moving.includes(i)
         ? {
-            x: Math.max(0, Math.min(screen.width, p.x + dx)),
-            y: Math.max(0, Math.min(screen.height, p.y + dy)),
+            x: Math.max(0, Math.min(screen.width, snapVal(p.x + dx))),
+            y: Math.max(0, Math.min(screen.height, snapVal(p.y + dy))),
           }
         : p,
     );
     await updatePanel({ panelId: alignedPanel._id, points });
   };
+
+  // Keyboard arrow support (mirrors Designer PanelEditor)
+  useEffect(() => {
+    if (!alignedPanel || !screen) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as Element)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const apply = (dx: number, dy: number) => {
+        e.preventDefault();
+        void nudge(dx, dy);
+      };
+      switch (e.key) {
+        case "ArrowUp":
+          apply(0, -step); break;
+        case "ArrowDown":
+          apply(0, step); break;
+        case "ArrowLeft":
+          apply(-step, 0); break;
+        case "ArrowRight":
+          apply(step, 0); break;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [alignedPanel, screen, step, target, pointIndex, snapToGrid]);
+
+  if (layouts === undefined) return <Loading />;
+
+  const screenUrl =
+    typeof window !== "undefined" && screen
+      ? `${window.location.origin}/screens/${screen._id}`
+      : "";
 
   return (
     <div className="space-y-4">
@@ -492,6 +520,15 @@ function AlignTab() {
                     Move {t === "panel" ? "entire panel" : t}
                   </button>
                 ))}
+                <label className="ml-auto flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={snapToGrid}
+                    onChange={(e) => setSnapToGrid(e.target.checked)}
+                    className="accent-brand"
+                  />
+                  Snap to 10px grid
+                </label>
               </div>
 
               {target !== "panel" && (
@@ -547,6 +584,9 @@ function AlignTab() {
                   ))}
                 </div>
               </div>
+              <p className="mt-2 text-center text-[11px] text-gray-400">
+                Tip: keyboard arrows also nudge
+              </p>
             </div>
           )}
         </>

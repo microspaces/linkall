@@ -69,6 +69,46 @@ export const getSceneEffects = query({
 });
 
 /**
+ * Lightweight per-scene effects for scene-card cue thumbnails.
+ * Keyed by sceneId so every card can render its own PanelStage preview.
+ */
+export const getShowCueEffects = query({
+  args: { showId: v.id("shows") },
+  handler: async (ctx, { showId }) => {
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", showId))
+      .collect();
+    const byScene: Record<
+      string,
+      Array<{
+        panelId: Id<"panels">;
+        kind: "image" | "video" | "color" | "text";
+        content: string;
+        startTime: number;
+        isEnabled: boolean;
+        durationSec?: number;
+      }>
+    > = {};
+    for (const scene of scenes) {
+      const effects = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      byScene[scene._id] = effects.map((e) => ({
+        panelId: e.panelId,
+        kind: e.kind,
+        content: e.content,
+        startTime: e.startTime,
+        isEnabled: e.isEnabled,
+        durationSec: e.durationSec,
+      }));
+    }
+    return byScene;
+  },
+});
+
+/**
  * Everything one physical output (projector / LED wall) needs, in one
  * reactive query: the screen + its panels, the alignment state, and — if a
  * show targeting this screen's layout is live — the current scene and its
@@ -101,6 +141,7 @@ export const screenView = query({
       content: string;
       startTime: number;
       isEnabled: boolean;
+      durationSec?: number;
     }> = [];
     if (show) {
       const scenes = await ctx.db
@@ -111,10 +152,17 @@ export const screenView = query({
       scene = scenes[show.currentSceneIndex] ?? null;
       if (scene) {
         const sceneId = scene._id;
-        effects = await ctx.db
+        effects = (await ctx.db
           .query("effects")
           .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
-          .collect();
+          .collect()).map((e) => ({
+          panelId: e.panelId,
+          kind: e.kind,
+          content: e.content,
+          startTime: e.startTime,
+          isEnabled: e.isEnabled,
+          durationSec: e.durationSec,
+        }));
       }
     }
 
@@ -249,9 +297,18 @@ export const createEffect = mutation({
     ),
     content: v.string(),
     startTime: v.number(),
+    durationSec: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("effects", { ...args, isEnabled: true });
+  handler: async (ctx, { sceneId, panelId, kind, content, startTime, durationSec }) => {
+    return await ctx.db.insert("effects", {
+      sceneId,
+      panelId,
+      kind,
+      content,
+      startTime,
+      isEnabled: true,
+      ...(durationSec !== undefined ? { durationSec } : {}),
+    });
   },
 });
 

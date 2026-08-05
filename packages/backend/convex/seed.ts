@@ -21,6 +21,7 @@ const ALL_TABLES: TableNames[] = [
   "groups",
   "notifications",
   "effects",
+  "displayProfiles",
   "panels",
   "screens",
   "layouts",
@@ -423,6 +424,82 @@ export const funfirst = mutation({
       ],
     });
 
+    // --- Designer demo: stage layout with panel-based cue show ---
+    const layoutId = await ctx.db.insert("layouts", {
+      name: "Main Stage",
+      ownerId: users[0],
+    });
+    const stageScreenId = await ctx.db.insert("screens", {
+      layoutId,
+      name: "Stage",
+      order: 0,
+      width: 1920,
+      height: 1080,
+    });
+    const ffPanelSpecs: [string, number, { x: number; y: number }[]][] = [
+      ["Backdrop", 0, [{ x: 0, y: 0 }, { x: 1920, y: 0 }, { x: 1920, y: 1080 }, { x: 0, y: 1080 }]],
+      ["Left Wing", 1, [{ x: 40, y: 120 }, { x: 420, y: 120 }, { x: 420, y: 960 }, { x: 40, y: 960 }]],
+      ["Right Wing", 2, [{ x: 1500, y: 120 }, { x: 1880, y: 120 }, { x: 1880, y: 960 }, { x: 1500, y: 960 }]],
+      ["Scoreboard", 3, [{ x: 560, y: 40 }, { x: 1360, y: 40 }, { x: 1360, y: 220 }, { x: 560, y: 220 }]],
+      ["Center Spot", 4, [{ x: 560, y: 280 }, { x: 1360, y: 280 }, { x: 1360, y: 900 }, { x: 560, y: 900 }]],
+    ];
+    const ffPanelIds: Record<string, Id<"panels">> = {};
+    for (const [name, zIndex, points] of ffPanelSpecs) {
+      ffPanelIds[name] = await ctx.db.insert("panels", {
+        screenId: stageScreenId,
+        name,
+        zIndex,
+        points,
+      });
+    }
+
+    const stageShowId = await ctx.db.insert("shows", {
+      title: "Crazyball Stage Cues",
+      description: "Panel-based stage cues for the main house screen — designer / timeline demo.",
+      tag: "crazyball",
+      status: "draft",
+      currentSceneIndex: 0,
+      layoutId,
+      ownerId: users[0],
+    });
+    const stageScenes: [string, number, string, string][] = [
+      ["Warmup", 60, "#14532d", "WARMUP"],
+      ["Team Intros", 90, "#1e3a8a", "BANANAS vs BERRIES"],
+      ["Round 1", 120, "#7c2d12", "ROUND 1"],
+      ["Halftime", 45, "#4c1d95", "HALFTIME"],
+      ["Finale", 90, "#831843", "CHAMPIONS"],
+    ];
+    for (let s = 0; s < stageScenes.length; s++) {
+      const [title, durationSec, wingColor, centerText] = stageScenes[s];
+      const sceneId = await ctx.db.insert("scenes", {
+        showId: stageShowId,
+        order: s,
+        title,
+        kind: "panels",
+        content: "",
+        durationSec,
+      });
+      const sceneEffects: [string, "color" | "text", string, number, number | undefined][] = [
+        ["Backdrop", "color", "#0f172a", 0, undefined],
+        ["Left Wing", "color", wingColor, 0, undefined],
+        ["Right Wing", "color", wingColor, 0, undefined],
+        ["Scoreboard", "text", `Bananas ${10 + s} – ${8 + s} Berries`, 0, undefined],
+        ["Center Spot", "text", centerText, 0, 30],
+        ["Center Spot", "color", "#fbbf24", 30, 15],
+      ];
+      for (const [panelName, kind, content, startTime, duration] of sceneEffects) {
+        await ctx.db.insert("effects", {
+          sceneId,
+          panelId: ffPanelIds[panelName],
+          kind,
+          content,
+          startTime,
+          isEnabled: true,
+          ...(duration !== undefined ? { durationSec: duration } : {}),
+        });
+      }
+    }
+
     // --- Comedy game engine demo (legacy Crazyball Show page) ---
     const performanceId = await ctx.db.insert("performances", {
       title: "Friday Night Crazyball",
@@ -519,7 +596,7 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 4 groups, 3 shows, 1 performance (5 rounds), 4 events";
+    return "Seeded FunFirst: 6 users, 4 groups, 4 shows (1 designer), 1 layout, 1 performance (5 rounds), 4 events";
   },
 });
 

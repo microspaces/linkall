@@ -418,8 +418,8 @@ function Timeline({
                 className="relative h-9 flex-1 bg-gray-50"
                 onPointerDown={(e) => {
                   if ((e.target as Element).closest("[data-effect-block]")) return;
-                  if (!onLaneClick || !laneRef.current) return;
-                  const rect = laneRef.current.getBoundingClientRect();
+                  if (!onLaneClick) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
                   const sec = pxToSec(e.clientX - rect.left, rect.width);
                   onLaneClick(panel._id, sec);
                 }}
@@ -481,7 +481,7 @@ function Timeline({
                       {/* Resize handle on right edge */}
                       {onUpdateEffect && e.isEnabled && (
                         <div
-                          className="absolute inset-y-0 right-0 w-1.5 cursor-ew-reszise bg-black/20 opacity-0 group-hover:opacity-100"
+                          className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize bg-black/20 opacity-0 group-hover:opacity-100"
                           onPointerDown={(ev) => {
                             ev.stopPropagation();
                             const lane = laneRef.current;
@@ -559,6 +559,10 @@ function ShowsTab() {
   const effects = useQuery(
     api.designer.getSceneEffects,
     scene ? { sceneId: scene._id } : "skip",
+  );
+  const cueEffects = useQuery(
+    api.designer.getShowCueEffects,
+    show ? { showId: show._id } : "skip",
   );
   const layout = useQuery(
     api.designer.getLayout,
@@ -737,7 +741,11 @@ function ShowsTab() {
           {scenes?.map((s, idx) => {
             const isLiveScene = show?.status === "live" && idx === show.currentSceneIndex;
             const isNext = show?.status === "live" && idx === show.currentSceneIndex + 1;
-            const isFinale = show?.status === "live" && idx === scenes.length - 1 && idx === show.currentSceneIndex;
+            const isFinale =
+              show?.status === "live" &&
+              idx === scenes.length - 1 &&
+              !isLiveScene;
+            const sceneCue = cueEffects?.[s._id];
             return (
               <div
                 key={s._id}
@@ -749,16 +757,14 @@ function ShowsTab() {
                 }
                 onClick={() => setSelectedSceneId(s._id)}
               >
-                {/* Scene cue thumbnail */}
+                {/* Scene cue thumbnail — each card uses its own scene's effects */}
                 <div className="mb-1.5 overflow-hidden rounded border border-gray-200 bg-gray-950" style={{ maxWidth: 120 }}>
-                  {screen && effects ? (
-                    <div style={{ transform: "scale(1)", transformOrigin: "top left" }}>
-                      <PanelStage
-                        screen={screen}
-                        effects={effects.filter((e) => e.isEnabled && e.startTime <= 0)}
-                        clockSec={0}
-                      />
-                    </div>
+                  {screen && sceneCue ? (
+                    <PanelStage
+                      screen={screen}
+                      effects={sceneCue}
+                      clockSec={0}
+                    />
                   ) : (
                     <div className="flex aspect-[4/3] items-center justify-center text-[9px] text-gray-500">
                       {s.title.slice(0, 10)}
@@ -777,12 +783,12 @@ function ShowsTab() {
                     ● LIVE
                   </span>
                 )}
-                {isNext && (
+                {isNext && !isFinale && (
                   <span className="absolute right-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
                     UP NEXT
                   </span>
                 )}
-                {isFinale && !isLiveScene && (
+                {isFinale && (
                   <span className="absolute right-1 top-1 rounded bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
                     FINALE
                   </span>
