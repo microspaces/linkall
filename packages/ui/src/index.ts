@@ -7,7 +7,7 @@ export {
   UserSwitcher,
   useCurrentUser,
 } from "./current-user";
-export { PanelStage, ShowDesigner } from "./designer";
+export { PanelStage, ShowDesigner, PANEL_FILLS } from "./designer";
 export { EmptyState, Loading } from "./empty-state";
 export { EventList } from "./events";
 export { Feed, PostComposer } from "./feed";

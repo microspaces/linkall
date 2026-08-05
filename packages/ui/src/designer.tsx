@@ -64,14 +64,18 @@ export function PanelStage({
   clockSec,
 }: {
   screen: Screen;
-  effects: Pick<Doc<"effects">, "panelId" | "kind" | "content" | "startTime" | "isEnabled">[];
+  effects: Pick<Doc<"effects">, "panelId" | "kind" | "content" | "startTime" | "isEnabled" | "durationSec">[];
   /** Seconds into the scene; effects appear once clock passes startTime. */
   clockSec: number;
 }) {
   // Per panel: the enabled effect with the highest startTime <= clock wins.
+  // An effect is active when startTime <= clock AND (durationSec is null/undefined
+  // OR startTime + durationSec >= clock).
   const active = new Map<string, (typeof effects)[number]>();
   for (const e of effects) {
     if (!e.isEnabled || e.startTime > clockSec) continue;
+    const endTime = e.startTime + (e.durationSec ?? Infinity);
+    if (clockSec > endTime) continue;
     const current = active.get(e.panelId);
     if (!current || e.startTime >= current.startTime) active.set(e.panelId, e);
   }
@@ -321,18 +325,81 @@ function Timeline({
   effects,
   durationSec,
   playheadSec,
+  onUpdateEffect,
+  onLaneClick,
 }: {
   panels: { panel: Panel; label: string }[];
   effects: EffectRow[];
   durationSec: number;
   playheadSec: number | null;
+  onUpdateEffect?: (effectId: Id<"effects">, patch: { startTime?: number; durationSec?: number }) => void;
+  onLaneClick?: (panelId: Id<"panels">, startTimeSec: number) => void;
 }) {
+  const laneRef = useRef<HTMLDivElement>(null);
+  const [dragState, setDragState] = useState<{
+    effectId: Id<"effects">;
+    mode: "move" | "resize";
+    startX: number;
+    origStart: number;
+    origDuration: number | null;
+    laneWidth: number;
+  } | null>(null);
+  const [tooltip, setTooltip] = useState<string | null>(null);
+
+  const snap = (sec: number) => Math.round(sec * 2) / 2; // snap to 0.5s
+
+  const pxToSec = (px: number, laneWidth: number) =>
+    snap(Math.max(0, Math.min(durationSec, (px / laneWidth) * durationSec)));
+
+  useEffect(() => {
+    if (!dragState) return;
+    const onMove = (e: PointerEvent) => {
+      const lane = laneRef.current;
+      if (!lane) return;
+      const dx = e.clientX - dragState.startX;
+      const dSec = (dx / dragState.laneWidth) * durationSec;
+      if (dragState.mode === "move") {
+        const newStart = snap(Math.max(0, dragState.origStart + dSec));
+        setTooltip(`Start: ${formatClock(newStart)}`);
+      } else {
+        const newDur = snap(Math.max(0.5, (dragState.origDuration ?? durationSec - dragState.origStart) + dSec));
+        setTooltip(`Duration: ${formatClock(newDur)}`);
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      const lane = laneRef.current;
+      if (!lane) {
+        setDragState(null);
+        setTooltip(null);
+        return;
+      }
+      const dx = e.clientX - dragState.startX;
+      const dSec = (dx / dragState.laneWidth) * durationSec;
+      if (dragState.mode === "move") {
+        const newStart = snap(Math.max(0, dragState.origStart + dSec));
+        onUpdateEffect?.(dragState.effectId, { startTime: newStart });
+      } else {
+        const newDur = snap(Math.max(0.5, (dragState.origDuration ?? durationSec - dragState.origStart) + dSec));
+        onUpdateEffect?.(dragState.effectId, { durationSec: newDur });
+      }
+      setDragState(null);
+      setTooltip(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragState, durationSec, onUpdateEffect]);
+
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       <div className="flex items-center justify-between bg-gray-900 px-3 py-2">
         <span className="text-sm font-semibold text-white">Timeline</span>
         <span className="text-xs text-gray-400">
           scene length {formatClock(durationSec)}
+          {onUpdateEffect && " · drag blocks to retime"}
         </span>
       </div>
       <div className="relative">
@@ -346,21 +413,36 @@ function Timeline({
               <div className="w-28 shrink-0 border-r border-gray-100 px-2 py-2 text-xs font-semibold text-gray-600">
                 {label}
               </div>
-              <div className="relative h-9 flex-1 bg-gray-50">
+              <div
+                ref={panel._id === panels[0]?.panel._id ? laneRef : undefined}
+                className="relative h-9 flex-1 bg-gray-50"
+                onPointerDown={(e) => {
+                  if ((e.target as Element).closest("[data-effect-block]")) return;
+                  if (!onLaneClick) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const sec = pxToSec(e.clientX - rect.left, rect.width);
+                  onLaneClick(panel._id, sec);
+                }}
+              >
                 {rows.map((e) => {
                   const left = Math.min((e.startTime / durationSec) * 100, 100);
+                  const dur = e.durationSec ?? null;
+                  const widthPct = dur !== null
+                    ? Math.min((dur / durationSec) * 100, 100 - left)
+                    : 100 - left;
                   return (
                     <div
                       key={e._id}
+                      data-effect-block
                       className={
-                        "absolute inset-y-1 overflow-hidden rounded border " +
+                        "group absolute inset-y-1 overflow-hidden rounded border " +
                         (e.isEnabled
-                          ? "border-gray-300"
+                          ? "border-gray-300 cursor-grab"
                           : "border-dashed border-gray-300 opacity-40")
                       }
                       style={{
                         left: `${left}%`,
-                        right: 0,
+                        width: `${widthPct}%`,
                         ...(e.kind === "color"
                           ? { backgroundColor: e.content }
                           : e.kind === "image"
@@ -373,12 +455,49 @@ function Timeline({
                               ? { backgroundColor: "#111827" }
                               : { backgroundColor: "#fef3c7" }),
                       }}
-                      title={`${e.panelName} @ ${formatClock(e.startTime)}`}
+                      title={`${e.panelName} @ ${formatClock(e.startTime)}${dur !== null ? ` (${formatClock(dur)})` : ""}`}
+                      onPointerDown={(ev) => {
+                        if (!onUpdateEffect) return;
+                        ev.stopPropagation();
+                        const lane = laneRef.current;
+                        if (!lane) return;
+                        const rect = lane.getBoundingClientRect();
+                        (ev.target as Element).setPointerCapture?.(ev.pointerId);
+                        setDragState({
+                          effectId: e._id,
+                          mode: "move",
+                          startX: ev.clientX,
+                          origStart: e.startTime,
+                          origDuration: dur,
+                          laneWidth: rect.width,
+                        });
+                      }}
                     >
                       {e.kind === "video" && (
                         <span className="px-1 text-[9px] text-white">
                           ▶ video
                         </span>
+                      )}
+                      {/* Resize handle on right edge */}
+                      {onUpdateEffect && e.isEnabled && (
+                        <div
+                          className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize bg-black/20 opacity-0 group-hover:opacity-100"
+                          onPointerDown={(ev) => {
+                            ev.stopPropagation();
+                            const lane = laneRef.current;
+                            if (!lane) return;
+                            const rect = lane.getBoundingClientRect();
+                            (ev.target as Element).setPointerCapture?.(ev.pointerId);
+                            setDragState({
+                              effectId: e._id,
+                              mode: "resize",
+                              startX: ev.clientX,
+                              origStart: e.startTime,
+                              origDuration: dur,
+                              laneWidth: rect.width,
+                            });
+                          }}
+                        />
                       )}
                     </div>
                   );
@@ -395,6 +514,16 @@ function Timeline({
             }}
           />
         )}
+        {tooltip && dragState && (
+          <div
+            className="pointer-events-none absolute top-0 z-10 rounded bg-black/80 px-2 py-1 text-xs text-white"
+            style={{
+              left: `calc(7rem + (100% - 7rem) * 0.5)`,
+            }}
+          >
+            {tooltip}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -410,10 +539,12 @@ function ShowsTab() {
   const [selectedShowId, setSelectedShowId] = useState<Id<"shows"> | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<Id<"scenes"> | null>(null);
   const [screenIndex, setScreenIndex] = useState(0);
+  const [scrubClock, setScrubClock] = useState<number | null>(null);
   const [modal, setModal] = useState<
     | { type: "show"; show?: Doc<"shows"> }
     | { type: "scene"; scene?: Doc<"scenes"> }
     | { type: "effect"; effect?: EffectRow }
+    | { type: "effectPrefill"; panelId: Id<"panels">; startTime: number }
     | null
   >(null);
 
@@ -428,6 +559,10 @@ function ShowsTab() {
   const effects = useQuery(
     api.designer.getSceneEffects,
     scene ? { sceneId: scene._id } : "skip",
+  );
+  const cueEffects = useQuery(
+    api.designer.getShowCueEffects,
+    show ? { showId: show._id } : "skip",
   );
   const layout = useQuery(
     api.designer.getLayout,
@@ -458,11 +593,13 @@ function ShowsTab() {
   useEffect(() => {
     setPlaying(false);
     setClock(null);
+    setScrubClock(null);
   }, [scene?._id]);
 
   const deleteShow = useMutation(api.designer.deleteShow);
   const deleteScene = useMutation(api.designer.deleteScene);
   const deleteEffect = useMutation(api.designer.deleteEffect);
+  const updateEffectMut = useMutation(api.designer.updateEffect);
 
   if (shows === undefined || layouts === undefined) return <Loading />;
 
@@ -474,7 +611,7 @@ function ShowsTab() {
       label: screens.length > 1 ? `${s.name} · ${panel.name}` : panel.name,
     })),
   );
-  const previewClock = clock ?? durationSec; // stopped = fully composed scene
+  const previewClock = clock ?? scrubClock ?? durationSec; // stopped = fully composed scene
 
   return (
     <div className="space-y-4">
@@ -532,6 +669,27 @@ function ShowsTab() {
                   : "Create a show to get started"}
               </div>
             )}
+            {/* Preview scrubber */}
+            {scene && (
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={durationSec}
+                  step={0.5}
+                  value={previewClock}
+                  disabled={playing}
+                  onChange={(e) => {
+                    setScrubClock(Number(e.target.value));
+                    setPlaying(false);
+                  }}
+                  className="flex-1"
+                />
+                <span className="w-10 text-right text-xs font-mono text-gray-500">
+                  {formatClock(previewClock)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -540,7 +698,11 @@ function ShowsTab() {
             panels={panelLanes}
             effects={effects}
             durationSec={durationSec}
-            playheadSec={clock}
+            playheadSec={clock ?? scrubClock}
+            onUpdateEffect={(effectId, patch) => updateEffectMut({ effectId, ...patch })}
+            onLaneClick={(panelId, startTimeSec) =>
+              setModal({ type: "effectPrefill", panelId, startTime: startTimeSec })
+            }
           />
         ) : (
           <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-400">
@@ -576,22 +738,88 @@ function ShowsTab() {
           onAdd={show ? () => setModal({ type: "scene" }) : undefined}
         >
           {!show && <p className="p-3 text-xs text-gray-400">Select a show.</p>}
-          {scenes?.map((s) => (
-            <Row
-              key={s._id}
-              selected={scene?._id === s._id}
-              onSelect={() => setSelectedSceneId(s._id)}
-              onEdit={() => setModal({ type: "scene", scene: s })}
-              onDelete={() => deleteScene({ sceneId: s._id })}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate">{s.title}</span>
-                <span className="text-xs text-gray-400">
-                  {s.durationSec ?? "—"}
-                </span>
+          {scenes?.map((s, idx) => {
+            const isLiveScene = show?.status === "live" && idx === show.currentSceneIndex;
+            const isNext = show?.status === "live" && idx === show.currentSceneIndex + 1;
+            const isFinale =
+              show?.status === "live" &&
+              idx === scenes.length - 1 &&
+              !isLiveScene;
+            const sceneCue = cueEffects?.[s._id];
+            return (
+              <div
+                key={s._id}
+                className={
+                  "group relative cursor-pointer border-b border-gray-100 px-3 py-2 text-sm transition " +
+                  (scene?._id === s._id
+                    ? "bg-brand-light text-brand-dark"
+                    : "hover:bg-gray-50")
+                }
+                onClick={() => setSelectedSceneId(s._id)}
+              >
+                {/* Scene cue thumbnail — each card uses its own scene's effects */}
+                <div className="mb-1.5 overflow-hidden rounded border border-gray-200 bg-gray-950" style={{ maxWidth: 120 }}>
+                  {screen && sceneCue ? (
+                    <PanelStage
+                      screen={screen}
+                      effects={sceneCue}
+                      clockSec={0}
+                    />
+                  ) : (
+                    <div className="flex aspect-[4/3] items-center justify-center text-[9px] text-gray-500">
+                      {s.title.slice(0, 10)}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-medium">{s.title}</span>
+                  <span className="text-xs text-gray-400">
+                    {s.durationSec ?? "—"}
+                  </span>
+                </div>
+                {/* UP NEXT / LIVE / FINALE badges */}
+                {isLiveScene && (
+                  <span className="absolute right-1 top-1 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    ● LIVE
+                  </span>
+                )}
+                {isNext && !isFinale && (
+                  <span className="absolute right-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    UP NEXT
+                  </span>
+                )}
+                {isFinale && (
+                  <span className="absolute right-1 top-1 rounded bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    FINALE
+                  </span>
+                )}
+                {/* Edit/delete buttons */}
+                <div className="absolute right-1 bottom-1 flex gap-0.5 opacity-0 group-hover:opacity-100">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setModal({ type: "scene", scene: s });
+                    }}
+                    className="rounded p-0.5 text-gray-300 hover:text-brand"
+                    title="Edit"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm("Delete this scene?"))
+                        deleteScene({ sceneId: s._id });
+                    }}
+                    className="rounded p-0.5 text-gray-300 hover:text-red-600"
+                    title="Delete"
+                  >
+                    🗑
+                  </button>
+                </div>
               </div>
-            </Row>
-          ))}
+            );
+          })}
         </Column>
 
         <Column
@@ -650,6 +878,15 @@ function ShowsTab() {
           sceneId={scene._id}
           effect={modal.effect}
           panels={panelLanes}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === "effectPrefill" && scene && (
+        <EffectModal
+          sceneId={scene._id}
+          panels={panelLanes}
+          prefillPanelId={modal.panelId}
+          prefillStartTime={modal.startTime}
           onClose={() => setModal(null)}
         />
       )}
@@ -790,32 +1027,43 @@ function EffectModal({
   sceneId,
   effect,
   panels,
+  prefillPanelId,
+  prefillStartTime,
   onClose,
 }: {
   sceneId: Id<"scenes">;
   effect?: EffectRow;
   panels: { panel: Panel; label: string }[];
+  prefillPanelId?: Id<"panels">;
+  prefillStartTime?: number;
   onClose: () => void;
 }) {
   const createEffect = useMutation(api.designer.createEffect);
   const updateEffect = useMutation(api.designer.updateEffect);
   const [panelId, setPanelId] = useState<string>(
-    effect?.panelId ?? panels[0]?.panel._id ?? "",
+    effect?.panelId ?? prefillPanelId ?? panels[0]?.panel._id ?? "",
   );
   const [kind, setKind] = useState<"image" | "video" | "color" | "text">(
     effect?.kind ?? "color",
   );
   const [content, setContent] = useState(effect?.content ?? "#dc2626");
-  const [startTime, setStartTime] = useState(String(effect?.startTime ?? 0));
+  const [startTime, setStartTime] = useState(
+    String(effect?.startTime ?? prefillStartTime ?? 0),
+  );
+  const [durationVal, setDurationVal] = useState(
+    effect?.durationSec !== undefined ? String(effect.durationSec) : "",
+  );
   const [isEnabled, setIsEnabled] = useState(effect?.isEnabled ?? true);
 
   const save = async () => {
     if (!panelId) return;
+    const durNum = durationVal.trim() ? Math.max(0.5, Number(durationVal)) : undefined;
     const args = {
       panelId: panelId as Id<"panels">,
       kind,
       content,
       startTime: Math.max(0, Number(startTime) || 0),
+      durationSec: durNum,
     };
     if (effect) {
       await updateEffect({ effectId: effect._id, ...args, isEnabled });
@@ -898,6 +1146,17 @@ function EffectModal({
             onChange={(e) => setStartTime(e.target.value)}
           />
         </Field>
+        <Field label="Duration (seconds, blank = to end of scene)">
+          <input
+            className={inputCls}
+            type="number"
+            min={0.5}
+            step={0.5}
+            value={durationVal}
+            onChange={(e) => setDurationVal(e.target.value)}
+            placeholder="blank = to end"
+          />
+        </Field>
         {effect && (
           <label className="flex items-center gap-2 text-sm text-gray-600">
             <input
@@ -946,6 +1205,13 @@ function ScreensTab() {
     layoutDoc ? { layoutId: layoutDoc._id } : "skip",
   );
 
+  // Display profiles
+  const profiles = useQuery(
+    api.designer.listProfiles,
+    userId ? { ownerId: userId } : "skip",
+  );
+  const [profileModal, setProfileModal] = useState(false);
+
   const createLayout = useMutation(api.designer.createLayout);
   const updateLayout = useMutation(api.designer.updateLayout);
   const deleteLayout = useMutation(api.designer.deleteLayout);
@@ -955,6 +1221,9 @@ function ScreensTab() {
   const createPanel = useMutation(api.designer.createPanel);
   const updatePanel = useMutation(api.designer.updatePanel);
   const deletePanel = useMutation(api.designer.deletePanel);
+  const saveProfileMut = useMutation(api.designer.saveProfile);
+  const loadProfileMut = useMutation(api.designer.loadProfile);
+  const deleteProfileMut = useMutation(api.designer.deleteProfile);
 
   if (layouts === undefined) return <Loading />;
 
@@ -971,6 +1240,61 @@ function ScreensTab() {
 
   return (
     <div className="space-y-4">
+      {/* Display Profiles */}
+      {userId && layoutDoc && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Profiles</span>
+          <button
+            onClick={() => setProfileModal(true)}
+            className="rounded bg-brand px-2 py-1 text-xs font-semibold text-white hover:opacity-90"
+          >
+            Save as Profile
+          </button>
+          {profiles && profiles.length > 0 && (
+            <>
+              <select
+                id="profile-load"
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
+                defaultValue=""
+              >
+                <option value="" disabled>Load Profile…</option>
+                {profiles.map((p) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={async () => {
+                  const sel = document.getElementById("profile-load") as HTMLSelectElement;
+                  const pid = sel?.value as Id<"displayProfiles">;
+                  if (!pid || !layoutDoc) return;
+                  if (window.confirm("This will replace all screens and panels in this layout. Continue?")) {
+                    await loadProfileMut({ profileId: pid, layoutId: layoutDoc._id });
+                  }
+                  sel.value = "";
+                }}
+                className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+              >
+                Apply
+              </button>
+              <button
+                onClick={async () => {
+                  const sel = document.getElementById("profile-load") as HTMLSelectElement;
+                  const pid = sel?.value as Id<"displayProfiles">;
+                  if (!pid) return;
+                  if (window.confirm("Delete this profile?")) {
+                    await deleteProfileMut({ profileId: pid });
+                  }
+                  sel.value = "";
+                }}
+                className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50"
+              >
+                Delete
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 md:flex-row">
         <Column
           title="Layout"
@@ -1087,6 +1411,7 @@ function ScreensTab() {
           selectedPanelId={panel?._id ?? null}
           onSelectPanel={setSelectedPanelId}
           onSavePoints={(panelId, points) => updatePanel({ panelId, points })}
+          onUpdatePanel={updatePanel}
         />
       ) : (
         <EmptyState
@@ -1094,26 +1419,54 @@ function ScreensTab() {
           hint="Create a layout and a screen, then add panels and drag their corners into place."
         />
       )}
+
+      {/* Profile save modal */}
+      {profileModal && userId && layoutDoc && (
+        <ProfileSaveModal
+          onClose={() => setProfileModal(false)}
+          onSave={async (name) => {
+            await saveProfileMut({ name, ownerId: userId, layoutId: layoutDoc._id });
+            setProfileModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-/** SVG polygon editor: click a panel to select it, drag its corners to reshape. */
+/** SVG polygon editor: click a panel to select it, drag its corners to reshape.
+ *  Includes nudge controls, keyboard arrows, snap-to-grid, and z-index controls.
+ */
 function PanelEditor({
   screen,
   selectedPanelId,
   onSelectPanel,
   onSavePoints,
+  onUpdatePanel,
 }: {
   screen: Screen;
   selectedPanelId: Id<"panels"> | null;
   onSelectPanel: (id: Id<"panels">) => void;
   onSavePoints: (panelId: Id<"panels">, points: Point[]) => void;
+  onUpdatePanel: (args: {
+    panelId: Id<"panels">;
+    points?: Point[];
+    zIndex?: number;
+    name?: string;
+  }) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   // Local override while dragging, keyed by panel id.
   const [draftPoints, setDraftPoints] = useState<Record<string, Point[]>>({});
   const dragRef = useRef<{ panelId: Id<"panels">; pointIndex: number } | null>(null);
+
+  // Nudge state
+  const [moveMode, setMoveMode] = useState<"panel" | "point" | "side">("panel");
+  const [pointIndex, setPointIndex] = useState(0);
+  const [step, setStep] = useState(5);
+  const [snapToGrid, setSnapToGrid] = useState(false);
+
+  const snapVal = (v: number) => (snapToGrid ? Math.round(v / 10) * 10 : v);
 
   const toSvgCoords = (e: { clientX: number; clientY: number }): Point => {
     const svg = svgRef.current!;
@@ -1130,8 +1483,8 @@ function PanelEditor({
     const drag = dragRef.current;
     if (!drag) return;
     const pos = toSvgCoords(e);
-    pos.x = Math.max(0, Math.min(screen.width, pos.x));
-    pos.y = Math.max(0, Math.min(screen.height, pos.y));
+    pos.x = Math.max(0, Math.min(screen.width, snapVal(pos.x)));
+    pos.y = Math.max(0, Math.min(screen.height, snapVal(pos.y)));
     setDraftPoints((prev) => {
       const panel = screen.panels.find((p) => p._id === drag.panelId);
       if (!panel) return prev;
@@ -1163,6 +1516,62 @@ function PanelEditor({
   const removePoint = () => {
     if (!selected || selected.points.length <= 3) return;
     onSavePoints(selected._id, pointsOf(selected).slice(0, -1));
+  };
+
+  // Nudge function
+  const nudge = (dx: number, dy: number) => {
+    if (!selected) return;
+    const n = selected.points.length;
+    const moving =
+      moveMode === "panel"
+        ? selected.points.map((_, i) => i)
+        : moveMode === "point"
+          ? [Math.min(pointIndex, n - 1)]
+          : [Math.min(pointIndex, n - 1), (Math.min(pointIndex, n - 1) + 1) % n];
+    const points = selected.points.map((p, i) =>
+      moving.includes(i)
+        ? {
+            x: Math.max(0, Math.min(screen.width, snapVal(p.x + dx))),
+            y: Math.max(0, Math.min(screen.height, snapVal(p.y + dy))),
+          }
+        : p,
+    );
+    onSavePoints(selected._id, points);
+  };
+
+  // Keyboard arrow support
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as Element)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      switch (e.key) {
+        case "ArrowUp":
+          e.preventDefault();
+          nudge(0, -step); break;
+        case "ArrowDown":
+          e.preventDefault();
+          nudge(0, step); break;
+        case "ArrowLeft":
+          e.preventDefault();
+          nudge(-step, 0); break;
+        case "ArrowRight":
+          e.preventDefault();
+          nudge(step, 0); break;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, step, moveMode, pointIndex, snapToGrid]);
+
+  // Z-index controls
+  const bringForward = () => {
+    if (!selected) return;
+    onUpdatePanel({ panelId: selected._id, zIndex: selected.zIndex + 1 });
+  };
+  const sendBackward = () => {
+    if (!selected) return;
+    onUpdatePanel({ panelId: selected._id, zIndex: Math.max(0, selected.zIndex - 1) });
   };
 
   return (
@@ -1202,6 +1611,7 @@ function PanelEditor({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerLeave={endDrag}
+        tabIndex={0}
       >
         {screen.panels.map((p, i) => {
           const pts = pointsOf(p);
@@ -1232,31 +1642,213 @@ function PanelEditor({
               </text>
               {isSel &&
                 pts.map((pt, pi) => (
-                  <circle
-                    key={pi}
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={screen.width / 70}
-                    fill="#fff"
-                    stroke="#111827"
-                    strokeWidth={2}
-                    className="cursor-grab"
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      (e.target as Element).setPointerCapture?.(e.pointerId);
-                      dragRef.current = { panelId: p._id, pointIndex: pi };
-                    }}
-                  />
+                  <g key={pi}>
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={screen.width / 70}
+                      fill={pi === pointIndex && moveMode !== "panel" ? "#22c55e" : "#fff"}
+                      stroke="#111827"
+                      strokeWidth={2}
+                      className="cursor-grab"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        (e.target as Element).setPointerCapture?.(e.pointerId);
+                        dragRef.current = { panelId: p._id, pointIndex: pi };
+                      }}
+                    />
+                    {moveMode !== "panel" && (
+                      <text
+                        x={pt.x}
+                        y={pt.y}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill="#111827"
+                        fontSize={screen.width / 90}
+                        fontWeight="bold"
+                        className="pointer-events-none"
+                      >
+                        {pi + 1}
+                      </text>
+                    )}
+                  </g>
                 ))}
             </g>
           );
         })}
       </svg>
+
+      {/* Nudge controls + snap + z-index */}
+      {selected && (
+        <div className="border-t border-gray-200 p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Move mode radios */}
+            <div className="flex items-center gap-2">
+              {(["panel", "point", "side"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setMoveMode(t)}
+                  className={
+                    "rounded-full px-3 py-1 text-xs font-semibold capitalize " +
+                    (moveMode === t
+                      ? "bg-brand text-white"
+                      : "border border-gray-300 text-gray-600")
+                  }
+                >
+                  Move {t === "panel" ? "entire panel" : t}
+                </button>
+              ))}
+            </div>
+
+            {/* Snap to grid */}
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+              <input
+                type="checkbox"
+                checked={snapToGrid}
+                onChange={(e) => setSnapToGrid(e.target.checked)}
+                className="accent-brand"
+              />
+              Snap to 10px grid
+            </label>
+
+            {/* Z-index controls */}
+            <div className="ml-auto flex items-center gap-1">
+              <span className="text-xs text-gray-400">z: {selected.zIndex}</span>
+              <button
+                onClick={bringForward}
+                className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                title="Bring forward"
+              >
+                ↑ Forward
+              </button>
+              <button
+                onClick={sendBackward}
+                className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                title="Send backward"
+              >
+                ↓ Backward
+              </button>
+            </div>
+          </div>
+
+          {/* Point/side selector */}
+          {moveMode !== "panel" && (
+            <div className="mt-3 flex items-center gap-1">
+              <span className="mr-1 text-xs text-gray-400">
+                {moveMode === "point" ? "Corner" : "Side from corner"}:
+              </span>
+              {selected.points.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPointIndex(i)}
+                  className={
+                    "h-7 w-7 rounded-full text-xs font-bold " +
+                    (pointIndex === i
+                      ? "bg-green-500 text-white"
+                      : "border border-gray-300 text-gray-600")
+                  }
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Arrow grid + step selector */}
+          <div className="mt-3 flex items-center justify-center gap-6">
+            <div className="grid grid-cols-3 gap-1">
+              <span />
+              <button
+                onClick={() => nudge(0, -step)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-lg text-gray-700 hover:bg-gray-100 active:bg-brand-light"
+              >
+                ↑
+              </button>
+              <span />
+              <button
+                onClick={() => nudge(-step, 0)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-lg text-gray-700 hover:bg-gray-100 active:bg-brand-light"
+              >
+                ←
+              </button>
+              <span className="flex h-10 w-10 items-center justify-center text-xs text-gray-300">
+                {step}px
+              </span>
+              <button
+                onClick={() => nudge(step, 0)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-lg text-gray-700 hover:bg-gray-100 active:bg-brand-light"
+              >
+                →
+              </button>
+              <span />
+              <button
+                onClick={() => nudge(0, step)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-lg text-gray-700 hover:bg-gray-100 active:bg-brand-light"
+              >
+                ↓
+              </button>
+              <span />
+            </div>
+            <div className="flex flex-col gap-1">
+              {[1, 5, 20].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStep(s)}
+                  className={
+                    "rounded px-2 py-1 text-xs font-semibold " +
+                    (step === s
+                      ? "bg-brand text-white"
+                      : "border border-gray-300 text-gray-600")
+                  }
+                >
+                  {s}px
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="mt-2 text-center text-[11px] text-gray-400">
+            Tip: keyboard arrows also nudge · {moveMode === "panel" ? "moves entire panel" : moveMode === "point" ? `moves corner ${pointIndex + 1}` : `moves side from corner ${pointIndex + 1}`}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- designer
+
+/** Simple modal for naming and saving a display profile. */
+function ProfileSaveModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (name: string) => void;
+}) {
+  const [name, setName] = useState("");
+  return (
+    <Modal title="Save display profile" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Profile name">
+          <input
+            className={inputCls}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. 4-projector living room"
+            autoFocus
+          />
+        </Field>
+        <button
+          onClick={() => name.trim() && onSave(name.trim())}
+          disabled={!name.trim()}
+          className="w-full rounded-md bg-brand py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+        >
+          Save Profile
+        </button>
+      </div>
+    </Modal>
+  );
+}
 
 export function ShowDesigner() {
   const [tab, setTab] = useState<"shows" | "screens">("shows");

@@ -69,6 +69,46 @@ export const getSceneEffects = query({
 });
 
 /**
+ * Lightweight per-scene effects for scene-card cue thumbnails.
+ * Keyed by sceneId so every card can render its own PanelStage preview.
+ */
+export const getShowCueEffects = query({
+  args: { showId: v.id("shows") },
+  handler: async (ctx, { showId }) => {
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", showId))
+      .collect();
+    const byScene: Record<
+      string,
+      Array<{
+        panelId: Id<"panels">;
+        kind: "image" | "video" | "color" | "text";
+        content: string;
+        startTime: number;
+        isEnabled: boolean;
+        durationSec?: number;
+      }>
+    > = {};
+    for (const scene of scenes) {
+      const effects = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      byScene[scene._id] = effects.map((e) => ({
+        panelId: e.panelId,
+        kind: e.kind,
+        content: e.content,
+        startTime: e.startTime,
+        isEnabled: e.isEnabled,
+        durationSec: e.durationSec,
+      }));
+    }
+    return byScene;
+  },
+});
+
+/**
  * Everything one physical output (projector / LED wall) needs, in one
  * reactive query: the screen + its panels, the alignment state, and — if a
  * show targeting this screen's layout is live — the current scene and its
@@ -101,6 +141,7 @@ export const screenView = query({
       content: string;
       startTime: number;
       isEnabled: boolean;
+      durationSec?: number;
     }> = [];
     if (show) {
       const scenes = await ctx.db
@@ -111,10 +152,17 @@ export const screenView = query({
       scene = scenes[show.currentSceneIndex] ?? null;
       if (scene) {
         const sceneId = scene._id;
-        effects = await ctx.db
+        effects = (await ctx.db
           .query("effects")
           .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
-          .collect();
+          .collect()).map((e) => ({
+          panelId: e.panelId,
+          kind: e.kind,
+          content: e.content,
+          startTime: e.startTime,
+          isEnabled: e.isEnabled,
+          durationSec: e.durationSec,
+        }));
       }
     }
 
@@ -249,9 +297,18 @@ export const createEffect = mutation({
     ),
     content: v.string(),
     startTime: v.number(),
+    durationSec: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("effects", { ...args, isEnabled: true });
+  handler: async (ctx, { sceneId, panelId, kind, content, startTime, durationSec }) => {
+    return await ctx.db.insert("effects", {
+      sceneId,
+      panelId,
+      kind,
+      content,
+      startTime,
+      isEnabled: true,
+      ...(durationSec !== undefined ? { durationSec } : {}),
+    });
   },
 });
 
@@ -270,6 +327,7 @@ export const updateEffect = mutation({
     content: v.optional(v.string()),
     startTime: v.optional(v.number()),
     isEnabled: v.optional(v.boolean()),
+    durationSec: v.optional(v.number()),
   },
   handler: async (ctx, { effectId, ...fields }) => {
     await ctx.db.patch(effectId, fields);
@@ -405,5 +463,104 @@ export const deletePanel = mutation({
       .collect();
     for (const effect of effects) await ctx.db.delete(effect._id);
     await ctx.db.delete(panelId);
+  },
+});
+
+// ------------------------------------------------- display profile mutations
+
+export const listProfiles = query({
+  args: { ownerId: v.id("users") },
+  handler: async (ctx, { ownerId }) => {
+    return await ctx.db
+      .query("displayProfiles")
+      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+      .collect();
+  },
+});
+
+export const saveProfile = mutation({
+  args: {
+    name: v.string(),
+    ownerId: v.id("users"),
+    layoutId: v.id("layouts"),
+  },
+  handler: async (ctx, { name, ownerId, layoutId }) => {
+    const screens = await screensWithPanels(ctx, layoutId);
+    const config = {
+      screens: screens.map((s) => ({
+        name: s.name,
+        width: s.width,
+        height: s.height,
+        panels: s.panels.map((p) => ({
+          name: p.name,
+          zIndex: p.zIndex,
+          points: p.points,
+        })),
+      })),
+    };
+    return await ctx.db.insert("displayProfiles", {
+      name,
+      ownerId,
+      config,
+    });
+  },
+});
+
+export const loadProfile = mutation({
+  args: {
+    profileId: v.id("displayProfiles"),
+    layoutId: v.id("layouts"),
+  },
+  handler: async (ctx, { profileId, layoutId }) => {
+    const profile = await ctx.db.get(profileId);
+    if (!profile) throw new Error("Profile not found");
+    const config = profile.config as {
+      screens: Array<{
+        name: string;
+        width: number;
+        height: number;
+        panels: Array<{
+          name: string;
+          zIndex: number;
+          points: Array<{ x: number; y: number }>;
+        }>;
+      }>;
+    };
+
+    // Delete existing screens + panels for this layout.
+    const existingScreens = await ctx.db
+      .query("screens")
+      .withIndex("by_layout", (q) => q.eq("layoutId", layoutId))
+      .collect();
+    for (const screen of existingScreens) {
+      await deleteScreenCascade(ctx, screen._id);
+    }
+
+    // Create new screens + panels from the profile config.
+    for (let i = 0; i < config.screens.length; i++) {
+      const s = config.screens[i];
+      const screenId = await ctx.db.insert("screens", {
+        layoutId,
+        name: s.name,
+        order: i,
+        width: s.width,
+        height: s.height,
+      });
+      for (const p of s.panels) {
+        await ctx.db.insert("panels", {
+          screenId,
+          name: p.name,
+          zIndex: p.zIndex,
+          points: p.points,
+        });
+      }
+    }
+  },
+});
+
+export const deleteProfile = mutation({
+  args: { profileId: v.id("displayProfiles") },
+  handler: async (ctx, { profileId }) => {
+    await ctx.db.delete(profileId);
   },
 });
