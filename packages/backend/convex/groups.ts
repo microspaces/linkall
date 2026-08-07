@@ -50,6 +50,10 @@ export const list = query({
   },
 });
 
+function byName<T extends { name: string }>(a: T, b: T) {
+  return a.name.localeCompare(b.name);
+}
+
 /** Left + right sidebar buckets (legacy Top/Hot/Favorites + Followed/Not Followed). */
 export const sidebar = query({
   args: { userId: v.optional(v.id("users")) },
@@ -57,11 +61,13 @@ export const sidebar = query({
     const groups = await ctx.db.query("groups").collect();
     const rows = await withMembership(ctx, groups, userId);
 
-    const top = rows.filter((g) => g.leftmenu === 1);
-    const hot = rows.filter((g) => g.leftmenu === 2);
-    const favorites = rows.filter((g) => g.isFavorite);
-    const followed = rows.filter((g) => g.isMember);
-    const notFollowed = rows.filter((g) => !g.isMember && g.kind === "public");
+    const top = rows.filter((g) => g.leftmenu === 1).sort(byName);
+    const hot = rows.filter((g) => g.leftmenu === 2).sort(byName);
+    const favorites = rows.filter((g) => g.isFavorite).sort(byName);
+    const followed = rows.filter((g) => g.isMember).sort(byName);
+    const notFollowed = rows
+      .filter((g) => !g.isMember && g.kind === "public")
+      .sort(byName);
 
     return { top, hot, favorites, followed, notFollowed };
   },
@@ -82,7 +88,12 @@ export const get = query({
           .unique()
       : null;
 
-    return { ...group, isMember: membership !== null, isAdmin: membership?.isAdmin ?? false };
+    return {
+      ...group,
+      isMember: membership !== null,
+      isAdmin: membership?.isAdmin ?? false,
+      isFavorite: membership?.isFavorite ?? false,
+    };
   },
 });
 

@@ -187,14 +187,17 @@ export const surroundshow = mutation({
     const groups = await insertGroups(
       ctx,
       [
+        // Holiday set mirrors production surroundshow.com groupChat (SiteId 1).
+        // leftmenu 1 = Top, 2 = Hot — same assignments as live.
+        { name: "4th of July", description: "Fireworks, flags and summer night projection shows.", kind: "public", category: "july4" },
         { name: "Christmas", description: "Holiday show scenes, loops and projection ideas.", kind: "public", leftmenu: 1, category: "christmas" },
-        { name: "Halloween", description: "Spooky yards, haunted windows and fright-night playlists.", kind: "public", leftmenu: 1, category: "halloween" },
-        { name: "New Year's", description: "Countdown scenes and midnight party screens.", kind: "public", leftmenu: 2, category: "newyear" },
-        { name: "Thanksgiving", description: "Autumn ambience and gratitude-themed shows.", kind: "public", leftmenu: 2, category: "thanksgiving" },
         { name: "Easter", description: "Spring holiday projections and pastel palettes.", kind: "public", category: "easter" },
-        { name: "Valentine's", description: "Romantic scenes for date-night displays.", kind: "public", category: "valentines" },
-        { name: "St. Pats", description: "Green lights, shamrocks and parade energy.", kind: "public", category: "stpatricks" },
+        { name: "Halloween", description: "Spooky yards, haunted windows and fright-night playlists.", kind: "public", leftmenu: 1, category: "halloween" },
         { name: "Mardi Gras", description: "Beads, brass bands and balcony vibes.", kind: "public", category: "mardigras" },
+        { name: "New Year's", description: "Countdown scenes and midnight party screens.", kind: "public", leftmenu: 2, category: "newyear" },
+        { name: "St. Pats", description: "Green lights, shamrocks and parade energy.", kind: "public", category: "stpatricks" },
+        { name: "Thanksgiving", description: "Autumn ambience and gratitude-themed shows.", kind: "public", leftmenu: 2, category: "thanksgiving" },
+        { name: "Valentine's", description: "Romantic scenes for date-night displays.", kind: "public", category: "valentines" },
         { name: "Holiday Show Producers", description: "Share setups, timing tricks and playlists for the big nights.", kind: "public" },
         { name: "Screen Designers", description: "Scene design critiques and template swaps.", kind: "public" },
         { name: "Marketplace Sellers", description: "For creators selling scenes, loops and effect packs.", kind: "private" },
@@ -205,12 +208,12 @@ export const surroundshow = mutation({
     await insertPosts(
       ctx,
       [
-        { content: "Halloween Spooktacular is LIVE tonight at 8pm — tune your screens to the show page!", groupIndex: 1 },
-        { content: "Just published a new fog-and-lightning loop to the marketplace. Feedback welcome.", groupIndex: 10 },
-        { content: "What projector are people using for garage-door scenes?", groupIndex: 8 },
-        { content: "Scene pacing tip: never hold a static image longer than 20 seconds.", groupIndex: 9 },
-        { content: "Countdown template for New Year is ready — grab it before the 31st!", groupIndex: 2 },
-        { content: "Christmas garage-door scene is looking incredible this year!", groupIndex: 0 },
+        { content: "Halloween Spooktacular is LIVE tonight at 8pm — tune your screens to the show page!", groupIndex: 3 },
+        { content: "Just published a new fog-and-lightning loop to the marketplace. Feedback welcome.", groupIndex: 11 },
+        { content: "What projector are people using for garage-door scenes?", groupIndex: 9 },
+        { content: "Scene pacing tip: never hold a static image longer than 20 seconds.", groupIndex: 10 },
+        { content: "Countdown template for New Year is ready — grab it before the 31st!", groupIndex: 5 },
+        { content: "Christmas garage-door scene is looking incredible this year!", groupIndex: 1 },
       ],
       users,
       groups,
@@ -341,7 +344,7 @@ export const surroundshow = mutation({
       });
     }
 
-    return "Seeded SurroundShow: 5 users, 11 groups (holiday sidebars), 3 shows (1 designer), 1 layout, 6 products";
+    return "Seeded SurroundShow: 5 users, 12 groups (holiday sidebars), 3 shows (1 designer), 1 layout, 6 products";
   },
 });
 
@@ -359,26 +362,31 @@ export const funfirst = mutation({
       { name: "Nina Volkov", handle: "nina", bio: "Front-row heckler, reformed. Mostly.", tier: "free" },
     ]);
 
+    // Comedy network set mirrors production laffupalunga.com groupChat (SiteId 2).
+    // leftmenu 1 = Top, 2 = Hot — same assignments as live.
     const groups = await insertGroups(
       ctx,
       [
-        { name: "Crazyball Fans", description: "Bananas vs Berries, forever. Match threads and vote strategy.", kind: "public" },
-        { name: "HeadCase Writers Room", description: "Pitch bits, punch up sketches, argue about AI punchlines.", kind: "private" },
-        { name: "WWCCE Superfans", description: "Wrestling comedy championship talk. Kayfabe respected.", kind: "public" },
-        { name: "Open Mic Night Crew", description: "New comics supporting new comics at LaffUp nights.", kind: "public" },
-      ],
+        { name: "Crazyball", description: "League of Laughs Competitive Comedy", kind: "public", leftmenu: 1, category: "crazyball" },
+        { name: "Headcase", description: "Robot Comedy Army", kind: "public", leftmenu: 1, category: "headcase" },
+        { name: "Laff-up", description: "Sketch Comedy Live!", kind: "public", leftmenu: 2, category: "laffup" },
+        { name: "News", description: "Laffupalunga Comedy Network News", kind: "public", category: "news" },
+        { name: "Stageshow", description: "Direct a TV broadcast from a Zoom meeting", kind: "public", category: "stageshow" },
+        { name: "Superstars", description: "Superstars & Superfans", kind: "public", leftmenu: 2, category: "superstars" },
+        { name: "WWCCE", description: "Bring the Action!", kind: "public", leftmenu: 1, category: "wwcce" },
+      ] as GroupSpec[],
       users,
     );
 
     await insertPosts(
       ctx,
       [
-        { content: "Crazyball Championship goes LIVE Friday — Bananas need this one." , groupIndex: 0 },
+        { content: "Crazyball Championship goes LIVE Friday — Bananas need this one.", groupIndex: 0 },
         { content: "New HeadCase bit in the show queue: 'My Smart Fridge Judges Me'.", groupIndex: 1 },
-        { content: "WWCCE title match ended with a folding-chair pun. Cinema.", groupIndex: 2 },
-        { content: "Five spots left for Thursday open mic — sign up in the events page!", groupIndex: 3 },
-        { content: "Audience vote decided the last round by 3 points. Your phone is the game." },
-        { content: "Who else is going to FunFirst Comedy Night at the Chuckle Hut?" },
+        { content: "WWCCE title match ended with a folding-chair pun. Cinema.", groupIndex: 6 },
+        { content: "Five spots left for Thursday open mic — sign up in the events page!", groupIndex: 2 },
+        { content: "Audience vote decided the last round by 3 points. Your phone is the game.", groupIndex: 5 },
+        { content: "Who else is going to FunFirst Comedy Night at the Chuckle Hut?", groupIndex: 3 },
       ],
       users,
       groups,
@@ -596,7 +604,7 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 4 groups, 4 shows (1 designer), 1 layout, 1 performance (5 rounds), 4 events";
+    return "Seeded FunFirst: 6 users, 7 groups (comedy sidebars), 4 shows (1 designer), 1 layout, 1 performance (5 rounds), 4 events";
   },
 });
 

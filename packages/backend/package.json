@@ -10,6 +10,7 @@
     "seed:surroundshow": "convex run seed:surroundshow --env-file .env.surroundshow",
     "seed:funfirst": "convex run seed:funfirst --env-file .env.funfirst",
     "seed:redwave": "convex run seed:redwave --env-file .env.redwave",
+    "import:mike": "node migrations/import-mike.mjs",
     "codegen": "convex codegen",
     "typecheck": "tsc --noEmit -p convex"
   },

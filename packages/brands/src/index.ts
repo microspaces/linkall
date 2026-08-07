@@ -50,6 +50,10 @@ export interface Brand {
   nav: NavItem[];
   /** Sub-brands surfaced as show categories (legacy Site 2 brands). */
   showTags: ShowTag[];
+  /** Left-sidebar Designer link label (legacy Surroundshow vs Laffupalunga). */
+  designerLabel: string;
+  /** Left-sidebar Info link label — "Groups" (Surroundshow) or "Solutions" (Laffupalunga). */
+  groupsLabel: string;
 }
 
 export const brands: Record<BrandId, Brand> = {
@@ -88,6 +92,8 @@ export const brands: Record<BrandId, Brand> = {
       { tag: "christmas", label: "Christmas", blurb: "Snow, lights and holiday scenes." },
       { tag: "newyear", label: "New Year", blurb: "Countdown and party screens." },
     ],
+    designerLabel: "Designer",
+    groupsLabel: "Groups",
   },
   funfirst: {
     id: "funfirst",
@@ -124,7 +130,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "Player", href: "/player" },
       { label: "Performance", href: "/performance" },
       { label: "Events & Tickets", href: "/events" },
-      { label: "Groups", href: "/groups" },
+      { label: "Solutions", href: "/groups" },
       { label: "Feed", href: "/feed" },
       { label: "People", href: "/people" },
     ],
@@ -134,6 +140,8 @@ export const brands: Record<BrandId, Brand> = {
       { tag: "wwcce", label: "WWCCE", blurb: "Wrestling comedy championship extravaganza." },
       { tag: "laffup", label: "LaffUp", blurb: "Open-mic stand-up showcases." },
     ],
+    designerLabel: "Show Designer",
+    groupsLabel: "Solutions",
   },
   redwave: {
     id: "redwave",
@@ -164,6 +172,8 @@ export const brands: Record<BrandId, Brand> = {
       { label: "People", href: "/people" },
     ],
     showTags: [],
+    designerLabel: "Designer",
+    groupsLabel: "Groups",
   },
 };
 
