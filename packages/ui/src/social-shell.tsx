@@ -110,7 +110,7 @@ function LeftSidebar() {
           <span className="flex h-5 w-5 items-center justify-center rounded bg-brand text-[10px] text-white md:h-8 md:w-8 md:text-xs">
             D
           </span>
-          <span className="max-md:text-center">Designer</span>
+          <span className="max-md:text-center">{brand.designerLabel}</span>
         </Link>
       )}
 
@@ -132,19 +132,23 @@ function LeftSidebar() {
           className="flex flex-col items-center gap-0.5 rounded px-1 py-1.5 text-[9px] text-gray-700 hover:bg-gray-200/80 md:flex-row md:gap-2 md:py-2 md:text-sm"
         >
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[10px] md:h-8 md:w-8">
-            G
+            {brand.groupsLabel[0]}
           </span>
-          <span>Groups</span>
+          <span>{brand.groupsLabel}</span>
         </Link>
       </SidebarSection>
 
-      {sidebar.favorites.length > 0 && (
-        <SidebarSection title="Favorites">
-          {sidebar.favorites.map((g) => (
+      <SidebarSection title="Favorites">
+        {sidebar.favorites.length === 0 ? (
+          <p className="px-1 text-[10px] text-gray-400 max-md:text-center md:text-xs">
+            None yet
+          </p>
+        ) : (
+          sidebar.favorites.map((g) => (
             <GroupLink key={g._id} group={g} />
-          ))}
-        </SidebarSection>
-      )}
+          ))
+        )}
+      </SidebarSection>
     </aside>
   );
 }

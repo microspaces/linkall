@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Id } from "@linkall/backend/convex/_generated/dataModel";
 import { Avatar } from "./avatar";
+import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 import { Feed } from "./feed";
@@ -18,21 +19,23 @@ const KIND_LABEL: Record<string, string> = {
 
 export function GroupList({
   kind,
-  title = "Groups",
+  title,
 }: {
   kind?: "public" | "private" | "state" | "county";
   title?: string;
 }) {
+  const brand = useBrand();
   const { userId } = useCurrentUser();
   const groups = useQuery(api.groups.list, { userId, kind });
   const join = useMutation(api.groups.join);
   const leave = useMutation(api.groups.leave);
+  const heading = title ?? brand.groupsLabel;
 
   if (groups === undefined) return <Loading />;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>
       {groups.length === 0 ? (
         <div className="mt-6">
           <EmptyState title="No groups yet" />
@@ -94,6 +97,7 @@ export function GroupDetail({ groupId }: { groupId: Id<"groups"> }) {
   const members = useQuery(api.groups.members, { groupId });
   const join = useMutation(api.groups.join);
   const leave = useMutation(api.groups.leave);
+  const toggleFavorite = useMutation(api.groups.toggleFavorite);
 
   if (group === undefined) return <Loading />;
   if (group === null) return <EmptyState title="Group not found" hint=" " />;
@@ -108,21 +112,36 @@ export function GroupDetail({ groupId }: { groupId: Id<"groups"> }) {
               <p className="mt-1 text-sm text-gray-500">{group.description}</p>
             </div>
             {userId && (
-              <button
-                onClick={() =>
-                  group.isMember
-                    ? leave({ groupId, userId })
-                    : join({ groupId, userId })
-                }
-                className={
-                  "shrink-0 rounded-md px-4 py-1.5 text-sm font-medium " +
-                  (group.isMember
-                    ? "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                    : "bg-brand text-white hover:bg-brand-dark")
-                }
-              >
-                {group.isMember ? "Leave group" : "Join group"}
-              </button>
+              <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row">
+                {group.isMember && (
+                  <button
+                    onClick={() => toggleFavorite({ groupId, userId })}
+                    className="rounded-md border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    title={
+                      group.isFavorite
+                        ? "Remove from Favorites"
+                        : "Add to Favorites"
+                    }
+                  >
+                    {group.isFavorite ? "★ Favorited" : "☆ Favorite"}
+                  </button>
+                )}
+                <button
+                  onClick={() =>
+                    group.isMember
+                      ? leave({ groupId, userId })
+                      : join({ groupId, userId })
+                  }
+                  className={
+                    "rounded-md px-4 py-1.5 text-sm font-medium " +
+                    (group.isMember
+                      ? "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                      : "bg-brand text-white hover:bg-brand-dark")
+                  }
+                >
+                  {group.isMember ? "Leave group" : "Join group"}
+                </button>
+              </div>
             )}
           </div>
           <p className="mt-3 text-xs text-gray-400">
