@@ -43,20 +43,79 @@ export const getShowScenes = query({
   },
 });
 
+/** Catalog of logical panel slot names (legacy LogicalPanelType). */
+export const LOGICAL_PANEL_TYPES = [
+  "MainContent",
+  "SecondaryContent",
+  "Background",
+  "Overlay",
+  "Scoreboard",
+  "Timer",
+  "TeamA",
+  "TeamB",
+  "PlayerInfo",
+  "Camera1",
+  "Camera2",
+  "Camera3",
+  "LeftSidebar",
+  "RightSidebar",
+  "Header",
+  "Footer",
+] as const;
+
+export const listLogicalPanelTypes = query({
+  args: {},
+  handler: async () => [...LOGICAL_PANEL_TYPES],
+});
+
+async function defaultProfileIdForShow(
+  ctx: QueryCtx | MutationCtx,
+  showId: Id<"shows">,
+): Promise<Id<"displayProfiles"> | null> {
+  const profiles = await ctx.db
+    .query("displayProfiles")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  const def = profiles.find((p) => p.isDefault) ?? profiles[0];
+  return def?._id ?? null;
+}
+
+async function mappingLookup(
+  ctx: QueryCtx | MutationCtx,
+  profileId: Id<"displayProfiles">,
+): Promise<Map<string, Id<"panels">>> {
+  const rows = await ctx.db
+    .query("panelMappings")
+    .withIndex("by_profile", (q) => q.eq("displayProfileId", profileId))
+    .collect();
+  return new Map(rows.map((m) => [m.logicalPanelName, m.panelId]));
+}
+
 /** Effects of a scene joined with their panel + screen names. */
 export const getSceneEffects = query({
-  args: { sceneId: v.id("scenes") },
-  handler: async (ctx, { sceneId }) => {
+  args: {
+    sceneId: v.id("scenes"),
+    displayProfileId: v.optional(v.id("displayProfiles")),
+  },
+  handler: async (ctx, { sceneId, displayProfileId }) => {
     const effects = await ctx.db
       .query("effects")
       .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
       .collect();
+    const mappings = displayProfileId
+      ? await mappingLookup(ctx, displayProfileId)
+      : null;
     const rows = [];
     for (const effect of effects) {
-      const panel = await ctx.db.get(effect.panelId);
+      const resolvedPanelId =
+        (effect.logicalPanelName && mappings?.get(effect.logicalPanelName)) ||
+        effect.panelId;
+      const panel = await ctx.db.get(resolvedPanelId);
       const screen = panel ? await ctx.db.get(panel.screenId) : null;
       rows.push({
         ...effect,
+        panelId: resolvedPanelId,
+        sourcePanelId: effect.panelId,
         panelName: panel?.name ?? "(deleted panel)",
         screenName: screen?.name ?? "",
         screenId: screen?._id,
@@ -73,8 +132,14 @@ export const getSceneEffects = query({
  * Keyed by sceneId so every card can render its own PanelStage preview.
  */
 export const getShowCueEffects = query({
-  args: { showId: v.id("shows") },
-  handler: async (ctx, { showId }) => {
+  args: {
+    showId: v.id("shows"),
+    displayProfileId: v.optional(v.id("displayProfiles")),
+  },
+  handler: async (ctx, { showId, displayProfileId }) => {
+    const profileId =
+      displayProfileId ?? (await defaultProfileIdForShow(ctx, showId));
+    const mappings = profileId ? await mappingLookup(ctx, profileId) : null;
     const scenes = await ctx.db
       .query("scenes")
       .withIndex("by_show", (q) => q.eq("showId", showId))
@@ -88,6 +153,7 @@ export const getShowCueEffects = query({
         startTime: number;
         isEnabled: boolean;
         durationSec?: number;
+        videoStartSec?: number;
       }>
     > = {};
     for (const scene of scenes) {
@@ -96,17 +162,97 @@ export const getShowCueEffects = query({
         .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
         .collect();
       byScene[scene._id] = effects.map((e) => ({
-        panelId: e.panelId,
+        panelId:
+          (e.logicalPanelName && mappings?.get(e.logicalPanelName)) || e.panelId,
         kind: e.kind,
         content: e.content,
         startTime: e.startTime,
         isEnabled: e.isEnabled,
         durationSec: e.durationSec,
+        videoStartSec: e.videoStartSec,
       }));
     }
     return byScene;
   },
 });
+
+/**
+ * Resolve which show + display profile a physical screen should follow.
+ * Explicit ids win; otherwise auto-bind the first live show whose default
+ * profile (or show.layoutId) targets this screen's layout.
+ */
+async function resolveScreenBinding(
+  ctx: QueryCtx | MutationCtx,
+  screen: Doc<"screens">,
+  showId?: Id<"shows">,
+  displayProfileId?: Id<"displayProfiles">,
+): Promise<{
+  show: Doc<"shows"> | null;
+  profileId: Id<"displayProfiles"> | null;
+  boundExplicitly: boolean;
+}> {
+  if (showId) {
+    const show = await ctx.db.get(showId);
+    if (!show) return { show: null, profileId: null, boundExplicitly: true };
+
+    let profileId: Id<"displayProfiles"> | null = null;
+    if (displayProfileId) {
+      const profile = await ctx.db.get(displayProfileId);
+      if (
+        profile &&
+        profile.showId === showId &&
+        profile.layoutId === screen.layoutId
+      ) {
+        profileId = profile._id;
+      }
+    }
+    if (!profileId) {
+      const profiles = await ctx.db
+        .query("displayProfiles")
+        .withIndex("by_show", (q) => q.eq("showId", showId))
+        .collect();
+      const forLayout = profiles.filter((p) => p.layoutId === screen.layoutId);
+      const pick =
+        forLayout.find((p) => p.isDefault) ?? forLayout[0] ?? null;
+      profileId = pick?._id ?? (await defaultProfileIdForShow(ctx, showId));
+      // Reject a default that targets a different layout.
+      if (profileId) {
+        const p = await ctx.db.get(profileId);
+        if (p && p.layoutId !== screen.layoutId) profileId = null;
+      }
+    }
+    return { show, profileId, boundExplicitly: true };
+  }
+
+  const liveShows = await ctx.db
+    .query("shows")
+    .withIndex("by_status", (q) => q.eq("status", "live"))
+    .collect();
+
+  for (const candidate of liveShows) {
+    const pid = await defaultProfileIdForShow(ctx, candidate._id);
+    if (pid) {
+      const profile = await ctx.db.get(pid);
+      if (profile?.layoutId === screen.layoutId) {
+        return {
+          show: candidate,
+          profileId: pid,
+          boundExplicitly: false,
+        };
+      }
+    }
+  }
+  const fallback =
+    liveShows.find((s) => s.layoutId === screen.layoutId) ?? null;
+  if (fallback) {
+    return {
+      show: fallback,
+      profileId: await defaultProfileIdForShow(ctx, fallback._id),
+      boundExplicitly: false,
+    };
+  }
+  return { show: null, profileId: null, boundExplicitly: false };
+}
 
 /**
  * Everything one physical output (projector / LED wall) needs, in one
@@ -115,10 +261,17 @@ export const getShowCueEffects = query({
  * effects. This replaces the legacy SignalR DisplayHub messages: any change
  * (scene tap, panel nudge, alignment toggle) re-runs this query on the
  * screen page automatically.
+ *
+ * Optional showId / displayProfileId let the screen page pin a binding when
+ * multiple shows share the same physical layout.
  */
 export const screenView = query({
-  args: { screenId: v.id("screens") },
-  handler: async (ctx, { screenId }) => {
+  args: {
+    screenId: v.id("screens"),
+    showId: v.optional(v.id("shows")),
+    displayProfileId: v.optional(v.id("displayProfiles")),
+  },
+  handler: async (ctx, { screenId, showId, displayProfileId }) => {
     const screen = await ctx.db.get(screenId);
     if (!screen) return null;
     const panels = await ctx.db
@@ -128,11 +281,12 @@ export const screenView = query({
     panels.sort((a, b) => a.zIndex - b.zIndex);
     const layout = await ctx.db.get(screen.layoutId);
 
-    const liveShows = await ctx.db
-      .query("shows")
-      .withIndex("by_status", (q) => q.eq("status", "live"))
-      .collect();
-    const show = liveShows.find((s) => s.layoutId === screen.layoutId) ?? null;
+    const { show, profileId, boundExplicitly } = await resolveScreenBinding(
+      ctx,
+      screen,
+      showId,
+      displayProfileId,
+    );
 
     let scene: Doc<"scenes"> | null = null;
     let effects: Array<{
@@ -142,8 +296,10 @@ export const screenView = query({
       startTime: number;
       isEnabled: boolean;
       durationSec?: number;
+      videoStartSec?: number;
     }> = [];
-    if (show) {
+    // Explicitly bound shows still only render content while live.
+    if (show && show.status === "live") {
       const scenes = await ctx.db
         .query("scenes")
         .withIndex("by_show", (q) => q.eq("showId", show._id))
@@ -152,16 +308,24 @@ export const screenView = query({
       scene = scenes[show.currentSceneIndex] ?? null;
       if (scene) {
         const sceneId = scene._id;
-        effects = (await ctx.db
-          .query("effects")
-          .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
-          .collect()).map((e) => ({
-          panelId: e.panelId,
+        const mappings = profileId
+          ? await mappingLookup(ctx, profileId)
+          : null;
+        effects = (
+          await ctx.db
+            .query("effects")
+            .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
+            .collect()
+        ).map((e) => ({
+          panelId:
+            (e.logicalPanelName && mappings?.get(e.logicalPanelName)) ||
+            e.panelId,
           kind: e.kind,
           content: e.content,
           startTime: e.startTime,
           isEnabled: e.isEnabled,
           durationSec: e.durationSec,
+          videoStartSec: e.videoStartSec,
         }));
       }
     }
@@ -172,6 +336,90 @@ export const screenView = query({
       show,
       scene,
       effects,
+      displayProfileId: profileId,
+      boundExplicitly,
+    };
+  },
+});
+
+/**
+ * Shows + display profiles that can drive a physical screen, plus the
+ * operator's other screens (for jumping between projector tabs).
+ */
+export const screenBindingOptions = query({
+  args: {
+    screenId: v.id("screens"),
+    ownerId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, { screenId, ownerId }) => {
+    const screen = await ctx.db.get(screenId);
+    if (!screen) return null;
+    const layout = await ctx.db.get(screen.layoutId);
+
+    const shows = await ctx.db.query("shows").collect();
+    const options = [];
+    for (const show of shows) {
+      const profiles = (
+        await ctx.db
+          .query("displayProfiles")
+          .withIndex("by_show", (q) => q.eq("showId", show._id))
+          .collect()
+      ).filter((p) => p.layoutId === screen.layoutId);
+      profiles.sort((a, b) => {
+        if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+      const layoutMatch = show.layoutId === screen.layoutId;
+      if (profiles.length === 0 && !layoutMatch) continue;
+      options.push({
+        showId: show._id,
+        title: show.title,
+        status: show.status,
+        profiles: profiles.map((p) => ({
+          _id: p._id,
+          name: p.name,
+          isDefault: p.isDefault,
+        })),
+      });
+    }
+    options.sort((a, b) => {
+      const rank = { live: 0, draft: 1, ended: 2 } as const;
+      const d = rank[a.status] - rank[b.status];
+      if (d !== 0) return d;
+      return a.title.localeCompare(b.title);
+    });
+
+    const myScreens: Array<{
+      _id: Id<"screens">;
+      name: string;
+      layoutName: string;
+    }> = [];
+    if (ownerId) {
+      const layouts = (await ctx.db.query("layouts").collect()).filter(
+        (l) => l.ownerId === ownerId,
+      );
+      for (const l of layouts) {
+        const screens = await ctx.db
+          .query("screens")
+          .withIndex("by_layout", (q) => q.eq("layoutId", l._id))
+          .collect();
+        screens.sort((a, b) => a.order - b.order);
+        for (const s of screens) {
+          myScreens.push({
+            _id: s._id,
+            name: s.name,
+            layoutName: l.name,
+          });
+        }
+      }
+    }
+
+    return {
+      screenName: screen.name,
+      layoutName: layout?.name ?? "",
+      layoutId: screen.layoutId,
+      shows: options,
+      myScreens,
     };
   },
 });
@@ -222,6 +470,11 @@ export const updateShow = mutation({
 export const deleteShow = mutation({
   args: { showId: v.id("shows") },
   handler: async (ctx, { showId }) => {
+    const profiles = await ctx.db
+      .query("displayProfiles")
+      .withIndex("by_show", (q) => q.eq("showId", showId))
+      .collect();
+    for (const profile of profiles) await deleteProfileCascade(ctx, profile._id);
     const scenes = await ctx.db
       .query("scenes")
       .withIndex("by_show", (q) => q.eq("showId", showId))
@@ -289,6 +542,7 @@ export const createEffect = mutation({
   args: {
     sceneId: v.id("scenes"),
     panelId: v.id("panels"),
+    logicalPanelName: v.optional(v.string()),
     kind: v.union(
       v.literal("image"),
       v.literal("video"),
@@ -298,8 +552,21 @@ export const createEffect = mutation({
     content: v.string(),
     startTime: v.number(),
     durationSec: v.optional(v.number()),
+    videoStartSec: v.optional(v.number()),
   },
-  handler: async (ctx, { sceneId, panelId, kind, content, startTime, durationSec }) => {
+  handler: async (
+    ctx,
+    {
+      sceneId,
+      panelId,
+      logicalPanelName,
+      kind,
+      content,
+      startTime,
+      durationSec,
+      videoStartSec,
+    },
+  ) => {
     return await ctx.db.insert("effects", {
       sceneId,
       panelId,
@@ -307,7 +574,9 @@ export const createEffect = mutation({
       content,
       startTime,
       isEnabled: true,
+      ...(logicalPanelName ? { logicalPanelName } : {}),
       ...(durationSec !== undefined ? { durationSec } : {}),
+      ...(videoStartSec !== undefined ? { videoStartSec } : {}),
     });
   },
 });
@@ -316,6 +585,7 @@ export const updateEffect = mutation({
   args: {
     effectId: v.id("effects"),
     panelId: v.optional(v.id("panels")),
+    logicalPanelName: v.optional(v.union(v.string(), v.null())),
     kind: v.optional(
       v.union(
         v.literal("image"),
@@ -328,9 +598,39 @@ export const updateEffect = mutation({
     startTime: v.optional(v.number()),
     isEnabled: v.optional(v.boolean()),
     durationSec: v.optional(v.number()),
+    videoStartSec: v.optional(v.number()),
   },
-  handler: async (ctx, { effectId, ...fields }) => {
-    await ctx.db.patch(effectId, fields);
+  handler: async (ctx, { effectId, logicalPanelName, ...fields }) => {
+    if (logicalPanelName === null) {
+      const existing = await ctx.db.get(effectId);
+      if (!existing) return;
+      await ctx.db.replace(effectId, {
+        sceneId: existing.sceneId,
+        panelId: fields.panelId ?? existing.panelId,
+        kind: fields.kind ?? existing.kind,
+        content: fields.content ?? existing.content,
+        startTime: fields.startTime ?? existing.startTime,
+        isEnabled: fields.isEnabled ?? existing.isEnabled,
+        ...(fields.durationSec !== undefined
+          ? { durationSec: fields.durationSec }
+          : existing.durationSec !== undefined
+            ? { durationSec: existing.durationSec }
+            : {}),
+        ...(fields.videoStartSec !== undefined
+          ? { videoStartSec: fields.videoStartSec }
+          : existing.videoStartSec !== undefined
+            ? { videoStartSec: existing.videoStartSec }
+            : {}),
+        ...(existing.logicalPanelName
+          ? { logicalPanelName: existing.logicalPanelName }
+          : {}),
+      });
+      return;
+    }
+    await ctx.db.patch(effectId, {
+      ...fields,
+      ...(logicalPanelName !== undefined ? { logicalPanelName } : {}),
+    });
   },
 });
 
@@ -468,99 +768,339 @@ export const deletePanel = mutation({
 
 // ------------------------------------------------- display profile mutations
 
-export const listProfiles = query({
-  args: { ownerId: v.id("users") },
-  handler: async (ctx, { ownerId }) => {
-    return await ctx.db
+async function clearDefaultProfiles(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+  except?: Id<"displayProfiles">,
+) {
+  const profiles = await ctx.db
+    .query("displayProfiles")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  for (const profile of profiles) {
+    if (profile.isDefault && profile._id !== except) {
+      await ctx.db.patch(profile._id, { isDefault: false });
+    }
+  }
+}
+
+async function deleteProfileCascade(
+  ctx: MutationCtx,
+  profileId: Id<"displayProfiles">,
+) {
+  const mappings = await ctx.db
+    .query("panelMappings")
+    .withIndex("by_profile", (q) => q.eq("displayProfileId", profileId))
+    .collect();
+  for (const mapping of mappings) await ctx.db.delete(mapping._id);
+  await ctx.db.delete(profileId);
+}
+
+/** Profiles for a show, default first. */
+export const listShowProfiles = query({
+  args: { showId: v.id("shows") },
+  handler: async (ctx, { showId }) => {
+    const profiles = await ctx.db
       .query("displayProfiles")
-      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+      .withIndex("by_show", (q) => q.eq("showId", showId))
       .collect();
-  },
-});
-
-export const saveProfile = mutation({
-  args: {
-    name: v.string(),
-    ownerId: v.id("users"),
-    layoutId: v.id("layouts"),
-  },
-  handler: async (ctx, { name, ownerId, layoutId }) => {
-    const screens = await screensWithPanels(ctx, layoutId);
-    const config = {
-      screens: screens.map((s) => ({
-        name: s.name,
-        width: s.width,
-        height: s.height,
-        panels: s.panels.map((p) => ({
-          name: p.name,
-          zIndex: p.zIndex,
-          points: p.points,
-        })),
-      })),
-    };
-    return await ctx.db.insert("displayProfiles", {
-      name,
-      ownerId,
-      config,
+    profiles.sort((a, b) => {
+      if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+      return a.name.localeCompare(b.name);
     });
+    const rows = [];
+    for (const profile of profiles) {
+      const layout = await ctx.db.get(profile.layoutId);
+      const mappingCount = (
+        await ctx.db
+          .query("panelMappings")
+          .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+          .collect()
+      ).length;
+      rows.push({
+        ...profile,
+        layoutName: layout?.name ?? "(deleted layout)",
+        mappingCount,
+      });
+    }
+    return rows;
   },
 });
 
-export const loadProfile = mutation({
+/** Profile + mappings with panel/screen names for the mapping editor. */
+export const getDisplayProfile = query({
+  args: { profileId: v.id("displayProfiles") },
+  handler: async (ctx, { profileId }) => {
+    const profile = await ctx.db.get(profileId);
+    if (!profile) return null;
+    const layout = await ctx.db.get(profile.layoutId);
+    const screens = layout
+      ? await screensWithPanels(ctx, profile.layoutId)
+      : [];
+    const mappings = await ctx.db
+      .query("panelMappings")
+      .withIndex("by_profile", (q) => q.eq("displayProfileId", profileId))
+      .collect();
+    const mappingRows = [];
+    for (const mapping of mappings) {
+      const panel = await ctx.db.get(mapping.panelId);
+      const screen = panel ? await ctx.db.get(panel.screenId) : null;
+      mappingRows.push({
+        ...mapping,
+        panelName: panel?.name ?? "(deleted panel)",
+        screenName: screen?.name ?? "",
+      });
+    }
+    mappingRows.sort((a, b) =>
+      a.logicalPanelName.localeCompare(b.logicalPanelName),
+    );
+    return {
+      ...profile,
+      layoutName: layout?.name ?? "(deleted layout)",
+      screens,
+      mappings: mappingRows,
+    };
+  },
+});
+
+export const createDisplayProfile = mutation({
+  args: {
+    showId: v.id("shows"),
+    layoutId: v.id("layouts"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    isDefault: v.optional(v.boolean()),
+    ownerId: v.id("users"),
+  },
+  handler: async (
+    ctx,
+    { showId, layoutId, name, description, isDefault, ownerId },
+  ) => {
+    const makeDefault = isDefault ?? false;
+    if (makeDefault) await clearDefaultProfiles(ctx, showId);
+    const existing = await ctx.db
+      .query("displayProfiles")
+      .withIndex("by_show", (q) => q.eq("showId", showId))
+      .collect();
+    const profileId = await ctx.db.insert("displayProfiles", {
+      name,
+      description,
+      showId,
+      layoutId,
+      isDefault: makeDefault || existing.length === 0,
+      ownerId,
+    });
+    // Point the show at this profile's layout when it becomes the default.
+    if (makeDefault || existing.length === 0) {
+      await ctx.db.patch(showId, { layoutId });
+    }
+    return profileId;
+  },
+});
+
+export const updateDisplayProfile = mutation({
   args: {
     profileId: v.id("displayProfiles"),
-    layoutId: v.id("layouts"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    layoutId: v.optional(v.id("layouts")),
+    isDefault: v.optional(v.boolean()),
   },
-  handler: async (ctx, { profileId, layoutId }) => {
+  handler: async (ctx, { profileId, isDefault, layoutId, ...fields }) => {
     const profile = await ctx.db.get(profileId);
     if (!profile) throw new Error("Profile not found");
-    const config = profile.config as {
-      screens: Array<{
-        name: string;
-        width: number;
-        height: number;
-        panels: Array<{
-          name: string;
-          zIndex: number;
-          points: Array<{ x: number; y: number }>;
-        }>;
-      }>;
-    };
-
-    // Delete existing screens + panels for this layout.
-    const existingScreens = await ctx.db
-      .query("screens")
-      .withIndex("by_layout", (q) => q.eq("layoutId", layoutId))
-      .collect();
-    for (const screen of existingScreens) {
-      await deleteScreenCascade(ctx, screen._id);
+    if (isDefault) await clearDefaultProfiles(ctx, profile.showId, profileId);
+    const nextLayoutId = layoutId ?? profile.layoutId;
+    await ctx.db.patch(profileId, {
+      ...fields,
+      ...(layoutId !== undefined ? { layoutId } : {}),
+      ...(isDefault !== undefined ? { isDefault } : {}),
+    });
+    // Drop mappings whose panels are not on the new layout.
+    if (layoutId !== undefined && layoutId !== profile.layoutId) {
+      const screens = await screensWithPanels(ctx, layoutId);
+      const valid = new Set(
+        screens.flatMap((s) => s.panels.map((p) => p._id as string)),
+      );
+      const mappings = await ctx.db
+        .query("panelMappings")
+        .withIndex("by_profile", (q) => q.eq("displayProfileId", profileId))
+        .collect();
+      for (const mapping of mappings) {
+        if (!valid.has(mapping.panelId)) await ctx.db.delete(mapping._id);
+      }
     }
+    if (isDefault || (profile.isDefault && layoutId !== undefined)) {
+      await ctx.db.patch(profile.showId, { layoutId: nextLayoutId });
+    }
+  },
+});
 
-    // Create new screens + panels from the profile config.
-    for (let i = 0; i < config.screens.length; i++) {
-      const s = config.screens[i];
-      const screenId = await ctx.db.insert("screens", {
-        layoutId,
-        name: s.name,
-        order: i,
-        width: s.width,
-        height: s.height,
-      });
-      for (const p of s.panels) {
-        await ctx.db.insert("panels", {
-          screenId,
-          name: p.name,
-          zIndex: p.zIndex,
-          points: p.points,
-        });
+export const setDefaultDisplayProfile = mutation({
+  args: { profileId: v.id("displayProfiles") },
+  handler: async (ctx, { profileId }) => {
+    const profile = await ctx.db.get(profileId);
+    if (!profile) throw new Error("Profile not found");
+    await clearDefaultProfiles(ctx, profile.showId, profileId);
+    await ctx.db.patch(profileId, { isDefault: true });
+    await ctx.db.patch(profile.showId, { layoutId: profile.layoutId });
+  },
+});
+
+export const deleteDisplayProfile = mutation({
+  args: { profileId: v.id("displayProfiles") },
+  handler: async (ctx, { profileId }) => {
+    const profile = await ctx.db.get(profileId);
+    if (!profile) return;
+    const wasDefault = profile.isDefault;
+    const showId = profile.showId;
+    await deleteProfileCascade(ctx, profileId);
+    if (wasDefault) {
+      const remaining = await ctx.db
+        .query("displayProfiles")
+        .withIndex("by_show", (q) => q.eq("showId", showId))
+        .collect();
+      if (remaining[0]) {
+        await ctx.db.patch(remaining[0]._id, { isDefault: true });
+        await ctx.db.patch(showId, { layoutId: remaining[0].layoutId });
       }
     }
   },
 });
 
-export const deleteProfile = mutation({
-  args: { profileId: v.id("displayProfiles") },
-  handler: async (ctx, { profileId }) => {
-    await ctx.db.delete(profileId);
+export const upsertPanelMapping = mutation({
+  args: {
+    displayProfileId: v.id("displayProfiles"),
+    logicalPanelName: v.string(),
+    panelId: v.id("panels"),
+  },
+  handler: async (ctx, { displayProfileId, logicalPanelName, panelId }) => {
+    const existing = await ctx.db
+      .query("panelMappings")
+      .withIndex("by_profile_logical", (q) =>
+        q
+          .eq("displayProfileId", displayProfileId)
+          .eq("logicalPanelName", logicalPanelName),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { panelId });
+      return existing._id;
+    }
+    return await ctx.db.insert("panelMappings", {
+      displayProfileId,
+      logicalPanelName,
+      panelId,
+    });
   },
 });
+
+export const deletePanelMapping = mutation({
+  args: { mappingId: v.id("panelMappings") },
+  handler: async (ctx, { mappingId }) => {
+    await ctx.db.delete(mappingId);
+  },
+});
+
+/**
+ * Heuristic: map each panel on the profile's layout to a logical slot.
+ * Prefers known LogicalPanelType names; otherwise uses the panel name.
+ */
+export const autoMapByPanelName = mutation({
+  args: { displayProfileId: v.id("displayProfiles") },
+  handler: async (ctx, { displayProfileId }) => {
+    const profile = await ctx.db.get(displayProfileId);
+    if (!profile) throw new Error("Profile not found");
+    const screens = await screensWithPanels(ctx, profile.layoutId);
+    const panels = screens.flatMap((s) => s.panels);
+    const typeSet = new Set<string>(
+      LOGICAL_PANEL_TYPES.map((t) => t.toLowerCase()),
+    );
+    const aliases: Record<string, string> = {
+      "garage door": "MainContent",
+      "center spot": "MainContent",
+      backdrop: "Background",
+      "garage triangle": "Background",
+      "column left": "LeftSidebar",
+      "left wing": "LeftSidebar",
+      "garage top left": "Header",
+      "column right": "RightSidebar",
+      "right wing": "RightSidebar",
+      "garage top right": "Overlay",
+      scoreboard: "Scoreboard",
+    };
+    let count = 0;
+    for (const panel of panels) {
+      const key = panel.name.trim().toLowerCase();
+      let logical = aliases[key];
+      if (!logical) {
+        const compact = panel.name.replace(/[\s_-]+/g, "");
+        const match = [...typeSet].find(
+          (t) => t === key || t === compact.toLowerCase(),
+        );
+        logical = match
+          ? LOGICAL_PANEL_TYPES.find((t) => t.toLowerCase() === match)!
+          : panel.name.trim();
+      }
+      const existing = await ctx.db
+        .query("panelMappings")
+        .withIndex("by_profile_logical", (q) =>
+          q
+            .eq("displayProfileId", displayProfileId)
+            .eq("logicalPanelName", logical),
+        )
+        .unique();
+      if (existing) {
+        await ctx.db.patch(existing._id, { panelId: panel._id });
+      } else {
+        await ctx.db.insert("panelMappings", {
+          displayProfileId,
+          logicalPanelName: logical,
+          panelId: panel._id,
+        });
+      }
+      count++;
+    }
+    return count;
+  },
+});
+
+/**
+ * Persist resolved panel IDs onto effects for the show (non-destructive:
+ * no panels/screens deleted). Useful when locking a profile into physical IDs.
+ */
+export const applyProfileToShowEffects = mutation({
+  args: {
+    showId: v.id("shows"),
+    displayProfileId: v.id("displayProfiles"),
+  },
+  handler: async (ctx, { showId, displayProfileId }) => {
+    const profile = await ctx.db.get(displayProfileId);
+    if (!profile || profile.showId !== showId) {
+      throw new Error("Profile not found for show");
+    }
+    const mappings = await mappingLookup(ctx, displayProfileId);
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", showId))
+      .collect();
+    let updated = 0;
+    for (const scene of scenes) {
+      const effects = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      for (const effect of effects) {
+        if (!effect.logicalPanelName) continue;
+        const mapped = mappings.get(effect.logicalPanelName);
+        if (mapped && mapped !== effect.panelId) {
+          await ctx.db.patch(effect._id, { panelId: mapped });
+          updated++;
+        }
+      }
+    }
+    await ctx.db.patch(showId, { layoutId: profile.layoutId });
+    return updated;
+  },
+});
+

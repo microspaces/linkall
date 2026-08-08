@@ -34,6 +34,13 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setStoredId(window.localStorage.getItem(STORAGE_KEY));
+    // Keep identity in sync across browser tabs (screen pages, player, etc.).
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      setStoredId(e.newValue);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const user =

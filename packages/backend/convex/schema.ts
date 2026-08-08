@@ -145,7 +145,13 @@ export default defineSchema({
 
   effects: defineTable({
     sceneId: v.id("scenes"),
+    /** Physical panel fallback when no logical mapping resolves. */
     panelId: v.id("panels"),
+    /**
+     * Logical slot name (legacy Effect.LogicalPanelName). When a display
+     * profile maps this name to a panel, playback uses that panel instead.
+     */
+    logicalPanelName: v.optional(v.string()),
     kind: v.union(
       v.literal("image"),
       v.literal("video"),
@@ -157,17 +163,36 @@ export default defineSchema({
     isEnabled: v.boolean(),
     /** Optional duration in seconds; null = runs to end of scene. */
     durationSec: v.optional(v.number()),
+    /**
+     * Offset into the media file/stream (legacy Effect.VideoStartTime).
+     * For YouTube this is the embed `start=` second; for <video> it's currentTime.
+     */
+    videoStartSec: v.optional(v.number()),
   })
     .index("by_scene", ["sceneId"])
     .index("by_panel", ["panelId"]),
 
-  // ---- display profiles (saved screen/panel arrangements for reuse) ----
+  // ---- display profiles (legacy DisplayProfile → PanelMapping) ----
+  // Show-scoped binding of a logical layout onto a physical Layout:
+  // effects carry logicalPanelName; mappings retarget those slots onto panels.
   displayProfiles: defineTable({
     name: v.string(),
+    description: v.optional(v.string()),
+    showId: v.id("shows"),
+    layoutId: v.id("layouts"),
+    isDefault: v.boolean(),
     ownerId: v.id("users"),
-    /** JSON blob: { screens: [{ name, width, height, panels: [{ name, zIndex, points }] }] } */
-    config: v.any(),
-  }).index("by_owner", ["ownerId"]),
+  })
+    .index("by_show", ["showId"])
+    .index("by_owner", ["ownerId"]),
+
+  panelMappings: defineTable({
+    displayProfileId: v.id("displayProfiles"),
+    logicalPanelName: v.string(),
+    panelId: v.id("panels"),
+  })
+    .index("by_profile", ["displayProfileId"])
+    .index("by_profile_logical", ["displayProfileId", "logicalPanelName"]),
 
   // ---- comedy game engine (legacy: Crazyball LLPerformance* tables +
   //      the game-1.0.1.js next-button state machine) ----

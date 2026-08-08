@@ -16,8 +16,9 @@ import { EmptyState, Loading } from "./empty-state";
 /**
  * Show Designer (legacy: Homeshow/Surroundshow Designer).
  *
- * Shows tab:   Show | Scene | Effect drill-down grids + live preview + timeline.
- * Screens tab: Layout | Screen | Panel grids + draggable polygon editor.
+ * Shows tab:    Show | Scene | Effect drill-down grids + multi-screen preview + timeline.
+ * Screens tab:  Layout | Screen | Panel grids + draggable polygon editor.
+ * Profiles tab: Display profiles + logical→physical panel mappings.
  */
 
 type Point = { x: number; y: number };
@@ -27,6 +28,7 @@ type EffectRow = Doc<"effects"> & {
   panelName: string;
   screenName: string;
   zIndex: number;
+  sourcePanelId?: Id<"panels">;
 };
 
 // ---------------------------------------------------------------- helpers
@@ -51,6 +53,163 @@ function formatClock(sec: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/** Extract a YouTube video id from watch/shorts/embed/youtu.be URLs. */
+function youtubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return id || null;
+    }
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+      const v = u.searchParams.get("v");
+      if (v) return v;
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (
+        (parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live") &&
+        parts[1]
+      ) {
+        return parts[1];
+      }
+    }
+  } catch {
+    /* not a URL */
+  }
+  return null;
+}
+
+function youtubeEmbedSrc(
+  url: string,
+  videoStartSec = 0,
+): string | null {
+  const id = youtubeVideoId(url);
+  if (!id) return null;
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    controls: "0",
+    rel: "0",
+    loop: "1",
+    playlist: id,
+    playsinline: "1",
+  });
+  if (videoStartSec > 0) params.set("start", String(Math.floor(videoStartSec)));
+  return `https://www.youtube.com/embed/${id}?${params.toString()}`;
+}
+
+/** When startTimes tie, keep media over solid color (legacy empty→black overlays). */
+function effectStackRank(kind: string): number {
+  if (kind === "video") return 3;
+  if (kind === "image") return 2;
+  if (kind === "text") return 1;
+  return 0;
+}
+
+function panelBoxStyle(
+  box: { minX: number; minY: number; w: number; h: number },
+  screen: Pick<Screen, "width" | "height">,
+): CSSProperties {
+  return {
+    position: "absolute",
+    left: `${(box.minX / screen.width) * 100}%`,
+    top: `${(box.minY / screen.height) * 100}%`,
+    width: `${(box.w / screen.width) * 100}%`,
+    height: `${(box.h / screen.height) * 100}%`,
+    overflow: "hidden",
+  };
+}
+
+function EffectMedia({
+  kind,
+  content,
+  box,
+  screen,
+  videoStartSec = 0,
+}: {
+  kind: string;
+  content: string;
+  box: { minX: number; minY: number; w: number; h: number };
+  screen: Pick<Screen, "width" | "height">;
+  /** Legacy VideoStartTime — offset into the media. */
+  videoStartSec?: number;
+}) {
+  // Color fills the whole clipped panel (correct for irregular polygons).
+  if (kind === "color") {
+    return (
+      <div className="h-full w-full" style={{ backgroundColor: content }} />
+    );
+  }
+
+  // Images / video / text are framed to the panel bbox so a door-sized
+  // YouTube clip isn't a tiny crop of a fullscreen embed.
+  const frame = panelBoxStyle(box, screen);
+
+  if (kind === "image") {
+    return (
+      <div style={frame}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={content} alt="" className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+  if (kind === "video") {
+    const embed = youtubeEmbedSrc(content, videoStartSec);
+    if (embed) {
+      // Scale the 16:9 embed so it covers the panel (YouTube letterboxes otherwise).
+      return (
+        <div style={frame} className="bg-black">
+          <iframe
+            key={embed}
+            src={embed}
+            title="YouTube effect"
+            className="pointer-events-none absolute left-1/2 top-1/2 border-0"
+            style={{
+              width: "100%",
+              height: "100%",
+              minWidth: "100%",
+              minHeight: "100%",
+              transform: "translate(-50%, -50%) scale(1.35)",
+            }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
+    return (
+      <div style={frame}>
+        <video
+          key={`${content}#${videoStartSec}`}
+          src={content}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="h-full w-full object-cover"
+          onLoadedMetadata={(e) => {
+            if (videoStartSec > 0) {
+              e.currentTarget.currentTime = videoStartSec;
+            }
+          }}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="h-full w-full bg-red-900">
+      <div className="flex items-center justify-center" style={frame}>
+        <span
+          className="px-2 text-center font-serif font-bold text-amber-100"
+          style={{ fontSize: "clamp(0.8rem, 3vw, 2.2rem)" }}
+        >
+          {content}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- stage
 
 /**
@@ -64,20 +223,38 @@ export function PanelStage({
   clockSec,
 }: {
   screen: Screen;
-  effects: Pick<Doc<"effects">, "panelId" | "kind" | "content" | "startTime" | "isEnabled" | "durationSec">[];
+  effects: Pick<
+    Doc<"effects">,
+    | "panelId"
+    | "kind"
+    | "content"
+    | "startTime"
+    | "isEnabled"
+    | "durationSec"
+    | "videoStartSec"
+  >[];
   /** Seconds into the scene; effects appear once clock passes startTime. */
   clockSec: number;
 }) {
   // Per panel: the enabled effect with the highest startTime <= clock wins.
   // An effect is active when startTime <= clock AND (durationSec is null/undefined
   // OR startTime + durationSec >= clock).
+  // On equal startTime, prefer video/image/text over color so legacy empty
+  // black placeholders don't cover GIFs and photos.
   const active = new Map<string, (typeof effects)[number]>();
   for (const e of effects) {
     if (!e.isEnabled || e.startTime > clockSec) continue;
     const endTime = e.startTime + (e.durationSec ?? Infinity);
     if (clockSec > endTime) continue;
     const current = active.get(e.panelId);
-    if (!current || e.startTime >= current.startTime) active.set(e.panelId, e);
+    if (
+      !current ||
+      e.startTime > current.startTime ||
+      (e.startTime === current.startTime &&
+        effectStackRank(e.kind) >= effectStackRank(current.kind))
+    ) {
+      active.set(e.panelId, e);
+    }
   }
 
   return (
@@ -97,46 +274,14 @@ export function PanelStage({
           <div key={panel._id} className="absolute inset-0" style={style}>
             {effect === undefined ? (
               <div className="h-full w-full bg-gray-800/60" />
-            ) : effect.kind === "color" ? (
-              <div
-                className="h-full w-full"
-                style={{ backgroundColor: effect.content }}
-              />
-            ) : effect.kind === "image" ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={effect.content}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : effect.kind === "video" ? (
-              <video
-                src={effect.content}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="h-full w-full object-cover"
-              />
             ) : (
-              <div className="h-full w-full bg-red-900">
-                <div
-                  className="absolute flex items-center justify-center"
-                  style={{
-                    left: `${(box.minX / screen.width) * 100}%`,
-                    top: `${(box.minY / screen.height) * 100}%`,
-                    width: `${(box.w / screen.width) * 100}%`,
-                    height: `${(box.h / screen.height) * 100}%`,
-                  }}
-                >
-                  <span
-                    className="px-2 text-center font-serif font-bold text-amber-100"
-                    style={{ fontSize: "clamp(0.8rem, 3vw, 2.2rem)" }}
-                  >
-                    {effect.content}
-                  </span>
-                </div>
-              </div>
+              <EffectMedia
+                kind={effect.kind}
+                content={effect.content}
+                box={box}
+                screen={screen}
+                videoStartSec={effect.videoStartSec ?? 0}
+              />
             )}
           </div>
         );
@@ -301,7 +446,18 @@ function EffectThumb({
         style={{ backgroundImage: `url(${content})` }}
       />
     );
-  if (kind === "video")
+  if (kind === "video") {
+    const yt = youtubeVideoId(content);
+    if (yt) {
+      return (
+        <div
+          className={`${className} shrink-0 rounded border border-gray-200 bg-cover bg-center`}
+          style={{
+            backgroundImage: `url(https://img.youtube.com/vi/${yt}/mqdefault.jpg)`,
+          }}
+        />
+      );
+    }
     return (
       <div
         className={`${className} flex shrink-0 items-center justify-center rounded border border-gray-700 bg-gray-900 text-xs text-white`}
@@ -309,6 +465,7 @@ function EffectThumb({
         ▶
       </div>
     );
+  }
   return (
     <div
       className={`${className} flex shrink-0 items-center justify-center overflow-hidden rounded border border-gray-200 bg-amber-50 px-1 text-[9px] text-amber-800`}
@@ -452,7 +609,16 @@ function Timeline({
                                 backgroundRepeat: "repeat-x",
                               }
                             : e.kind === "video"
-                              ? { backgroundColor: "#111827" }
+                              ? (() => {
+                                  const yt = youtubeVideoId(e.content);
+                                  return yt
+                                    ? {
+                                        backgroundImage: `url(https://img.youtube.com/vi/${yt}/mqdefault.jpg)`,
+                                        backgroundSize: "cover",
+                                        backgroundPosition: "center",
+                                      }
+                                    : { backgroundColor: "#111827" };
+                                })()
                               : { backgroundColor: "#fef3c7" }),
                       }}
                       title={`${e.panelName} @ ${formatClock(e.startTime)}${dur !== null ? ` (${formatClock(dur)})` : ""}`}
@@ -473,7 +639,7 @@ function Timeline({
                         });
                       }}
                     >
-                      {e.kind === "video" && (
+                      {e.kind === "video" && !youtubeVideoId(e.content) && (
                         <span className="px-1 text-[9px] text-white">
                           ▶ video
                         </span>
@@ -538,7 +704,9 @@ function ShowsTab() {
 
   const [selectedShowId, setSelectedShowId] = useState<Id<"shows"> | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<Id<"scenes"> | null>(null);
-  const [screenIndex, setScreenIndex] = useState(0);
+  const [selectedProfileId, setSelectedProfileId] = useState<
+    Id<"displayProfiles"> | null
+  >(null);
   const [scrubClock, setScrubClock] = useState<number | null>(null);
   const [modal, setModal] = useState<
     | { type: "show"; show?: Doc<"shows"> }
@@ -548,8 +716,21 @@ function ShowsTab() {
     | null
   >(null);
 
+  // Prefer a show that can preview (has layout), not the live Halloween stub.
   const show =
-    shows?.find((s) => s._id === selectedShowId) ?? shows?.[0] ?? null;
+    shows?.find((s) => s._id === selectedShowId) ??
+    shows?.find((s) => s.layoutId) ??
+    shows?.[0] ??
+    null;
+  const profiles = useQuery(
+    api.designer.listShowProfiles,
+    show ? { showId: show._id } : "skip",
+  );
+  const profile =
+    profiles?.find((p) => p._id === selectedProfileId) ??
+    profiles?.find((p) => p.isDefault) ??
+    profiles?.[0] ??
+    null;
   const scenes = useQuery(
     api.designer.getShowScenes,
     show ? { showId: show._id } : "skip",
@@ -558,22 +739,35 @@ function ShowsTab() {
     scenes?.find((s) => s._id === selectedSceneId) ?? scenes?.[0] ?? null;
   const effects = useQuery(
     api.designer.getSceneEffects,
-    scene ? { sceneId: scene._id } : "skip",
+    scene
+      ? {
+          sceneId: scene._id,
+          ...(profile ? { displayProfileId: profile._id } : {}),
+        }
+      : "skip",
   );
   const cueEffects = useQuery(
     api.designer.getShowCueEffects,
-    show ? { showId: show._id } : "skip",
+    show
+      ? {
+          showId: show._id,
+          ...(profile ? { displayProfileId: profile._id } : {}),
+        }
+      : "skip",
   );
+  const previewLayoutId = profile?.layoutId ?? show?.layoutId;
   const layout = useQuery(
     api.designer.getLayout,
-    show?.layoutId ? { layoutId: show.layoutId } : "skip",
+    previewLayoutId ? { layoutId: previewLayoutId } : "skip",
   );
 
-  // Preview playback clock.
+  // Preview playback clock — advances to the next scene when duration elapses
+  // (same behavior as the live show runner).
   const durationSec = scene?.durationSec ?? 60;
   const [playing, setPlaying] = useState(false);
   const [clock, setClock] = useState<number | null>(null);
   const playStartRef = useRef(0);
+  const autoAdvanceRef = useRef(false);
   useEffect(() => {
     if (!playing) return;
     playStartRef.current = Date.now();
@@ -581,6 +775,19 @@ function ShowsTab() {
     const t = setInterval(() => {
       const elapsed = (Date.now() - playStartRef.current) / 1000;
       if (elapsed >= durationSec) {
+        if (scenes && scene) {
+          const idx = scenes.findIndex((s) => s._id === scene._id);
+          if (idx >= 0 && idx < scenes.length - 1) {
+            autoAdvanceRef.current = true;
+            setSelectedSceneId(scenes[idx + 1]!._id);
+            setScrubClock(null);
+            // Keep playing — the [playing, durationSec] effect restarts the clock
+            // for the new scene because durationSec changes with the scene.
+            playStartRef.current = Date.now();
+            setClock(0);
+            return;
+          }
+        }
         setPlaying(false);
         setClock(null);
       } else {
@@ -588,23 +795,32 @@ function ShowsTab() {
       }
     }, 100);
     return () => clearInterval(t);
-  }, [playing, durationSec]);
-  // Stop playback when switching scenes.
+  }, [playing, durationSec, scenes, scene]);
+  // Stop playback when switching scenes manually (not auto-advance).
   useEffect(() => {
+    if (autoAdvanceRef.current) {
+      autoAdvanceRef.current = false;
+      return;
+    }
     setPlaying(false);
     setClock(null);
     setScrubClock(null);
   }, [scene?._id]);
 
+  // Reset profile selection when the show changes.
+  useEffect(() => {
+    setSelectedProfileId(null);
+  }, [show?._id]);
+
   const deleteShow = useMutation(api.designer.deleteShow);
   const deleteScene = useMutation(api.designer.deleteScene);
   const deleteEffect = useMutation(api.designer.deleteEffect);
   const updateEffectMut = useMutation(api.designer.updateEffect);
+  const playScene = useMutation(api.shows.playScene);
 
   if (shows === undefined || layouts === undefined) return <Loading />;
 
   const screens: Screen[] = layout?.screens ?? [];
-  const screen = screens[Math.min(screenIndex, screens.length - 1)];
   const panelLanes = screens.flatMap((s) =>
     s.panels.map((panel) => ({
       panel,
@@ -618,19 +834,23 @@ function ShowsTab() {
       {/* Preview + timeline */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="flex items-center gap-2 bg-gray-900 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 bg-gray-900 px-3 py-2">
             <span className="text-sm font-semibold text-white">
-              {screen?.name ?? "Preview"}
+              {screens.length > 1 ? "All screens" : screens[0]?.name ?? "Preview"}
             </span>
-            {screens.length > 1 && (
+            {profiles && profiles.length > 0 && (
               <select
                 className="rounded bg-gray-700 px-1 py-0.5 text-xs text-white"
-                value={screenIndex}
-                onChange={(e) => setScreenIndex(Number(e.target.value))}
+                value={profile?._id ?? ""}
+                onChange={(e) =>
+                  setSelectedProfileId(e.target.value as Id<"displayProfiles">)
+                }
+                title="Display profile (panel mapping)"
               >
-                {screens.map((s, i) => (
-                  <option key={s._id} value={i}>
-                    {s.name}
+                {profiles.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                    {p.isDefault ? " ★" : ""}
                   </option>
                 ))}
               </select>
@@ -642,7 +862,7 @@ function ShowsTab() {
             </span>
             <button
               onClick={() => setPlaying((p) => !p)}
-              disabled={!scene || !screen}
+              disabled={!scene || screens.length === 0}
               className={
                 "rounded-full px-3 py-0.5 text-xs font-bold " +
                 (playing
@@ -654,18 +874,35 @@ function ShowsTab() {
             </button>
           </div>
           <div className="p-3">
-            {screen && effects ? (
-              <PanelStage
-                screen={screen}
-                effects={effects}
-                clockSec={previewClock}
-              />
+            {screens.length > 0 && effects ? (
+              <div
+                className={
+                  screens.length > 1
+                    ? "grid gap-2 sm:grid-cols-2"
+                    : "grid gap-2"
+                }
+              >
+                {screens.map((s) => (
+                  <div key={s._id}>
+                    {screens.length > 1 && (
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        {s.name}
+                      </p>
+                    )}
+                    <PanelStage
+                      screen={s}
+                      effects={effects}
+                      clockSec={previewClock}
+                    />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex aspect-[4/3] items-center justify-center rounded-lg bg-gray-100 text-sm text-gray-400">
                 {show
-                  ? show.layoutId
+                  ? previewLayoutId
                     ? "Select a scene"
-                    : "Assign a layout to this show (edit the show) to preview panels"
+                    : "Assign a layout or create a display profile to preview panels"
                   : "Create a show to get started"}
               </div>
             )}
@@ -724,6 +961,7 @@ function ShowsTab() {
               onSelect={() => {
                 setSelectedShowId(s._id);
                 setSelectedSceneId(null);
+                setSelectedProfileId(null);
               }}
               onEdit={() => setModal({ type: "show", show: s })}
               onDelete={() => deleteShow({ showId: s._id })}
@@ -755,13 +993,17 @@ function ShowsTab() {
                     ? "bg-brand-light text-brand-dark"
                     : "hover:bg-gray-50")
                 }
-                onClick={() => setSelectedSceneId(s._id)}
+                onClick={() => {
+                  setSelectedSceneId(s._id);
+                  // Push to every subscribed /screens/<id> output for this layout.
+                  if (show) void playScene({ showId: show._id, index: idx });
+                }}
               >
                 {/* Scene cue thumbnail — each card uses its own scene's effects */}
                 <div className="mb-1.5 overflow-hidden rounded border border-gray-200 bg-gray-950" style={{ maxWidth: 120 }}>
-                  {screen && sceneCue ? (
+                  {screens[0] && sceneCue ? (
                     <PanelStage
-                      screen={screen}
+                      screen={screens[0]}
                       effects={sceneCue}
                       clockSec={0}
                     />
@@ -845,7 +1087,11 @@ function ShowsTab() {
               <div className="flex items-center gap-2">
                 <EffectThumb kind={e.kind} content={e.content} />
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{e.panelName}</p>
+                  <p className="truncate font-medium">
+                    {e.logicalPanelName
+                      ? `${e.logicalPanelName} → ${e.panelName}`
+                      : e.panelName}
+                  </p>
                   <p className="text-xs text-gray-400">
                     {e.kind} · starts {formatClock(e.startTime)}
                     {e.isEnabled ? "" : " · disabled"}
@@ -1040,8 +1286,12 @@ function EffectModal({
 }) {
   const createEffect = useMutation(api.designer.createEffect);
   const updateEffect = useMutation(api.designer.updateEffect);
+  const logicalTypes = useQuery(api.designer.listLogicalPanelTypes);
   const [panelId, setPanelId] = useState<string>(
-    effect?.panelId ?? prefillPanelId ?? panels[0]?.panel._id ?? "",
+    effect?.sourcePanelId ?? effect?.panelId ?? prefillPanelId ?? panels[0]?.panel._id ?? "",
+  );
+  const [logicalPanelName, setLogicalPanelName] = useState(
+    effect?.logicalPanelName ?? "",
   );
   const [kind, setKind] = useState<"image" | "video" | "color" | "text">(
     effect?.kind ?? "color",
@@ -1053,22 +1303,42 @@ function EffectModal({
   const [durationVal, setDurationVal] = useState(
     effect?.durationSec !== undefined ? String(effect.durationSec) : "",
   );
+  const [videoStartVal, setVideoStartVal] = useState(
+    effect?.videoStartSec !== undefined ? String(effect.videoStartSec) : "",
+  );
   const [isEnabled, setIsEnabled] = useState(effect?.isEnabled ?? true);
 
   const save = async () => {
     if (!panelId) return;
     const durNum = durationVal.trim() ? Math.max(0.5, Number(durationVal)) : undefined;
+    const videoStartNum = videoStartVal.trim()
+      ? Math.max(0, Number(videoStartVal) || 0)
+      : undefined;
+    const logical = logicalPanelName.trim();
     const args = {
       panelId: panelId as Id<"panels">,
       kind,
       content,
       startTime: Math.max(0, Number(startTime) || 0),
       durationSec: durNum,
+      videoStartSec: kind === "video" ? videoStartNum : undefined,
+      logicalPanelName: logical ? logical : null,
     };
     if (effect) {
       await updateEffect({ effectId: effect._id, ...args, isEnabled });
     } else {
-      await createEffect({ sceneId, ...args });
+      await createEffect({
+        sceneId,
+        panelId: args.panelId,
+        kind: args.kind,
+        content: args.content,
+        startTime: args.startTime,
+        durationSec: args.durationSec,
+        ...(args.videoStartSec !== undefined
+          ? { videoStartSec: args.videoStartSec }
+          : {}),
+        ...(logical ? { logicalPanelName: logical } : {}),
+      });
     }
     onClose();
   };
@@ -1076,7 +1346,7 @@ function EffectModal({
   return (
     <Modal title={effect ? "Edit effect" : "New effect"} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Panel">
+        <Field label="Panel (fallback)">
           <select
             className={inputCls}
             value={panelId}
@@ -1087,6 +1357,24 @@ function EffectModal({
                 {label}
               </option>
             ))}
+          </select>
+        </Field>
+        <Field label="Logical panel (optional)">
+          <select
+            className={inputCls}
+            value={logicalPanelName}
+            onChange={(e) => setLogicalPanelName(e.target.value)}
+          >
+            <option value="">(none — use physical panel)</option>
+            {(logicalTypes ?? []).map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+            {logicalPanelName &&
+              !(logicalTypes ?? []).some((n) => n === logicalPanelName) && (
+                <option value={logicalPanelName}>{logicalPanelName}</option>
+              )}
           </select>
         </Field>
         <Field label="Type">
@@ -1157,6 +1445,19 @@ function EffectModal({
             placeholder="blank = to end"
           />
         </Field>
+        {kind === "video" && (
+          <Field label="Video start (seconds into media)">
+            <input
+              className={inputCls}
+              type="number"
+              min={0}
+              step={1}
+              value={videoStartVal}
+              onChange={(e) => setVideoStartVal(e.target.value)}
+              placeholder="0 = from beginning"
+            />
+          </Field>
+        )}
         {effect && (
           <label className="flex items-center gap-2 text-sm text-gray-600">
             <input
@@ -1205,13 +1506,6 @@ function ScreensTab() {
     layoutDoc ? { layoutId: layoutDoc._id } : "skip",
   );
 
-  // Display profiles
-  const profiles = useQuery(
-    api.designer.listProfiles,
-    userId ? { ownerId: userId } : "skip",
-  );
-  const [profileModal, setProfileModal] = useState(false);
-
   const createLayout = useMutation(api.designer.createLayout);
   const updateLayout = useMutation(api.designer.updateLayout);
   const deleteLayout = useMutation(api.designer.deleteLayout);
@@ -1221,9 +1515,6 @@ function ScreensTab() {
   const createPanel = useMutation(api.designer.createPanel);
   const updatePanel = useMutation(api.designer.updatePanel);
   const deletePanel = useMutation(api.designer.deletePanel);
-  const saveProfileMut = useMutation(api.designer.saveProfile);
-  const loadProfileMut = useMutation(api.designer.loadProfile);
-  const deleteProfileMut = useMutation(api.designer.deleteProfile);
 
   if (layouts === undefined) return <Loading />;
 
@@ -1240,61 +1531,6 @@ function ScreensTab() {
 
   return (
     <div className="space-y-4">
-      {/* Display Profiles */}
-      {userId && layoutDoc && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Profiles</span>
-          <button
-            onClick={() => setProfileModal(true)}
-            className="rounded bg-brand px-2 py-1 text-xs font-semibold text-white hover:opacity-90"
-          >
-            Save as Profile
-          </button>
-          {profiles && profiles.length > 0 && (
-            <>
-              <select
-                id="profile-load"
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
-                defaultValue=""
-              >
-                <option value="" disabled>Load Profile…</option>
-                {profiles.map((p) => (
-                  <option key={p._id} value={p._id}>{p.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={async () => {
-                  const sel = document.getElementById("profile-load") as HTMLSelectElement;
-                  const pid = sel?.value as Id<"displayProfiles">;
-                  if (!pid || !layoutDoc) return;
-                  if (window.confirm("This will replace all screens and panels in this layout. Continue?")) {
-                    await loadProfileMut({ profileId: pid, layoutId: layoutDoc._id });
-                  }
-                  sel.value = "";
-                }}
-                className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100"
-              >
-                Apply
-              </button>
-              <button
-                onClick={async () => {
-                  const sel = document.getElementById("profile-load") as HTMLSelectElement;
-                  const pid = sel?.value as Id<"displayProfiles">;
-                  if (!pid) return;
-                  if (window.confirm("Delete this profile?")) {
-                    await deleteProfileMut({ profileId: pid });
-                  }
-                  sel.value = "";
-                }}
-                className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50"
-              >
-                Delete
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       <div className="flex flex-col gap-4 md:flex-row">
         <Column
           title="Layout"
@@ -1417,17 +1653,6 @@ function ScreensTab() {
         <EmptyState
           title="No screen selected"
           hint="Create a layout and a screen, then add panels and drag their corners into place."
-        />
-      )}
-
-      {/* Profile save modal */}
-      {profileModal && userId && layoutDoc && (
-        <ProfileSaveModal
-          onClose={() => setProfileModal(false)}
-          onSave={async (name) => {
-            await saveProfileMut({ name, ownerId: userId, layoutId: layoutDoc._id });
-            setProfileModal(false);
-          }}
         />
       )}
     </div>
@@ -1815,43 +2040,442 @@ function PanelEditor({
   );
 }
 
-// ---------------------------------------------------------------- designer
+// -------------------------------------------------------------- profiles tab
 
-/** Simple modal for naming and saving a display profile. */
-function ProfileSaveModal({
+function ProfilesTab() {
+  const { userId } = useCurrentUser();
+  const shows = useQuery(api.shows.list, {});
+  const layouts = useQuery(api.designer.listLayouts);
+  const logicalTypes = useQuery(api.designer.listLogicalPanelTypes);
+
+  const [selectedShowId, setSelectedShowId] = useState<Id<"shows"> | null>(null);
+  const [selectedProfileId, setSelectedProfileId] =
+    useState<Id<"displayProfiles"> | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [mapLogical, setMapLogical] = useState("");
+  const [mapPanelId, setMapPanelId] = useState("");
+
+  const show =
+    shows?.find((s) => s._id === selectedShowId) ?? shows?.[0] ?? null;
+  const profiles = useQuery(
+    api.designer.listShowProfiles,
+    show ? { showId: show._id } : "skip",
+  );
+  const profileId =
+    selectedProfileId && profiles?.some((p) => p._id === selectedProfileId)
+      ? selectedProfileId
+      : profiles?.find((p) => p.isDefault)?._id ?? profiles?.[0]?._id ?? null;
+  const profile = useQuery(
+    api.designer.getDisplayProfile,
+    profileId ? { profileId } : "skip",
+  );
+
+  const createProfile = useMutation(api.designer.createDisplayProfile);
+  const updateProfile = useMutation(api.designer.updateDisplayProfile);
+  const deleteProfile = useMutation(api.designer.deleteDisplayProfile);
+  const setDefault = useMutation(api.designer.setDefaultDisplayProfile);
+  const upsertMapping = useMutation(api.designer.upsertPanelMapping);
+  const deleteMapping = useMutation(api.designer.deletePanelMapping);
+  const autoMap = useMutation(api.designer.autoMapByPanelName);
+  const applyEffects = useMutation(api.designer.applyProfileToShowEffects);
+
+  if (shows === undefined || layouts === undefined) return <Loading />;
+
+  const layoutPanels =
+    profile?.screens.flatMap((s) =>
+      s.panels.map((p) => ({
+        panel: p,
+        label: `${s.name} · ${p.name}`,
+      })),
+    ) ?? [];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">
+        Display profiles retarget a show&apos;s logical panels onto a physical
+        layout — switching profiles remaps effects without deleting content.
+      </p>
+
+      <div className="flex flex-col gap-4 md:flex-row">
+        <Column title="Show">
+          {shows.length === 0 && (
+            <p className="p-3 text-xs text-gray-400">No shows yet.</p>
+          )}
+          {shows.map((s) => (
+            <Row
+              key={s._id}
+              selected={show?._id === s._id}
+              onSelect={() => {
+                setSelectedShowId(s._id);
+                setSelectedProfileId(null);
+              }}
+            >
+              <span className="font-medium">{s.title}</span>
+            </Row>
+          ))}
+        </Column>
+
+        <Column
+          title="Profile"
+          onAdd={
+            show && userId ? () => setCreateOpen(true) : undefined
+          }
+        >
+          {!show && (
+            <p className="p-3 text-xs text-gray-400">Select a show.</p>
+          )}
+          {profiles?.map((p) => (
+            <Row
+              key={p._id}
+              selected={profileId === p._id}
+              onSelect={() => setSelectedProfileId(p._id)}
+              onEdit={async () => {
+                const name = window.prompt("Profile name", p.name);
+                if (name?.trim()) {
+                  await updateProfile({
+                    profileId: p._id,
+                    name: name.trim(),
+                  });
+                }
+              }}
+              onDelete={async () => {
+                if (window.confirm(`Delete profile “${p.name}”?`)) {
+                  await deleteProfile({ profileId: p._id });
+                  if (selectedProfileId === p._id) setSelectedProfileId(null);
+                }
+              }}
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium">
+                  {p.name}
+                  {p.isDefault ? (
+                    <span className="ml-1 text-[10px] font-bold text-amber-600">
+                      DEFAULT
+                    </span>
+                  ) : null}
+                </p>
+                <p className="truncate text-xs text-gray-400">
+                  {p.layoutName} · {p.mappingCount} mappings
+                </p>
+              </div>
+            </Row>
+          ))}
+        </Column>
+
+        <div className="min-w-0 flex-1 space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+          {!profile ? (
+            <EmptyState
+              title="No display profile"
+              hint="Select a show and create a profile to map logical panels onto a layout."
+            />
+          ) : (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {profile.name}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Layout: {profile.layoutName}
+                    {profile.description ? ` — ${profile.description}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {!profile.isDefault && (
+                    <button
+                      onClick={() => setDefault({ profileId: profile._id })}
+                      className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Set default
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      const n = await autoMap({
+                        displayProfileId: profile._id,
+                      });
+                      window.alert(`Mapped ${n} panel(s) by name.`);
+                    }}
+                    className="rounded border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Auto-map
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          "Write resolved panel IDs onto this show’s effects? Panels are not deleted.",
+                        )
+                      )
+                        return;
+                      const n = await applyEffects({
+                        showId: profile.showId,
+                        displayProfileId: profile._id,
+                      });
+                      window.alert(`Updated ${n} effect(s).`);
+                    }}
+                    className="rounded bg-brand px-2 py-1 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    Apply to effects
+                  </button>
+                </div>
+              </div>
+
+              <Field label="Layout">
+                <select
+                  className={inputCls}
+                  value={profile.layoutId}
+                  onChange={(e) =>
+                    updateProfile({
+                      profileId: profile._id,
+                      layoutId: e.target.value as Id<"layouts">,
+                    })
+                  }
+                >
+                  {layouts.map((l) => (
+                    <option key={l._id} value={l._id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Panel mappings
+                </h3>
+                {profile.mappings.length === 0 ? (
+                  <p className="text-sm text-gray-400">
+                    No mappings yet — use Auto-map or add one below.
+                  </p>
+                ) : (
+                  <div className="overflow-hidden rounded-md border border-gray-200">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                        <tr>
+                          <th className="px-3 py-2">Logical</th>
+                          <th className="px-3 py-2">Physical</th>
+                          <th className="px-3 py-2">Screen</th>
+                          <th className="px-3 py-2" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profile.mappings.map((m) => (
+                          <tr key={m._id} className="border-t border-gray-100">
+                            <td className="px-3 py-2 font-medium">
+                              {m.logicalPanelName}
+                            </td>
+                            <td className="px-3 py-2">{m.panelName}</td>
+                            <td className="px-3 py-2 text-gray-500">
+                              {m.screenName}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <button
+                                onClick={() =>
+                                  deleteMapping({ mappingId: m._id })
+                                }
+                                className="text-xs text-red-500 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-end gap-2 rounded-md border border-dashed border-gray-300 p-3">
+                <div className="min-w-[10rem] flex-1">
+                  <Field label="Logical panel">
+                    <select
+                      className={inputCls}
+                      value={mapLogical}
+                      onChange={(e) => setMapLogical(e.target.value)}
+                    >
+                      <option value="">Select…</option>
+                      {(logicalTypes ?? []).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <div className="min-w-[12rem] flex-1">
+                  <Field label="Physical panel">
+                    <select
+                      className={inputCls}
+                      value={mapPanelId}
+                      onChange={(e) => setMapPanelId(e.target.value)}
+                    >
+                      <option value="">Select…</option>
+                      {layoutPanels.map(({ panel, label }) => (
+                        <option key={panel._id} value={panel._id}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <button
+                  disabled={!mapLogical || !mapPanelId}
+                  onClick={async () => {
+                    await upsertMapping({
+                      displayProfileId: profile._id,
+                      logicalPanelName: mapLogical,
+                      panelId: mapPanelId as Id<"panels">,
+                    });
+                    setMapLogical("");
+                    setMapPanelId("");
+                  }}
+                  className="rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+                >
+                  Add mapping
+                </button>
+              </div>
+
+              {profile.screens.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Layout preview
+                  </h3>
+                  <div
+                    className={
+                      profile.screens.length > 1
+                        ? "grid gap-2 sm:grid-cols-2"
+                        : "grid gap-2"
+                    }
+                  >
+                    {profile.screens.map((s) => (
+                      <div key={s._id}>
+                        {profile.screens.length > 1 && (
+                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                            {s.name}
+                          </p>
+                        )}
+                        <PanelStage screen={s} effects={[]} clockSec={0} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {createOpen && show && userId && (
+        <ProfileCreateModal
+          layouts={layouts}
+          defaultLayoutId={show.layoutId ?? layouts[0]?._id}
+          onClose={() => setCreateOpen(false)}
+          onSave={async ({ name, layoutId, isDefault, description }) => {
+            const id = await createProfile({
+              showId: show._id,
+              layoutId,
+              name,
+              description: description || undefined,
+              isDefault,
+              ownerId: userId,
+            });
+            setSelectedProfileId(id);
+            setCreateOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProfileCreateModal({
+  layouts,
+  defaultLayoutId,
   onClose,
   onSave,
 }: {
+  layouts: Doc<"layouts">[];
+  defaultLayoutId?: Id<"layouts">;
   onClose: () => void;
-  onSave: (name: string) => void;
+  onSave: (args: {
+    name: string;
+    layoutId: Id<"layouts">;
+    isDefault: boolean;
+    description: string;
+  }) => void;
 }) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [layoutId, setLayoutId] = useState<string>(
+    defaultLayoutId ?? layouts[0]?._id ?? "",
+  );
+  const [isDefault, setIsDefault] = useState(true);
+
   return (
-    <Modal title="Save display profile" onClose={onClose}>
+    <Modal title="New display profile" onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Profile name">
+        <Field label="Name">
           <input
             className={inputCls}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. 4-projector living room"
+            placeholder="e.g. Living Room"
             autoFocus
           />
         </Field>
+        <Field label="Description">
+          <input
+            className={inputCls}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Field>
+        <Field label="Layout">
+          <select
+            className={inputCls}
+            value={layoutId}
+            onChange={(e) => setLayoutId(e.target.value)}
+          >
+            {layouts.map((l) => (
+              <option key={l._id} value={l._id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={isDefault}
+            onChange={(e) => setIsDefault(e.target.checked)}
+          />
+          Default profile for this show
+        </label>
         <button
-          onClick={() => name.trim() && onSave(name.trim())}
-          disabled={!name.trim()}
+          disabled={!name.trim() || !layoutId}
+          onClick={() =>
+            onSave({
+              name: name.trim(),
+              layoutId: layoutId as Id<"layouts">,
+              isDefault,
+              description,
+            })
+          }
           className="w-full rounded-md bg-brand py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
         >
-          Save Profile
+          Create profile
         </button>
       </div>
     </Modal>
   );
 }
 
+// ---------------------------------------------------------------- designer
+
 export function ShowDesigner() {
-  const [tab, setTab] = useState<"shows" | "screens">("shows");
+  const [tab, setTab] = useState<"shows" | "screens" | "profiles">("shows");
 
   return (
     <div>
@@ -1859,7 +2483,7 @@ export function ShowDesigner() {
         <h1 className="text-2xl font-bold text-gray-900">Designer</h1>
       </div>
       <div className="mt-4 flex gap-1 border-b border-gray-200">
-        {(["shows", "screens"] as const).map((t) => (
+        {(["shows", "screens", "profiles"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1875,7 +2499,13 @@ export function ShowDesigner() {
         ))}
       </div>
       <div className="mt-4">
-        {tab === "shows" ? <ShowsTab /> : <ScreensTab />}
+        {tab === "shows" ? (
+          <ShowsTab />
+        ) : tab === "screens" ? (
+          <ScreensTab />
+        ) : (
+          <ProfilesTab />
+        )}
       </div>
     </div>
   );

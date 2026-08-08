@@ -104,7 +104,8 @@ function effectKindAndContent(fields, mediaBase) {
     }
     return { kind: "text", content: u };
   }
-  return { kind: "color", content: "#000000" };
+  // Empty legacy rows (no media/color) used to become #000000 and cover GIFs.
+  return null;
 }
 
 function showTag(name) {
@@ -194,13 +195,23 @@ function transform(raw) {
             const ef = effect.fields || {};
             const legacyPanelId = num(field(ef, "PanelId", "panelid"), NaN);
             if (!Number.isFinite(legacyPanelId)) return null;
-            const { kind, content } = effectKindAndContent(ef, mediaBase);
+            const media = effectKindAndContent(ef, mediaBase);
+            if (!media) return null;
+            const duration = num(field(ef, "Duration", "duration"), 0);
+            const videoStart = num(
+              field(ef, "VideoStartTime", "videostarttime"),
+              0,
+            );
             return {
               legacyPanelId,
-              kind,
-              content,
+              kind: media.kind,
+              content: media.content,
               startTime: num(field(ef, "StartTime", "starttime"), 0),
               isEnabled: bool(field(ef, "IsEnabled", "isenabled"), true),
+              ...(duration > 0 ? { durationSec: duration } : {}),
+              ...(media.kind === "video" && videoStart > 0
+                ? { videoStartSec: videoStart }
+                : {}),
             };
           })
           .filter(Boolean);

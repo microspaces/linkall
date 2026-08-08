@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { PANEL_FILLS, PanelStage } from "./designer";
 import { Loading } from "./empty-state";
+import { useCurrentUser } from "./current-user";
 
 /**
  * Legacy mobile Player + Screen pages.
@@ -22,6 +23,78 @@ import { Loading } from "./empty-state";
 type Point = { x: number; y: number };
 type Panel = Doc<"panels">;
 type ScreenWithPanels = Doc<"screens"> & { panels: Panel[] };
+
+type ScreenBinding = {
+  showId: Id<"shows">;
+  displayProfileId?: Id<"displayProfiles">;
+};
+
+const BINDING_STORAGE_PREFIX = "linkall.screenBinding.v1";
+
+function bindingStorageKey(
+  userId: Id<"users"> | undefined,
+  screenId: Id<"screens">,
+) {
+  return `${BINDING_STORAGE_PREFIX}:${userId ?? "anon"}:${screenId}`;
+}
+
+function readBinding(
+  userId: Id<"users"> | undefined,
+  screenId: Id<"screens">,
+): ScreenBinding | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(
+      bindingStorageKey(userId, screenId),
+    );
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ScreenBinding;
+    if (!parsed?.showId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeBinding(
+  userId: Id<"users"> | undefined,
+  screenId: Id<"screens">,
+  binding: ScreenBinding | null,
+) {
+  if (typeof window === "undefined") return;
+  const key = bindingStorageKey(userId, screenId);
+  if (binding) window.localStorage.setItem(key, JSON.stringify(binding));
+  else window.localStorage.removeItem(key);
+}
+
+function readUrlBinding(): ScreenBinding | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const showId = params.get("show") as Id<"shows"> | null;
+  if (!showId) return null;
+  const profile = params.get("profile") as Id<"displayProfiles"> | null;
+  return {
+    showId,
+    ...(profile ? { displayProfileId: profile } : {}),
+  };
+}
+
+function syncUrlBinding(binding: ScreenBinding | null) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (binding?.showId) {
+    url.searchParams.set("show", binding.showId);
+    if (binding.displayProfileId) {
+      url.searchParams.set("profile", binding.displayProfileId);
+    } else {
+      url.searchParams.delete("profile");
+    }
+  } else {
+    url.searchParams.delete("show");
+    url.searchParams.delete("profile");
+  }
+  window.history.replaceState(null, "", url.toString());
+}
 
 // ------------------------------------------------------------- calibration
 
@@ -88,8 +161,91 @@ export function CalibrationStage({
 
 /** Fullscreen output for one physical screen (projector / LED wall). */
 export function ScreenOutput({ screenId }: { screenId: Id<"screens"> }) {
-  const view = useQuery(api.designer.screenView, { screenId });
+  const { user, userId } = useCurrentUser();
+  const [binding, setBinding] = useState<ScreenBinding | null>(null);
+  const [bindingReady, setBindingReady] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [clockSec, setClockSec] = useState(0);
+  const advanceIfDue = useMutation(api.shows.advanceIfDue);
+
+  // URL wins on first load; otherwise restore per-user preference (shared
+  // across tabs via localStorage). Demo user id is also shared across tabs.
+  useEffect(() => {
+    const fromUrl = readUrlBinding();
+    const fromStore = readBinding(userId, screenId);
+    const initial = fromUrl ?? fromStore;
+    setBinding(initial);
+    if (fromUrl) writeBinding(userId, screenId, fromUrl);
+    setBindingReady(true);
+  }, [userId, screenId]);
+
+  // Keep other tabs in sync when this user changes a binding.
+  useEffect(() => {
+    const key = bindingStorageKey(userId, screenId);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== key) return;
+      try {
+        setBinding(e.newValue ? (JSON.parse(e.newValue) as ScreenBinding) : null);
+      } catch {
+        setBinding(null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [userId, screenId]);
+
+  const viewArgs = useMemo(() => {
+    if (!bindingReady) return "skip" as const;
+    return {
+      screenId,
+      ...(binding?.showId ? { showId: binding.showId } : {}),
+      ...(binding?.displayProfileId
+        ? { displayProfileId: binding.displayProfileId }
+        : {}),
+    };
+  }, [bindingReady, screenId, binding?.showId, binding?.displayProfileId]);
+
+  const view = useQuery(
+    api.designer.screenView,
+    viewArgs === "skip" ? "skip" : viewArgs,
+  );
+  const options = useQuery(
+    api.designer.screenBindingOptions,
+    bindingReady
+      ? { screenId, ...(userId ? { ownerId: userId } : {}) }
+      : "skip",
+  );
+
+  const applyBinding = (next: ScreenBinding | null) => {
+    setBinding(next);
+    writeBinding(userId, screenId, next);
+    syncUrlBinding(next);
+  };
+
+  const selectShow = (showId: Id<"shows">) => {
+    const showOpt = options?.shows.find((s) => s.showId === showId);
+    const profiles = showOpt?.profiles ?? [];
+    // Keep the same profile when the new show reuses this layout under the
+    // same profile id; otherwise prefer default / sole profile for the layout.
+    const keep =
+      binding?.displayProfileId &&
+      profiles.some((p) => p._id === binding.displayProfileId)
+        ? binding.displayProfileId
+        : undefined;
+    const fallback =
+      profiles.find((p) => p.isDefault)?._id ?? profiles[0]?._id;
+    applyBinding({
+      showId,
+      ...(keep || fallback
+        ? { displayProfileId: keep ?? fallback }
+        : {}),
+    });
+  };
+
+  const selectProfile = (displayProfileId: Id<"displayProfiles">) => {
+    if (!binding?.showId) return;
+    applyBinding({ showId: binding.showId, displayProfileId });
+  };
 
   const startedAt = view?.show?.sceneStartedAt;
   useEffect(() => {
@@ -100,7 +256,31 @@ export function ScreenOutput({ screenId }: { screenId: Id<"screens"> }) {
     return () => clearInterval(t);
   }, [startedAt]);
 
-  if (view === undefined)
+  // Screens also request advance so a show progresses even with no Player open.
+  useEffect(() => {
+    const show = view?.show;
+    const scene = view?.scene;
+    if (
+      !show ||
+      show.status !== "live" ||
+      !scene?.durationSec ||
+      clockSec < scene.durationSec
+    ) {
+      return;
+    }
+    void advanceIfDue({ showId: show._id });
+  }, [view?.show, view?.scene?.durationSec, clockSec, advanceIfDue]);
+
+  // Auto-open the picker when idle / unbound so setup is obvious.
+  const isLiveContent = Boolean(
+    view?.show && view.show.status === "live" && view.scene,
+  );
+  useEffect(() => {
+    if (!bindingReady || view === undefined) return;
+    if (!isLiveContent && !binding) setPickerOpen(true);
+  }, [bindingReady, view, isLiveContent, binding]);
+
+  if (!bindingReady || view === undefined)
     return <div className="fixed inset-0 z-50 bg-black" />;
   if (view === null)
     return (
@@ -109,10 +289,12 @@ export function ScreenOutput({ screenId }: { screenId: Id<"screens"> }) {
       </div>
     );
 
-  const { screen, show, scene, effects } = view;
+  const { screen, show, scene, effects, layoutName } = view;
   const aligning =
     screen.alignPanelId !== undefined &&
     screen.panels.some((p) => p._id === screen.alignPanelId);
+  const selectedShowOpt = options?.shows.find((s) => s.showId === binding?.showId);
+  const profileChoices = selectedShowOpt?.profiles ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
@@ -125,15 +307,137 @@ export function ScreenOutput({ screenId }: { screenId: Id<"screens"> }) {
             screen={screen}
             alignPanelId={screen.alignPanelId!}
           />
-        ) : show && scene ? (
+        ) : show && scene && show.status === "live" ? (
           <PanelStage screen={screen} effects={effects} clockSec={clockSec} />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-600">
             <p className="text-2xl font-semibold">{screen.name}</p>
-            <p className="text-sm">Waiting for a show…</p>
+            <p className="text-sm">
+              {show
+                ? show.status === "live"
+                  ? "Waiting for a scene…"
+                  : `Bound to “${show.title}” — not live yet`
+                : "Waiting for a show…"}
+            </p>
+            <p className="text-xs text-gray-700">
+              {layoutName ? `${layoutName} · ` : ""}
+              {screen.width}×{screen.height}
+            </p>
           </div>
         )}
       </div>
+
+      {/* Corner affordance — stays out of the projection until opened */}
+      <button
+        type="button"
+        aria-label={pickerOpen ? "Hide screen setup" : "Screen setup"}
+        onClick={() => setPickerOpen((o) => !o)}
+        className="absolute right-3 top-3 z-[60] rounded bg-white/10 px-2 py-1 text-[11px] font-semibold tracking-wide text-white/70 backdrop-blur hover:bg-white/20 hover:text-white"
+      >
+        {pickerOpen ? "Hide" : "Setup"}
+      </button>
+
+      {pickerOpen && (
+        <div className="absolute bottom-4 left-4 right-4 z-[60] mx-auto max-w-md rounded-lg border border-white/15 bg-black/80 p-4 text-white shadow-xl backdrop-blur-md">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{screen.name}</p>
+              <p className="text-xs text-white/50">
+                {layoutName || "Layout"}
+                {" · "}
+                {screen.width}×{screen.height}
+                {screen.height > screen.width ? " portrait" : " landscape"}
+                {user ? ` · ${user.name}` : ""}
+              </p>
+            </div>
+            {binding && (
+              <button
+                type="button"
+                onClick={() => applyBinding(null)}
+                className="text-[11px] font-medium text-white/50 hover:text-white"
+              >
+                Auto-bind
+              </button>
+            )}
+          </div>
+
+          <label className="block text-[11px] font-semibold uppercase tracking-wide text-white/40">
+            Show
+          </label>
+          <select
+            className="mt-1 w-full rounded-md border border-white/20 bg-black/60 px-3 py-2 text-sm"
+            value={binding?.showId ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) applyBinding(null);
+              else selectShow(v as Id<"shows">);
+            }}
+          >
+            <option value="">
+              {options?.shows.some((s) => s.status === "live")
+                ? "Auto (first live match)"
+                : "Select a show…"}
+            </option>
+            {(options?.shows ?? []).map((s) => (
+              <option key={s.showId} value={s.showId}>
+                {s.status === "live" ? "● " : ""}
+                {s.title}
+                {s.status !== "live" ? ` (${s.status})` : ""}
+              </option>
+            ))}
+          </select>
+
+          {binding?.showId && profileChoices.length > 0 && (
+            <>
+              <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                Display profile
+              </label>
+              <select
+                className="mt-1 w-full rounded-md border border-white/20 bg-black/60 px-3 py-2 text-sm"
+                value={binding.displayProfileId ?? profileChoices[0]?._id ?? ""}
+                onChange={(e) =>
+                  selectProfile(e.target.value as Id<"displayProfiles">)
+                }
+              >
+                {profileChoices.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                    {p.isDefault ? " (default)" : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-white/35">
+                Same screen can serve multiple shows — profile sticks until you
+                change shows.
+              </p>
+            </>
+          )}
+
+          {options && options.myScreens.length > 1 && (
+            <>
+              <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                Your screens
+              </label>
+              <select
+                className="mt-1 w-full rounded-md border border-white/20 bg-black/60 px-3 py-2 text-sm"
+                value={screenId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  if (id && id !== screenId) {
+                    window.location.href = `/screens/${id}`;
+                  }
+                }}
+              >
+                {options.myScreens.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.layoutName} · {s.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -205,6 +509,7 @@ function PlayTab() {
   // Live clock synced to when the operator switched scenes.
   const [clockSec, setClockSec] = useState(0);
   const startedAt = show?.sceneStartedAt;
+  const advanceIfDue = useMutation(api.shows.advanceIfDue);
   useEffect(() => {
     if (startedAt === undefined) return;
     const tick = () => setClockSec((Date.now() - startedAt) / 1000);
@@ -212,6 +517,19 @@ function PlayTab() {
     const t = setInterval(tick, 250);
     return () => clearInterval(t);
   }, [startedAt]);
+
+  // Auto-advance when the live scene's duration elapses (legacy show runner).
+  useEffect(() => {
+    if (
+      !show ||
+      show.status !== "live" ||
+      !liveScene?.durationSec ||
+      clockSec < liveScene.durationSec
+    ) {
+      return;
+    }
+    void advanceIfDue({ showId: show._id });
+  }, [show, liveScene?.durationSec, clockSec, advanceIfDue]);
 
   if (shows === undefined) return <Loading />;
 

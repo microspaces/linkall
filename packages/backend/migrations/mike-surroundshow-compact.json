@@ -841,42 +841,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/77c1f4db-66a7-4c9f-bc7e-0bf8d0b6639b.PNG",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 117
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/607c4f2c-f350-4565-87a4-5a6cae357a6c.PNG",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 117
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=StQJSjQjhlg",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 117
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/cfcaa8b6-19a8-447a-8b80-35e910d5ae17.jpg",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 117
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/143a9429-a2e3-4cb3-96ff-428466bb3c37.PNG",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 117
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/20417bac-fe9c-42a1-8676-22801557cadb.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 117
               }
             ]
           },
@@ -891,42 +897,48 @@
                 "kind": "color",
                 "content": "#4c9b3f",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 49
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#4c9b3f",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 49
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=9jyCfRHumHU",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 49
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/d7dd94b2-f913-4c79-8ccf-75f34a621341.PNG",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 49
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#f8c701",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 49
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#f8c701",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 49
               }
             ]
           },
@@ -941,2947 +953,3368 @@
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=6KdLcd-sUQA",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 1,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 1,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 1,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 1,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 1,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 8,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 8,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 8,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 8,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 8,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 15,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 15,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 15,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 15,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 15,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 19,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 19,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 19,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 19,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 19,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 2,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 2,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 2,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 2,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 2,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 3,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 3,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 3,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 3,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 3,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 4,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 4,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 4,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 4,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 4,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 5,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 5,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 5,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 5,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 5,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 9,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 9,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 9,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 9,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 9,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 13,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 13,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 13,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 13,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 13,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 18,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 18,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 18,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 18,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 18,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 24,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 24,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 24,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 24,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 24,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 25,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 25,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 25,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 25,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 25,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 26,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 31,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 31,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 31,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 31,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 31,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 33,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 33,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 33,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 33,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 33,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 35,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 35,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 35,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 35,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 35,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 38,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 38,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 38,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 38,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 38,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 40,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 40,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 40,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 40,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 40,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 44,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 44,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 44,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 44,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 44,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 52,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 52,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 52,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 52,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 52,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 54,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 54,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 54,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 54,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 54,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 57,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 57,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 57,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 57,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 57,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 58,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 58,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 58,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 58,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 58,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 61,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 61,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 61,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 61,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 61,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 62,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 62,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 62,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 62,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 62,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 63,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 64,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 64,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 64,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 64,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 64,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 65,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 65,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 65,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 65,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 65,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 66,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 67,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 67,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 67,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 67,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 67,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 68,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 68,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 68,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 68,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 68,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 73,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 73,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 73,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 73,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 73,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 74,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 74,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 74,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 74,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 74,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 75,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 75,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 75,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 75,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 75,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 78,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 78,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 78,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 78,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 78,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 80,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 80,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 80,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 80,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 80,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 87,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 87,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 87,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 87,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 87,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 90,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 90,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 90,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 90,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 90,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 92,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 92,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 92,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 92,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 92,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 99,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 99,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 99,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 99,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 99,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 100,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 100,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 100,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 100,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 100,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 101,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 101,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 101,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 101,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 101,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 102,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 102,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 102,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 102,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 102,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 104,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 104,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 104,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 104,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 104,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 107,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 107,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 107,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 107,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 107,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 113,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 113,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 113,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 113,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 113,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 114,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 115,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 115,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 115,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 115,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 115,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 119,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 119,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 119,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 119,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 119,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 121,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 121,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 121,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 121,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 121,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 125,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 125,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 125,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 125,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 125,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 126,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 127,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 127,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 127,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 127,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 127,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 129,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 131,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 131,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 131,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 131,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 131,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 132,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 132,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 132,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 132,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 132,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 133,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 133,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 133,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 133,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 133,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 138,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 138,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 138,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 138,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 138,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 139,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 139,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 139,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 139,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 139,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 142,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 143,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 143,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 143,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 143,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 143,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 145,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 146,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 146,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 146,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 146,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 146,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 147,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 147,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 147,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 147,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 147,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 148,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 148,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 148,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 148,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 148,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 149,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 149,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 149,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 149,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 149,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 150,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 150,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 150,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 150,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 150,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 152,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 152,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 152,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 152,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 152,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 156,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 156,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 156,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 156,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 156,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 164,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 164,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 164,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 164,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 164,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 165,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 165,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 165,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 165,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 165,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 167,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 167,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 167,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 167,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 167,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 170,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 170,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 170,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 170,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 170,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 172,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 172,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#305827",
                 "startTime": 172,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 172,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#A10412",
                 "startTime": 172,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 181
               }
             ]
           },
@@ -3896,42 +4329,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/5b4f3331-fd36-4157-936a-d270716e8233.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 145
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/7f91b8f8-d131-4fa0-ac35-1c3b8a14b9c9.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 145
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=FOVCtUdaMCU",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 145
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/cf948cdd-a421-482d-a466-7ca0d3a9be20.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 145
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/62f6c3db-0067-48f7-9b3a-b64e82d1d8ca.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 145
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/eb6307d3-892d-4f0d-b497-6e762c781bf3.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 145
               }
             ]
           },
@@ -3946,119 +4385,88 @@
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=j3CHXyWRcu0",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/03fc3e37-1ec0-491a-ba6a-5cfc89c84f2b.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/fb6818bb-a2ae-45bf-8da6-09cf5c3e906a.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/f6e6995d-25b5-44e9-9283-fb6f57bda434.gif",
                 "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3299,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/721dea69-3a02-4013-aa48-3d7137cb64e1.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/d57ce37d-4c5c-417f-babb-e987698ba07f.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/ac0aa01b-4fce-4293-b550-47522d3844f1.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/4b0095ca-4239-4fe3-bcae-eeef7ed35fc5.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/f759a5d9-fc50-4304-99c0-24ea39ed6b86.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/8f2234c6-d862-4390-aced-566416b66eb9.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/49a19d1b-8089-4e87-9bd5-06495eced671.gif",
                 "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3296,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3298,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3299,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3300,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 97
               }
             ]
           },
@@ -4073,56 +4481,64 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/4eceaff6-0a94-4081-b946-5c13dbee46b7.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/a14b240e-1dd7-4394-9b17-f39305ccb534.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=9j6OgRVgRz8",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/70b9089b-3f61-49eb-b660-c8b3b6cd8380.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/53f402f7-708f-46e2-89ca-6a19088d0265.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/e63a153e-4286-4386-8a81-44efe18fc4eb.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/bf4254e2-afba-4b79-80b1-69030e354e63.gif",
                 "startTime": 30,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/7cbd0014-eeb6-4bd5-ad1b-37a1bce00be1.gif",
                 "startTime": 60,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 151
               }
             ]
           }
@@ -4146,42 +4562,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/dac15c3d-c233-4c43-82ec-6c4dfe8e2bce.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 100
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/4c7ef226-b5c7-48ee-9f69-9ea81b1b6868.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 100
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/1da5df9a-8353-47e2-bd4d-5d9f4d855503.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 100
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/f42a4571-2fbd-49a6-bc6d-3b9d515f64b2.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 100
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/f6217239-08f7-4b0c-be46-c42fa6753e54.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 100
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=4DMUy20QfdM",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 100
               }
             ]
           },
@@ -4196,42 +4618,48 @@
                 "kind": "color",
                 "content": "#0E4A1F",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 22
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#0E4A1F",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 22
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#0E4A1F",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 22
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#0E4A1F",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 22
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#0E4A1F",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 22
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=Miy-DH7AAAQ",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 22
               }
             ]
           },
@@ -4246,42 +4674,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/c5074df4-7f85-45ee-a64c-82ce9f4041df.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 330
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "color",
                 "content": "#EC61E4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 330
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#EC61E4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 330
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#0098FF",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 330
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#0098FF",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 330
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=hZMMNX31IxE",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 330
               }
             ]
           },
@@ -4296,42 +4730,48 @@
                 "kind": "color",
                 "content": "#737726",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 13
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "color",
                 "content": "#737726",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 13
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "color",
                 "content": "#737726",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 13
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "color",
                 "content": "#737726",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 13
               },
               {
                 "legacyPanelId": 3298,
                 "kind": "color",
                 "content": "#737726",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 13
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=fVtkAGJvNu8",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 13
               }
             ]
           },
@@ -4346,42 +4786,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/55db5cb3-1161-487e-846c-8f1d2fd3ab18.webp",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 60
               },
               {
                 "legacyPanelId": 3295,
                 "kind": "video",
                 "content": "https://www.youtube.com/watch?v=ZF2r11Ld7f8",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 60
               },
               {
                 "legacyPanelId": 3297,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/c9d89da3-89ea-4239-b0d8-56d325e0c17f.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 60
               },
               {
                 "legacyPanelId": 3296,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/06ef7657-5534-49cd-8171-4aeef5162eb1.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 60
               },
               {
                 "legacyPanelId": 3300,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/28c8ef20-cb2f-458e-b73c-709fe686a240.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 60
               },
               {
                 "legacyPanelId": 3299,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/4132bd9b-5b75-4326-9bcc-02bb76e8eeee.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 60
               }
             ]
           }
@@ -4405,13 +4851,6 @@
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/71751ece-66da-4e20-bc23-dd6c91c1c184.gif",
                 "startTime": 0,
                 "isEnabled": false
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": false
               }
             ]
           },
@@ -4419,29 +4858,7 @@
             "legacyId": 10262,
             "title": "Red Carpet Premiere",
             "order": 1,
-            "effects": [
-              {
-                "legacyPanelId": 7447,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7447,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 10282,
@@ -4454,27 +4871,6 @@
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/d99e9f15-ee6e-43b6-a9d5-95a0180ad703.jpg",
                 "startTime": 0,
                 "isEnabled": false
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7447,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
               }
             ]
           },
@@ -4491,51 +4887,9 @@
                 "isEnabled": true
               },
               {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 7450,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/aaa3a533-a0b4-4fa3-8e98-0067cf872344.png",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
                 "startTime": 0,
                 "isEnabled": true
               },
@@ -4547,23 +4901,9 @@
                 "isEnabled": true
               },
               {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 7450,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/b829cf11-a711-4540-96fd-cca749f849a0.png",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
                 "startTime": 0,
                 "isEnabled": true
               },
@@ -4575,51 +4915,9 @@
                 "isEnabled": true
               },
               {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 7450,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/2b9f3c27-c72f-471d-94b5-3e187b6428dc.png",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
                 "startTime": 0,
                 "isEnabled": true
               },
@@ -4631,86 +4929,9 @@
                 "isEnabled": true
               },
               {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 7452,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/bad84580-7198-4c05-841c-1dfede213d83.gif",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7450,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7450,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
                 "startTime": 0,
                 "isEnabled": true
               },
@@ -4729,83 +4950,6 @@
                 "isEnabled": true
               },
               {
-                "legacyPanelId": 7447,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7448,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7447,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 7450,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/d8ec4086-fd51-4c3d-b912-4a39773cd357.gif",
@@ -4816,90 +4960,6 @@
                 "legacyPanelId": 7446,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/f36b6d32-e938-4859-849d-ca4343f57cbd.jpg",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": false
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": false
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": false
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": false
-              },
-              {
-                "legacyPanelId": 7446,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": false
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3297,
-                "kind": "color",
-                "content": "#000000",
                 "startTime": 0,
                 "isEnabled": true
               }
@@ -4990,13 +5050,6 @@
             "order": 1,
             "effects": [
               {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 3354,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/concert1.mp4",
@@ -5060,13 +5113,6 @@
                 "isEnabled": true
               },
               {
-                "legacyPanelId": 3475,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
                 "legacyPanelId": 3351,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/boom3.mp4",
@@ -5112,13 +5158,6 @@
                 "legacyPanelId": 8832,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/ChickenBananaSR.mp4",
-                "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 3475,
-                "kind": "color",
-                "content": "#000000",
                 "startTime": 0,
                 "isEnabled": true
               },
@@ -5436,49 +5475,48 @@
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fire1.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 3351,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fire1.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8834,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fire1.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8832,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fire1.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 3354,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fire1.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8835,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fire1.mp4",
                 "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               }
             ]
           },
@@ -5493,49 +5531,48 @@
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fireworks.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 3351,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fireworks.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8834,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fireworks.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8832,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fireworks.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 3354,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fireworks.mp4",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8835,
                 "kind": "video",
                 "content": "https://surroundshow.com/video/bananarama/fireworks.mp4",
                 "startTime": 0,
-                "isEnabled": true
-              },
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               }
             ]
           },
@@ -5627,42 +5664,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/1e3cba99-096e-4954-b301-4acd7a66fb00.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8834,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/96b11b72-2bb6-4b51-8c2a-1dbe076ad9fa.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8832,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/79f53496-07dc-4e9a-9358-b530e1d46986.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 3354,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/2dbd90f2-6bd8-491b-be52-deb529790b6d.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 8835,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/4e44b540-076d-4bd6-bca6-cefe6dff1367.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               },
               {
                 "legacyPanelId": 3301,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/d27e196e-6f87-46e2-956d-f825bc83abbf.gif",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 5
               }
             ]
           },
@@ -6041,253 +6084,109 @@
             "legacyId": 3950,
             "title": "BackNForth",
             "order": 32,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3954,
             "title": "BringTheFun",
             "order": 33,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3951,
             "title": "BubbleGumGirl",
             "order": 34,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3956,
             "title": "CockatooInTheGreenJungle",
             "order": 35,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3958,
             "title": "DressedInPink",
             "order": 36,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3949,
             "title": "DrivingYourVibes",
             "order": 37,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3946,
             "title": "EndOfTheSummer",
             "order": 38,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3962,
             "title": "GlazedDiscoBall",
             "order": 39,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3955,
             "title": "NoWorries",
             "order": 40,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3952,
             "title": "PrivateParty",
             "order": 41,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3942,
             "title": "SoundOfIpanema",
             "order": 42,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3957,
             "title": "SummerGone",
             "order": 43,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 3961,
             "title": "TheBoldAndTheBrave",
             "order": 44,
-            "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 4018,
             "title": "Action Drums",
             "order": 45,
-            "effects": [
-              {
-                "legacyPanelId": 9084,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 4017,
             "title": "xxBoxingBell",
             "order": 46,
-            "effects": [
-              {
-                "legacyPanelId": 9084,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 4020,
             "title": "xxCrickets",
             "order": 47,
-            "effects": [
-              {
-                "legacyPanelId": 9084,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 4021,
             "title": "xxLaugh and Applause",
             "order": 48,
-            "effects": [
-              {
-                "legacyPanelId": 9084,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 4019,
             "title": "xxRim Shot",
             "order": 49,
-            "effects": [
-              {
-                "legacyPanelId": 9084,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 10259,
@@ -6307,15 +6206,7 @@
             "legacyId": 4004,
             "title": "xxRinging",
             "order": 51,
-            "effects": [
-              {
-                "legacyPanelId": 9084,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              }
-            ]
+            "effects": []
           },
           {
             "legacyId": 10260,
@@ -6405,13 +6296,6 @@
             "title": "celebrate-superstars-starflow",
             "order": 57,
             "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
               {
                 "legacyPanelId": 3301,
                 "kind": "video",
@@ -6509,13 +6393,6 @@
                 "content": "https://surroundshow.com/video/bananarama/startunnel.mp4",
                 "startTime": 0,
                 "isEnabled": true
-              },
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
               }
             ]
           },
@@ -6524,13 +6401,6 @@
             "title": "celebrate-all-laser",
             "order": 61,
             "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
               {
                 "legacyPanelId": 3301,
                 "kind": "video",
@@ -6580,13 +6450,6 @@
             "title": "celebrate-all-fallingblocks",
             "order": 62,
             "effects": [
-              {
-                "legacyPanelId": 9134,
-                "kind": "color",
-                "content": "#000000",
-                "startTime": 0,
-                "isEnabled": true
-              },
               {
                 "legacyPanelId": 3351,
                 "kind": "video",
@@ -6706,42 +6569,48 @@
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/6d39747e-0b02-481f-96c6-eb8cbdf10b65.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 2
               },
               {
                 "legacyPanelId": 3354,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/79304beb-5cb7-4fc6-a437-b303a9c34b4b.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 2
               },
               {
                 "legacyPanelId": 3301,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/24a7cda3-2d17-44a6-b024-b0520098d045.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 2
               },
               {
                 "legacyPanelId": 8834,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/2536fc90-fa30-4a27-be6c-447fe62e5db8.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 2
               },
               {
                 "legacyPanelId": 8832,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/6e67127a-2028-4b6f-aaf6-a5affb6990e2.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 2
               },
               {
                 "legacyPanelId": 8835,
                 "kind": "image",
                 "content": "https://www.surroundshow.com/images/surroundshow/scenes/55d9b5d7-ad3a-4a68-ad83-d0dafbee7f0e.png",
                 "startTime": 0,
-                "isEnabled": true
+                "isEnabled": true,
+                "durationSec": 2
               }
             ]
           },

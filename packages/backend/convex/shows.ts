@@ -57,6 +57,7 @@ export const setScene = mutation({
       .query("scenes")
       .withIndex("by_show", (q) => q.eq("showId", showId))
       .collect();
+    scenes.sort((a, b) => a.order - b.order);
     const clamped = Math.max(0, Math.min(index, scenes.length - 1));
     await ctx.db.patch(showId, {
       currentSceneIndex: clamped,
@@ -78,12 +79,54 @@ export const playScene = mutation({
       .query("scenes")
       .withIndex("by_show", (q) => q.eq("showId", showId))
       .collect();
+    scenes.sort((a, b) => a.order - b.order);
     const clamped = Math.max(0, Math.min(index, scenes.length - 1));
     await ctx.db.patch(showId, {
       status: "live",
       currentSceneIndex: clamped,
       sceneStartedAt: Date.now(),
     });
+  },
+});
+
+/**
+ * Legacy show runner: when a live scene's Duration elapses, advance to the
+ * next scene (or end the show). Safe to call from every connected player /
+ * screen — only the first caller after the deadline wins.
+ */
+export const advanceIfDue = mutation({
+  args: { showId: v.id("shows") },
+  handler: async (ctx, { showId }) => {
+    const show = await ctx.db.get(showId);
+    if (!show || show.status !== "live" || show.sceneStartedAt === undefined) {
+      return { advanced: false as const };
+    }
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", showId))
+      .collect();
+    scenes.sort((a, b) => a.order - b.order);
+    const scene = scenes[show.currentSceneIndex];
+    if (!scene?.durationSec) return { advanced: false as const };
+
+    const elapsed = (Date.now() - show.sceneStartedAt) / 1000;
+    if (elapsed < scene.durationSec) return { advanced: false as const };
+
+    const next = show.currentSceneIndex + 1;
+    if (next >= scenes.length) {
+      await ctx.db.patch(showId, { status: "ended" });
+      return { advanced: true as const, ended: true as const };
+    }
+    await ctx.db.patch(showId, {
+      currentSceneIndex: next,
+      sceneStartedAt: Date.now(),
+    });
+    return {
+      advanced: true as const,
+      ended: false as const,
+      index: next,
+      title: scenes[next]?.title,
+    };
   },
 });
 

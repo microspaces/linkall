@@ -45,6 +45,8 @@ const effectSpec = v.object({
   content: v.string(),
   startTime: v.number(),
   isEnabled: v.boolean(),
+  durationSec: v.optional(v.number()),
+  videoStartSec: v.optional(v.number()),
 });
 
 const sceneSpec = v.object({
@@ -146,6 +148,7 @@ export const mike = mutation({
     let sceneCount = 0;
     let effectCount = 0;
     let skippedEffects = 0;
+    let profileCount = 0;
 
     for (const show of data.shows) {
       const layoutId =
@@ -162,6 +165,40 @@ export const mike = mutation({
         ownerId,
       });
       showCount++;
+
+      // Legacy export rarely includes DisplayProfile rows; synthesize a
+      // default profile with 1:1 panel-name mappings so designer retargeting works.
+      let profileId: Id<"displayProfiles"> | null = null;
+      const panelNameById = new Map<Id<"panels">, string>();
+      if (layoutId) {
+        profileId = await ctx.db.insert("displayProfiles", {
+          name: `${show.title} (default)`,
+          description: "Auto-created from imported layout panels.",
+          showId,
+          layoutId,
+          isDefault: true,
+          ownerId,
+        });
+        profileCount++;
+        const screens = await ctx.db
+          .query("screens")
+          .withIndex("by_layout", (q) => q.eq("layoutId", layoutId))
+          .collect();
+        for (const screen of screens) {
+          const panels = await ctx.db
+            .query("panels")
+            .withIndex("by_screen", (q) => q.eq("screenId", screen._id))
+            .collect();
+          for (const panel of panels) {
+            panelNameById.set(panel._id, panel.name);
+            await ctx.db.insert("panelMappings", {
+              displayProfileId: profileId,
+              logicalPanelName: panel.name,
+              panelId: panel._id,
+            });
+          }
+        }
+      }
 
       for (const scene of show.scenes) {
         const sceneId = await ctx.db.insert("scenes", {
@@ -180,6 +217,7 @@ export const mike = mutation({
             skippedEffects++;
             continue;
           }
+          const logicalPanelName = panelNameById.get(panelId);
           await ctx.db.insert("effects", {
             sceneId,
             panelId,
@@ -187,6 +225,13 @@ export const mike = mutation({
             content: effect.content,
             startTime: effect.startTime,
             isEnabled: effect.isEnabled,
+            ...(effect.durationSec !== undefined
+              ? { durationSec: effect.durationSec }
+              : {}),
+            ...(effect.videoStartSec !== undefined
+              ? { videoStartSec: effect.videoStartSec }
+              : {}),
+            ...(logicalPanelName ? { logicalPanelName } : {}),
           });
           effectCount++;
         }
@@ -201,6 +246,7 @@ export const mike = mutation({
       scenes: sceneCount,
       effects: effectCount,
       skippedEffects,
+      displayProfiles: profileCount,
     };
   },
 });
@@ -254,5 +300,12 @@ async function deleteOwnedDesignerData(ctx: MutationCtx, ownerId: Id<"users">) {
   const profiles = (await ctx.db.query("displayProfiles").collect()).filter(
     (p) => p.ownerId === ownerId,
   );
-  for (const profile of profiles) await ctx.db.delete(profile._id);
+  for (const profile of profiles) {
+    const mappings = await ctx.db
+      .query("panelMappings")
+      .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+      .collect();
+    for (const mapping of mappings) await ctx.db.delete(mapping._id);
+    await ctx.db.delete(profile._id);
+  }
 }

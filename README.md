@@ -151,7 +151,7 @@ Change `EXPO_PUBLIC_BRAND` (and the matching URL) and restart to run the app as 
 ## What's implemented
 
 - **All brands**: landing page, groups (join/leave, member list, group wall), community feed (posts, replies, upvotes — all real-time), people directory, demo-user switcher.
-- **SurroundShow**: show list + live show player (scene engine), marketplace with cart, and the **show designer** (`/designer`): Shows tab with Show | Scene | Effect drill-down grids, live preview with Play, and a per-panel timeline; Screens tab with Layout | Screen | Panel grids and a drag-the-corners polygon panel editor. Panel-based scenes render in the live player with effects appearing at their start times (legacy Show → Scene → Effect(Panel) + Layout → Screen → Panel model).
+- **SurroundShow**: show list + live show player (scene engine), marketplace with cart, and the **show designer** (`/designer`): Shows tab with Show | Scene | Effect drill-down grids, multi-screen preview with Play, and a per-panel timeline; Screens tab with Layout | Screen | Panel grids and a drag-the-corners polygon panel editor; **Profiles** tab for display profiles (logical→physical panel mapping, defaults, non-destructive apply). Panel-based scenes render in the live player with effects appearing at their start times (legacy Show → Scene → Effect(Panel) + Layout → Screen → Panel + DisplayProfile → PanelMapping model).
 - **Player + Screen output** (legacy mobile Player page + projector Screen page): `/player` is the compact operator console — tap a scene on the Shows tab to push it live to every output; tap a panel on the Screens tab to put the physical output into calibration mode (flat colors + numbered corners) and nudge the whole panel / a corner / a side with arrow controls. `/screens/<id>` is the chrome-less page a projector or LED wall displays; it follows scene taps, panel nudges and alignment toggles through one reactive Convex query (this replaces the SignalR DisplayHub messages).
 - **FunFirst**: shows filtered by stage (Crazyball / HeadCase / WWCCE / LaffUp), live player with scoreboard scenes, events with ticket purchase.
 - **RedWave**: hierarchical resource library with breadcrumbs, state hub pages, state/county groups.
@@ -163,7 +163,6 @@ The legacy system's most complex feature — same email with different passwords
 
 ## Not yet ported (roadmap)
 
-- Designer **display profiles / panel mapping** (legacy DisplayProfile → PanelMapping: retarget a show's logical panels onto a different physical layout).
 - Media upload for effects (currently effects reference image/video URLs).
 - Notifications UI (table + queries exist), WebRTC video calls, direct messages.
 - Payments/checkout (cart is demo-only), affiliates/referrals, admin back-office.

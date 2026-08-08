@@ -1,6 +1,7 @@
 import { mutation } from "./_generated/server";
 import { MutationCtx } from "./_generated/server";
 import { Id, TableNames } from "./_generated/dataModel";
+import { christmasMikeScenes } from "./christmasMikeData";
 
 /**
  * Mock data per brand, for testing until real data (groups etc.) is imported.
@@ -21,6 +22,7 @@ const ALL_TABLES: TableNames[] = [
   "groups",
   "notifications",
   "effects",
+  "panelMappings",
   "displayProfiles",
   "panels",
   "screens",
@@ -169,6 +171,194 @@ async function insertShow(
   return showId;
 }
 
+/** Official Battle Loco marketing stills (battleloco.com). */
+const BATTLE_LOCO_IMAGES = {
+  hero: "https://battleloco.com/battle-loco/images/hero.jpg",
+  competitors: "https://battleloco.com/battle-loco/images/competitors.jpg",
+  crowd: "https://battleloco.com/battle-loco/images/crowd.jpg",
+} as const;
+
+/**
+ * “Bring the Boom” cue for HyperX Left / Center / Right.
+ * Legacy mike export pointed at surroundshow.com/video/bananarama/boom*.mp4,
+ * but those files 404 publicly now — use the working YouTube Boom clips instead.
+ */
+const BATTLE_LOCO_BOOM_VIDEOS = {
+  left: "https://www.youtube.com/watch?v=btnZ-segFG0",
+  center: "https://www.youtube.com/watch?v=C2ozn70nM9Y",
+  right: "https://www.youtube.com/watch?v=LRF9SHSvOOc",
+} as const;
+
+/**
+ * HyperX Arena three-LED setup for Battle Loco.
+ * Screen canvas sizes match the physical LED walls so /screens/[id]
+ * aspect ratios line up with the arena outputs.
+ */
+async function insertBattleLoco(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+): Promise<{
+  showId: Id<"shows">;
+  layoutId: Id<"layouts">;
+  screenIds: {
+    left: Id<"screens">;
+    center: Id<"screens">;
+    right: Id<"screens">;
+  };
+}> {
+  const layoutId = await ctx.db.insert("layouts", {
+    name: "HyperX Arena",
+    ownerId,
+  });
+
+  // Physical LED sizes: left/right portrait 1152×1920, center 1920×1080.
+  const screenSpecs: {
+    key: "left" | "center" | "right";
+    name: string;
+    order: number;
+    width: number;
+    height: number;
+    logical: string;
+    image: string;
+  }[] = [
+    {
+      key: "left",
+      name: "HyperX Stage Left",
+      order: 0,
+      width: 1152,
+      height: 1920,
+      logical: "LeftSidebar",
+      image: BATTLE_LOCO_IMAGES.competitors,
+    },
+    {
+      key: "center",
+      name: "HyperX Stage Center",
+      order: 1,
+      width: 1920,
+      height: 1080,
+      logical: "MainContent",
+      image: BATTLE_LOCO_IMAGES.hero,
+    },
+    {
+      key: "right",
+      name: "HyperX Stage Right",
+      order: 2,
+      width: 1152,
+      height: 1920,
+      logical: "RightSidebar",
+      image: BATTLE_LOCO_IMAGES.crowd,
+    },
+  ];
+
+  const screenIds = {} as {
+    left: Id<"screens">;
+    center: Id<"screens">;
+    right: Id<"screens">;
+  };
+  const panelByLogical: Record<string, Id<"panels">> = {};
+
+  for (const spec of screenSpecs) {
+    const screenId = await ctx.db.insert("screens", {
+      layoutId,
+      name: spec.name,
+      order: spec.order,
+      width: spec.width,
+      height: spec.height,
+    });
+    screenIds[spec.key] = screenId;
+    // Full-bleed panel covering the LED canvas.
+    panelByLogical[spec.logical] = await ctx.db.insert("panels", {
+      screenId,
+      name: spec.name,
+      zIndex: 0,
+      points: [
+        { x: 0, y: 0 },
+        { x: spec.width, y: 0 },
+        { x: spec.width, y: spec.height },
+        { x: 0, y: spec.height },
+      ],
+    });
+  }
+
+  const showId = await ctx.db.insert("shows", {
+    title: "Battle Loco",
+    description:
+      "HyperX Arena · Luxor — three-LED Intro + Bring the Boom video cue.",
+    tag: "battleloco",
+    status: "live",
+    currentSceneIndex: 0,
+    sceneStartedAt: Date.now(),
+    layoutId,
+    ownerId,
+  });
+
+  const introId = await ctx.db.insert("scenes", {
+    showId,
+    order: 0,
+    title: "Intro",
+    kind: "panels",
+    content: "",
+    durationSec: 120,
+  });
+
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("effects", {
+      sceneId: introId,
+      panelId: panelByLogical[spec.logical],
+      logicalPanelName: spec.logical,
+      kind: "image",
+      content: spec.image,
+      startTime: 0,
+      isEnabled: true,
+    });
+  }
+
+  // Migrated “Bring the Boom” — one video per LED wall.
+  const boomId = await ctx.db.insert("scenes", {
+    showId,
+    order: 1,
+    title: "Bring the Boom",
+    kind: "panels",
+    content: "",
+    durationSec: 60,
+  });
+  const boomByLogical: Record<string, string> = {
+    LeftSidebar: BATTLE_LOCO_BOOM_VIDEOS.left,
+    MainContent: BATTLE_LOCO_BOOM_VIDEOS.center,
+    RightSidebar: BATTLE_LOCO_BOOM_VIDEOS.right,
+  };
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("effects", {
+      sceneId: boomId,
+      panelId: panelByLogical[spec.logical],
+      logicalPanelName: spec.logical,
+      kind: "video",
+      content: boomByLogical[spec.logical],
+      startTime: 0,
+      isEnabled: true,
+    });
+  }
+
+  const profileId = await ctx.db.insert("displayProfiles", {
+    name: "HyperX Arena",
+    description:
+      "Stage Left / Center / Right LED walls at HyperX Arena (Luxor).",
+    showId,
+    layoutId,
+    isDefault: true,
+    ownerId,
+  });
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("panelMappings", {
+      displayProfileId: profileId,
+      logicalPanelName: spec.logical,
+      panelId: panelByLogical[spec.logical],
+    });
+  }
+
+  return { showId, layoutId, screenIds };
+}
+
 // ---------------------------------------------------------------- brands
 
 export const surroundshow = mutation({
@@ -245,23 +435,44 @@ export const surroundshow = mutation({
       width: 800,
       height: 600,
     });
-    const panelSpecs: [string, number, { x: number; y: number }[]][] = [
-      ["Garage Triangle", 0, [{ x: 160, y: 230 }, { x: 640, y: 230 }, { x: 400, y: 100 }]],
-      ["Garage Top Left", 1, [{ x: 60, y: 220 }, { x: 400, y: 50 }, { x: 400, y: 90 }, { x: 120, y: 240 }]],
-      ["Garage Top Right", 2, [{ x: 400, y: 50 }, { x: 740, y: 220 }, { x: 680, y: 240 }, { x: 400, y: 90 }]],
-      ["Column Left", 3, [{ x: 180, y: 250 }, { x: 240, y: 250 }, { x: 240, y: 560 }, { x: 180, y: 560 }]],
-      ["Column Right", 4, [{ x: 560, y: 250 }, { x: 620, y: 250 }, { x: 620, y: 560 }, { x: 560, y: 560 }]],
-      ["Garage Door", 5, [{ x: 270, y: 310 }, { x: 530, y: 310 }, { x: 530, y: 540 }, { x: 270, y: 540 }]],
+    const porchId = await ctx.db.insert("screens", {
+      layoutId,
+      name: "Porch",
+      order: 1,
+      width: 800,
+      height: 600,
+    });
+    const panelSpecs: [string, Id<"screens">, number, { x: number; y: number }[]][] = [
+      ["Garage Triangle", garageId, 0, [{ x: 160, y: 230 }, { x: 640, y: 230 }, { x: 400, y: 100 }]],
+      ["Garage Top Left", garageId, 1, [{ x: 60, y: 220 }, { x: 400, y: 50 }, { x: 400, y: 90 }, { x: 120, y: 240 }]],
+      ["Garage Top Right", garageId, 2, [{ x: 400, y: 50 }, { x: 740, y: 220 }, { x: 680, y: 240 }, { x: 400, y: 90 }]],
+      ["Column Left", garageId, 3, [{ x: 180, y: 250 }, { x: 240, y: 250 }, { x: 240, y: 560 }, { x: 180, y: 560 }]],
+      ["Column Right", garageId, 4, [{ x: 560, y: 250 }, { x: 620, y: 250 }, { x: 620, y: 560 }, { x: 560, y: 560 }]],
+      ["Garage Door", garageId, 5, [{ x: 270, y: 310 }, { x: 530, y: 310 }, { x: 530, y: 540 }, { x: 270, y: 540 }]],
+      ["Porch Window", porchId, 0, [{ x: 120, y: 140 }, { x: 680, y: 140 }, { x: 680, y: 460 }, { x: 120, y: 460 }]],
+      ["Porch Banner", porchId, 1, [{ x: 80, y: 480 }, { x: 720, y: 480 }, { x: 720, y: 560 }, { x: 80, y: 560 }]],
     ];
     const panelIds: Record<string, Id<"panels">> = {};
-    for (const [name, zIndex, points] of panelSpecs) {
+    for (const [name, screenId, zIndex, points] of panelSpecs) {
       panelIds[name] = await ctx.db.insert("panels", {
-        screenId: garageId,
+        screenId,
         name,
         zIndex,
         points,
       });
     }
+
+    // Logical slot → physical panel (legacy DisplayProfile / PanelMapping).
+    const garageLogical: Record<string, string> = {
+      Background: "Garage Triangle",
+      Header: "Garage Top Left",
+      Overlay: "Garage Top Right",
+      LeftSidebar: "Column Left",
+      RightSidebar: "Column Right",
+      MainContent: "Garage Door",
+      SecondaryContent: "Porch Window",
+      Footer: "Porch Banner",
+    };
 
     const christmasShowId = await ctx.db.insert("shows", {
       title: "Christmas",
@@ -272,46 +483,115 @@ export const surroundshow = mutation({
       layoutId,
       ownerId: users[0],
     });
-    const sampleVideo =
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-    const christmasScenes: [string, number][] = [
-      ["I Wish It Was Christmas Today", 117],
-      ["Elf Clip", 49],
-      ["Grinch Pentatonix", 181],
-      ["Christmas Mom", 145],
-      ["Christmas Tree", 97],
-      ["Beat Saber", 151],
+    // Full LinkAll8 Christmas garage effects (YouTube, GIFs, timed Grinch colors).
+    const christmasTitles = [
+      "I Wish It Was Christmas Today",
+      "Elf Clip",
+      "Grinch Pentatonix",
+      "Christmas Mom",
+      "Christmas Tree",
+      "Beat Saber",
     ];
-    for (let s = 0; s < christmasScenes.length; s++) {
-      const [title, durationSec] = christmasScenes[s];
+    for (let s = 0; s < christmasMikeScenes.length; s++) {
+      const mike = christmasMikeScenes[s];
       const sceneId = await ctx.db.insert("scenes", {
         showId: christmasShowId,
         order: s,
-        title,
+        title: christmasTitles[s] ?? mike.title,
         kind: "panels",
         content: "",
-        durationSec,
+        durationSec: mike.durationSec,
       });
-      const stripe = ["#dc2626", "#16a34a", "#b91c1c"][s % 3];
-      const sceneEffects: [string, "image" | "video" | "color" | "text", string, number][] = [
-        ["Garage Top Left", "color", stripe, 0],
-        ["Garage Top Right", "color", stripe, 0],
-        ["Column Left", "color", "#f8fafc", 0],
-        ["Column Right", "color", "#f8fafc", 0],
-        ["Garage Triangle", s % 2 === 0 ? "text" : "image", s % 2 === 0 ? "Merry Christmas" : img(`gable-${s}`), 2],
-        ["Garage Door", "video", sampleVideo, 4],
-      ];
-      for (const [panelName, kind, content, startTime] of sceneEffects) {
+      for (const effect of mike.effects) {
+        const panelId = panelIds[effect.panelName];
+        if (!panelId) continue;
         await ctx.db.insert("effects", {
           sceneId,
-          panelId: panelIds[panelName],
-          kind,
-          content,
-          startTime,
+          panelId,
+          logicalPanelName: effect.logicalPanelName,
+          kind: effect.kind,
+          content: effect.content,
+          startTime: effect.startTime,
           isEnabled: true,
+          ...(effect.videoStartSec !== undefined
+            ? { videoStartSec: effect.videoStartSec }
+            : {}),
         });
       }
     }
+
+    const garageProfileId = await ctx.db.insert("displayProfiles", {
+      name: "Home Front (default)",
+      description: "Garage + porch projection mapping for the Christmas show.",
+      showId: christmasShowId,
+      layoutId,
+      isDefault: true,
+      ownerId: users[0],
+    });
+    for (const [logical, panelName] of Object.entries(garageLogical)) {
+      await ctx.db.insert("panelMappings", {
+        displayProfileId: garageProfileId,
+        logicalPanelName: logical,
+        panelId: panelIds[panelName],
+      });
+    }
+
+    // Alternate layout + profile: retarget the same logical slots indoors.
+    const livingLayoutId = await ctx.db.insert("layouts", {
+      name: "Living Room",
+      ownerId: users[0],
+    });
+    const livingScreenId = await ctx.db.insert("screens", {
+      layoutId: livingLayoutId,
+      name: "TV Wall",
+      order: 0,
+      width: 1920,
+      height: 1080,
+    });
+    const livingPanelSpecs: [string, number, { x: number; y: number }[]][] = [
+      ["Wall", 0, [{ x: 0, y: 0 }, { x: 1920, y: 0 }, { x: 1920, y: 1080 }, { x: 0, y: 1080 }]],
+      ["TV", 1, [{ x: 360, y: 180 }, { x: 1560, y: 180 }, { x: 1560, y: 900 }, { x: 360, y: 900 }]],
+      ["Mantel Left", 2, [{ x: 80, y: 200 }, { x: 320, y: 200 }, { x: 320, y: 880 }, { x: 80, y: 880 }]],
+      ["Mantel Right", 3, [{ x: 1600, y: 200 }, { x: 1840, y: 200 }, { x: 1840, y: 880 }, { x: 1600, y: 880 }]],
+      ["Shelf", 4, [{ x: 400, y: 40 }, { x: 1520, y: 40 }, { x: 1520, y: 140 }, { x: 400, y: 140 }]],
+    ];
+    const livingPanelIds: Record<string, Id<"panels">> = {};
+    for (const [name, zIndex, points] of livingPanelSpecs) {
+      livingPanelIds[name] = await ctx.db.insert("panels", {
+        screenId: livingScreenId,
+        name,
+        zIndex,
+        points,
+      });
+    }
+    const livingLogical: Record<string, string> = {
+      Background: "Wall",
+      MainContent: "TV",
+      LeftSidebar: "Mantel Left",
+      RightSidebar: "Mantel Right",
+      Header: "Shelf",
+      Overlay: "Shelf",
+      SecondaryContent: "TV",
+      Footer: "Shelf",
+    };
+    const livingProfileId = await ctx.db.insert("displayProfiles", {
+      name: "Living Room",
+      description: "Retarget Christmas logical panels onto the indoor TV wall layout.",
+      showId: christmasShowId,
+      layoutId: livingLayoutId,
+      isDefault: false,
+      ownerId: users[0],
+    });
+    for (const [logical, panelName] of Object.entries(livingLogical)) {
+      await ctx.db.insert("panelMappings", {
+        displayProfileId: livingProfileId,
+        logicalPanelName: logical,
+        panelId: livingPanelIds[panelName],
+      });
+    }
+
+    // HyperX Arena three-LED Battle Loco show (physical screen sizes match LEDs).
+    await insertBattleLoco(ctx, users[0]);
 
     await insertShow(ctx, {
       title: "New Year Countdown",
@@ -344,7 +624,7 @@ export const surroundshow = mutation({
       });
     }
 
-    return "Seeded SurroundShow: 5 users, 12 groups (holiday sidebars), 3 shows (1 designer), 1 layout, 6 products";
+    return "Seeded SurroundShow: 5 users, 12 groups, 4 shows (2 designer), 3 layouts, 3 display profiles, Battle Loco HyperX, 6 products";
   },
 });
 
@@ -487,18 +767,26 @@ export const funfirst = mutation({
         content: "",
         durationSec,
       });
+      const ffLogical: Record<string, string> = {
+        Background: "Backdrop",
+        LeftSidebar: "Left Wing",
+        RightSidebar: "Right Wing",
+        Scoreboard: "Scoreboard",
+        MainContent: "Center Spot",
+      };
       const sceneEffects: [string, "color" | "text", string, number, number | undefined][] = [
-        ["Backdrop", "color", "#0f172a", 0, undefined],
-        ["Left Wing", "color", wingColor, 0, undefined],
-        ["Right Wing", "color", wingColor, 0, undefined],
+        ["Background", "color", "#0f172a", 0, undefined],
+        ["LeftSidebar", "color", wingColor, 0, undefined],
+        ["RightSidebar", "color", wingColor, 0, undefined],
         ["Scoreboard", "text", `Bananas ${10 + s} – ${8 + s} Berries`, 0, undefined],
-        ["Center Spot", "text", centerText, 0, 30],
-        ["Center Spot", "color", "#fbbf24", 30, 15],
+        ["MainContent", "text", centerText, 0, 30],
+        ["MainContent", "color", "#fbbf24", 30, 15],
       ];
-      for (const [panelName, kind, content, startTime, duration] of sceneEffects) {
+      for (const [logical, kind, content, startTime, duration] of sceneEffects) {
         await ctx.db.insert("effects", {
           sceneId,
-          panelId: ffPanelIds[panelName],
+          panelId: ffPanelIds[ffLogical[logical]],
+          logicalPanelName: logical,
           kind,
           content,
           startTime,
@@ -506,6 +794,29 @@ export const funfirst = mutation({
           ...(duration !== undefined ? { durationSec: duration } : {}),
         });
       }
+    }
+
+    const stageProfileId = await ctx.db.insert("displayProfiles", {
+      name: "Main Stage (default)",
+      description: "Default logical → physical mapping for Crazyball stage cues.",
+      showId: stageShowId,
+      layoutId,
+      isDefault: true,
+      ownerId: users[0],
+    });
+    const stageLogical: [string, string][] = [
+      ["Background", "Backdrop"],
+      ["LeftSidebar", "Left Wing"],
+      ["RightSidebar", "Right Wing"],
+      ["Scoreboard", "Scoreboard"],
+      ["MainContent", "Center Spot"],
+    ];
+    for (const [logical, panelName] of stageLogical) {
+      await ctx.db.insert("panelMappings", {
+        displayProfileId: stageProfileId,
+        logicalPanelName: logical,
+        panelId: ffPanelIds[panelName],
+      });
     }
 
     // --- Comedy game engine demo (legacy Crazyball Show page) ---
@@ -604,7 +915,7 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 7 groups (comedy sidebars), 4 shows (1 designer), 1 layout, 1 performance (5 rounds), 4 events";
+    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 1 performance (5 rounds), 4 events";
   },
 });
 
@@ -695,5 +1006,91 @@ export const redwave = mutation({
     });
 
     return "Seeded RedWave: 5 users, 6 groups, 3 resource categories + 7 items";
+  },
+});
+
+/**
+ * Add (or replace) the Battle Loco HyperX Arena show without wiping the
+ * deployment — safe for tomorrow's live multi-screen demo.
+ *
+ *   pnpm --filter @linkall/backend exec convex run seed:battleLoco --env-file .env.surroundshow
+ */
+export const battleLoco = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const ownerId =
+      users.find((u) => u.tier === "admin")?._id ?? users[0]?._id;
+    if (!ownerId) {
+      throw new Error("No users in deployment — run seed:surroundshow first.");
+    }
+
+    // Replace prior Battle Loco / HyperX Arena rows so re-runs are clean.
+    const shows = await ctx.db.query("shows").collect();
+    for (const show of shows) {
+      if (show.title !== "Battle Loco" && show.tag !== "battleloco") continue;
+      const profiles = await ctx.db
+        .query("displayProfiles")
+        .withIndex("by_show", (q) => q.eq("showId", show._id))
+        .collect();
+      for (const profile of profiles) {
+        const mappings = await ctx.db
+          .query("panelMappings")
+          .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+          .collect();
+        for (const m of mappings) await ctx.db.delete(m._id);
+        await ctx.db.delete(profile._id);
+      }
+      const scenes = await ctx.db
+        .query("scenes")
+        .withIndex("by_show", (q) => q.eq("showId", show._id))
+        .collect();
+      for (const scene of scenes) {
+        const effects = await ctx.db
+          .query("effects")
+          .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+          .collect();
+        for (const e of effects) await ctx.db.delete(e._id);
+        await ctx.db.delete(scene._id);
+      }
+      await ctx.db.delete(show._id);
+    }
+
+    const layouts = await ctx.db.query("layouts").collect();
+    for (const layout of layouts) {
+      if (layout.name !== "HyperX Arena") continue;
+      const screens = await ctx.db
+        .query("screens")
+        .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+        .collect();
+      for (const screen of screens) {
+        const panels = await ctx.db
+          .query("panels")
+          .withIndex("by_screen", (q) => q.eq("screenId", screen._id))
+          .collect();
+        for (const p of panels) await ctx.db.delete(p._id);
+        await ctx.db.delete(screen._id);
+      }
+      // Orphan profiles that still point at this layout (other shows).
+      const orphanProfiles = (
+        await ctx.db.query("displayProfiles").collect()
+      ).filter((p) => p.layoutId === layout._id);
+      for (const profile of orphanProfiles) {
+        const mappings = await ctx.db
+          .query("panelMappings")
+          .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+          .collect();
+        for (const m of mappings) await ctx.db.delete(m._id);
+        await ctx.db.delete(profile._id);
+      }
+      await ctx.db.delete(layout._id);
+    }
+
+    const created = await insertBattleLoco(ctx, ownerId);
+    return {
+      message:
+        "Seeded Battle Loco · HyperX Arena (Left/Right 1152×1920 portrait, Center 1920×1080)",
+      ...created,
+    };
   },
 });
