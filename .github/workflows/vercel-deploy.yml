@@ -14,6 +14,7 @@ jobs:
     name: Deploy ${{ matrix.app }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - app: surroundshow-web
@@ -36,20 +37,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build --filter=${{ matrix.app }}
-
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
-      - name: Deploy to Vercel
+      # Build inside the Actions runner (full monorepo checked out), then
+      # upload the prebuilt output. Deploying the app folder alone made
+      # Vercel's remote install fail on workspace:* packages.
+      - name: Build and deploy to Vercel
         working-directory: apps/${{ matrix.app }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel --token $VERCEL_TOKEN --yes --prod
-
-      - name: Summary
-        if: always()
+          VERCEL_PROJECT_ID: ${{ matrix.project_id }}
         run: |
-          echo "### Vercel Deploy: ${{ matrix.app }}" >> $GITHUB_STEP_SUMMARY
-          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          set -euo pipefail
+          vercel link --yes --project "${{ matrix.app }}" --token "$VERCEL_TOKEN"
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          vercel build --prod --token "$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          echo "Deployed ${{ matrix.app }} -> $url"
+          {
+            echo "### Vercel Deploy: ${{ matrix.app }}"
+            echo "URL: $url"
+          } >> "$GITHUB_STEP_SUMMARY"

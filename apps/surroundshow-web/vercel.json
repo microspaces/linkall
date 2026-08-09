@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter redwave-web build",
+  "buildCommand": "cd ../.. && pnpm --filter surroundshow-web build",
   "outputDirectory": ".next"
 }
