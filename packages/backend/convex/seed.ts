@@ -283,7 +283,7 @@ async function insertBattleLoco(
   const showId = await ctx.db.insert("shows", {
     title: "Battle Loco",
     description:
-      "HyperX Arena · Luxor — three-LED Intro + Bring the Boom video cue.",
+      "HyperX Arena · Luxor — Intro, Bring the Boom, and Outro (BATTLE LOCO lockup).",
     tag: "battleloco",
     status: "live",
     currentSceneIndex: 0,
@@ -338,6 +338,36 @@ async function insertBattleLoco(
       isEnabled: true,
     });
   }
+
+  // Outro — same battleloco.com stills as Intro, with a center brand lockup.
+  const outroId = await ctx.db.insert("scenes", {
+    showId,
+    order: 2,
+    title: "Outro",
+    kind: "panels",
+    content: "",
+    durationSec: 90,
+  });
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("effects", {
+      sceneId: outroId,
+      panelId: panelByLogical[spec.logical],
+      logicalPanelName: spec.logical,
+      kind: "image",
+      content: spec.image,
+      startTime: 0,
+      isEnabled: true,
+    });
+  }
+  await ctx.db.insert("effects", {
+    sceneId: outroId,
+    panelId: panelByLogical.MainContent,
+    logicalPanelName: "MainContent",
+    kind: "text",
+    content: "BATTLE LOCO",
+    startTime: 0,
+    isEnabled: true,
+  });
 
   const profileId = await ctx.db.insert("displayProfiles", {
     name: "HyperX Arena",
