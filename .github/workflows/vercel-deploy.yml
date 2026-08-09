@@ -18,11 +18,8 @@ jobs:
       matrix:
         include:
           - app: surroundshow-web
-            project_id: prj_ElqhpBaOnf7kDJFjrkDSkpGZZaZE
           - app: funfirst-web
-            project_id: prj_NFXWp5SbKoVzjBer0bhaoqLs2ZtB
           - app: redwave-web
-            project_id: prj_5OKwRqa0bCTGwTLKOyOvy1MlkBXI
 
     steps:
       - uses: actions/checkout@v4
@@ -47,10 +44,12 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ matrix.project_id }}
         run: |
           set -euo pipefail
           vercel link --yes --project "${{ matrix.app }}" --token "$VERCEL_TOKEN"
+          VERCEL_ORG_ID=$(node -p "require('./.vercel/project.json').orgId")
+          VERCEL_PROJECT_ID=$(node -p "require('./.vercel/project.json').projectId")
+          export VERCEL_ORG_ID VERCEL_PROJECT_ID
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel build --prod --token "$VERCEL_TOKEN"
           url=$(vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN")
