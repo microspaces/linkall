@@ -20,6 +20,51 @@ export const listLayouts = query({
   },
 });
 
+/**
+ * Flat list of physical screens for the /screens picker (grouped client-side
+ * by layout). Optional ownerId limits to that operator's layouts.
+ */
+export const listScreens = query({
+  args: { ownerId: v.optional(v.id("users")) },
+  handler: async (ctx, { ownerId }) => {
+    let layouts = await ctx.db.query("layouts").collect();
+    if (ownerId) {
+      layouts = layouts.filter((l) => l.ownerId === ownerId);
+    }
+    layouts.sort((a, b) => a.name.localeCompare(b.name));
+
+    const result: Array<{
+      _id: Id<"screens">;
+      name: string;
+      width: number;
+      height: number;
+      order: number;
+      layoutId: Id<"layouts">;
+      layoutName: string;
+    }> = [];
+
+    for (const layout of layouts) {
+      const screens = await ctx.db
+        .query("screens")
+        .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+        .collect();
+      screens.sort((a, b) => a.order - b.order);
+      for (const screen of screens) {
+        result.push({
+          _id: screen._id,
+          name: screen.name,
+          width: screen.width,
+          height: screen.height,
+          order: screen.order,
+          layoutId: layout._id,
+          layoutName: layout.name,
+        });
+      }
+    }
+    return result;
+  },
+});
+
 /** A layout with all its screens and their panels, ready to render. */
 export const getLayout = query({
   args: { layoutId: v.id("layouts") },

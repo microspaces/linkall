@@ -30,12 +30,48 @@ type ScreenBinding = {
 };
 
 const BINDING_STORAGE_PREFIX = "linkall.screenBinding.v1";
+const LAST_SCREEN_STORAGE_PREFIX = "linkall.lastScreen.v1";
 
 function bindingStorageKey(
   userId: Id<"users"> | undefined,
   screenId: Id<"screens">,
 ) {
   return `${BINDING_STORAGE_PREFIX}:${userId ?? "anon"}:${screenId}`;
+}
+
+function lastScreenStorageKey(userId: Id<"users"> | undefined) {
+  return `${LAST_SCREEN_STORAGE_PREFIX}:${userId ?? "anon"}`;
+}
+
+function readLastScreenId(
+  userId: Id<"users"> | undefined,
+): Id<"screens"> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(
+      lastScreenStorageKey(userId),
+    ) as Id<"screens"> | null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastScreenId(
+  userId: Id<"users"> | undefined,
+  screenId: Id<"screens">,
+) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(lastScreenStorageKey(userId), screenId);
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function goToScreen(screenId: Id<"screens">) {
+  const url = new URL(window.location.href);
+  // Preserve show/profile query when jumping between screens.
+  window.location.href = `/screens/${screenId}${url.search}`;
 }
 
 function readBinding(
@@ -159,14 +195,119 @@ export function CalibrationStage({
 
 // ------------------------------------------------------------ screen output
 
-/** Fullscreen output for one physical screen (projector / LED wall). */
-export function ScreenOutput({ screenId }: { screenId: Id<"screens"> }) {
+/** Chromeless picker when visiting /screens with no id. */
+function ScreenPicker() {
+  const { user, userId } = useCurrentUser();
+  const screens = useQuery(api.designer.listScreens, {});
+  const [lastId, setLastId] = useState<Id<"screens"> | null>(null);
+
+  useEffect(() => {
+    setLastId(readLastScreenId(userId));
+  }, [userId]);
+
+  if (screens === undefined) {
+    return <div className="fixed inset-0 z-50 bg-black" />;
+  }
+
+  const byLayout = new Map<string, typeof screens>();
+  for (const s of screens) {
+    const list = byLayout.get(s.layoutName) ?? [];
+    list.push(s);
+    byLayout.set(s.layoutName, list);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black px-4 py-8 text-white">
+      <div className="w-full max-w-md">
+        <p className="text-2xl font-semibold">Select a screen</p>
+        <p className="mt-1 text-sm text-white/50">
+          Open this on the projector or LED wall, then pick which physical
+          output it is.
+          {user ? ` · ${user.name}` : ""}
+        </p>
+
+        {screens.length === 0 ? (
+          <p className="mt-8 rounded-lg border border-dashed border-white/20 p-4 text-sm text-white/40">
+            No screens yet — create a layout with screens in the Designer
+            first.
+          </p>
+        ) : (
+          <div className="mt-6 max-h-[70vh] space-y-5 overflow-y-auto pr-1">
+            {[...byLayout.entries()].map(([layoutName, layoutScreens]) => (
+              <div key={layoutName}>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                  {layoutName}
+                </p>
+                <div className="space-y-2">
+                  {layoutScreens.map((s) => {
+                    const isLast = s._id === lastId;
+                    return (
+                      <button
+                        key={s._id}
+                        type="button"
+                        onClick={() => {
+                          writeLastScreenId(userId, s._id);
+                          goToScreen(s._id);
+                        }}
+                        className={
+                          "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition " +
+                          (isLast
+                            ? "border-white/40 bg-white/15"
+                            : "border-white/15 bg-white/5 hover:border-white/30 hover:bg-white/10")
+                        }
+                      >
+                        <span>
+                          <span className="block text-sm font-semibold">
+                            {s.name}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-white/45">
+                            {s.width}×{s.height}
+                            {s.height > s.width ? " · portrait" : " · landscape"}
+                            {isLast ? " · last used" : ""}
+                          </span>
+                        </span>
+                        <span className="text-xs font-semibold text-white/50">
+                          Open →
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fullscreen output for one physical screen (projector / LED wall).
+ * Visit /screens with no id to pick which screen this output is.
+ */
+export function ScreenOutput({
+  screenId,
+}: {
+  screenId?: Id<"screens">;
+}) {
+  if (!screenId) return <ScreenPicker />;
+  return <ScreenOutputBound screenId={screenId} />;
+}
+
+function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
   const { user, userId } = useCurrentUser();
   const [binding, setBinding] = useState<ScreenBinding | null>(null);
   const [bindingReady, setBindingReady] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [clockSec, setClockSec] = useState(0);
   const advanceIfDue = useMutation(api.shows.advanceIfDue);
+  const allScreens = useQuery(api.designer.listScreens, {});
+
+  // Remember this output so /screens can highlight last used.
+  useEffect(() => {
+    writeLastScreenId(userId, screenId);
+  }, [userId, screenId]);
 
   // URL wins on first load; otherwise restore per-user preference (shared
   // across tabs via localStorage). Demo user id is also shared across tabs.
@@ -413,27 +554,40 @@ export function ScreenOutput({ screenId }: { screenId: Id<"screens"> }) {
             </>
           )}
 
-          {options && options.myScreens.length > 1 && (
+          {((allScreens && allScreens.length > 1) ||
+            (options && options.myScreens.length > 1)) && (
             <>
               <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-white/40">
-                Your screens
+                Screen
               </label>
               <select
                 className="mt-1 w-full rounded-md border border-white/20 bg-black/60 px-3 py-2 text-sm"
                 value={screenId}
                 onChange={(e) => {
-                  const id = e.target.value;
+                  const id = e.target.value as Id<"screens">;
                   if (id && id !== screenId) {
-                    window.location.href = `/screens/${id}`;
+                    writeLastScreenId(userId, id);
+                    goToScreen(id);
                   }
                 }}
               >
-                {options.myScreens.map((s) => (
+                {(allScreens && allScreens.length > 0
+                  ? allScreens
+                  : (options?.myScreens ?? [])
+                ).map((s) => (
                   <option key={s._id} value={s._id}>
-                    {s.layoutName} · {s.name}
+                    {"layoutName" in s ? `${s.layoutName} · ` : ""}
+                    {s.name}
                   </option>
                 ))}
               </select>
+              <p className="mt-1 text-[11px] text-white/35">
+                Or open{" "}
+                <a href="/screens" className="underline hover:text-white">
+                  /screens
+                </a>{" "}
+                to pick from the full list.
+              </p>
             </>
           )}
         </div>
@@ -454,7 +608,7 @@ export function ShowRemote() {
   const [tab, setTab] = useState<"shows" | "screens">("shows");
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Player</h1>
       </div>
@@ -486,25 +640,49 @@ export function ShowRemote() {
 function PlayTab() {
   const shows = useQuery(api.shows.list, {});
   const [selectedShowId, setSelectedShowId] = useState<Id<"shows"> | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<
+    Id<"displayProfiles"> | null
+  >(null);
   const playScene = useMutation(api.shows.playScene);
   const setStatus = useMutation(api.shows.setStatus);
 
   const show =
     shows?.find((s) => s._id === selectedShowId) ?? shows?.[0] ?? null;
+  const profiles = useQuery(
+    api.designer.listShowProfiles,
+    show ? { showId: show._id } : "skip",
+  );
+  const profile =
+    profiles?.find((p) => p._id === selectedProfileId) ??
+    profiles?.find((p) => p.isDefault) ??
+    profiles?.[0] ??
+    null;
   const scenes = useQuery(
     api.designer.getShowScenes,
     show ? { showId: show._id } : "skip",
   );
+  // Profile layout wins (same as Designer) so multi-room mappings preview correctly.
+  const previewLayoutId = profile?.layoutId ?? show?.layoutId;
   const layout = useQuery(
     api.designer.getLayout,
-    show?.layoutId ? { layoutId: show.layoutId } : "skip",
+    previewLayoutId ? { layoutId: previewLayoutId } : "skip",
   );
   const liveScene =
     show && scenes ? (scenes[show.currentSceneIndex] ?? null) : null;
   const effects = useQuery(
     api.designer.getSceneEffects,
-    show?.status === "live" && liveScene ? { sceneId: liveScene._id } : "skip",
+    show?.status === "live" && liveScene
+      ? {
+          sceneId: liveScene._id,
+          ...(profile ? { displayProfileId: profile._id } : {}),
+        }
+      : "skip",
   );
+
+  // Reset profile when the operator switches shows.
+  useEffect(() => {
+    setSelectedProfileId(null);
+  }, [show?._id]);
 
   // Live clock synced to when the operator switched scenes.
   const [clockSec, setClockSec] = useState(0);
@@ -533,7 +711,8 @@ function PlayTab() {
 
   if (shows === undefined) return <Loading />;
 
-  const screen = layout?.screens[0] ?? null;
+  const screens: ScreenWithPanels[] = layout?.screens ?? [];
+  const isLive = show?.status === "live";
 
   return (
     <div className="space-y-4">
@@ -550,34 +729,85 @@ function PlayTab() {
         ))}
       </select>
 
-      {/* Mini preview of what the outputs are showing */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-950">
-        {show?.status === "live" && screen && effects ? (
-          <PanelStage screen={screen} effects={effects} clockSec={clockSec} />
-        ) : (
-          <div className="flex aspect-[4/3] items-center justify-center text-sm text-gray-500">
-            {show ? "Tap a scene to go live" : "No shows yet"}
-          </div>
-        )}
-      </div>
-
-      {show?.status === "live" && liveScene && (
-        <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2 text-sm">
-          <span className="font-semibold text-red-700">
-            ● {liveScene.title}
+      {/* Live multi-screen preview + display profile (mirrors Designer Shows tab) */}
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <div className="flex flex-wrap items-center gap-2 bg-gray-900 px-3 py-2">
+          <span className="text-sm font-semibold text-white">
+            {screens.length > 1
+              ? "All screens"
+              : (screens[0]?.name ?? "Preview")}
           </span>
-          <span className="text-red-400">
-            {formatClock(clockSec)}
-            {liveScene.durationSec ? ` / ${formatClock(liveScene.durationSec)}` : ""}
-          </span>
+          {profiles && profiles.length > 0 && (
+            <select
+              className="rounded bg-gray-700 px-1.5 py-0.5 text-xs text-white"
+              value={profile?._id ?? ""}
+              onChange={(e) =>
+                setSelectedProfileId(e.target.value as Id<"displayProfiles">)
+              }
+              title="Display profile (panel mapping)"
+            >
+              {profiles.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                  {p.isDefault ? " ★" : ""}
+                </option>
+              ))}
+            </select>
+          )}
+          {isLive && liveScene && (
+            <span className="ml-auto text-xs text-red-300">
+              ● {liveScene.title} · {formatClock(clockSec)}
+              {liveScene.durationSec
+                ? ` / ${formatClock(liveScene.durationSec)}`
+                : ""}
+            </span>
+          )}
         </div>
-      )}
+        <div className="bg-gray-950 p-2">
+          {isLive && screens.length > 0 && effects ? (
+            <div
+              className={
+                screens.length > 1
+                  ? "grid gap-2 sm:grid-cols-2"
+                  : "grid gap-2"
+              }
+            >
+              {screens.map((s) => (
+                <div key={s._id}>
+                  {screens.length > 1 && (
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                      {s.name}
+                    </p>
+                  )}
+                  <PanelStage
+                    screen={s}
+                    effects={effects}
+                    clockSec={clockSec}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex aspect-[4/3] items-center justify-center px-4 text-center text-sm text-gray-500">
+              {!show
+                ? "No shows yet"
+                : isLive && !previewLayoutId
+                  ? "This show has no layout — assign one in the Designer"
+                  : isLive && screens.length === 0
+                    ? "Layout has no screens yet"
+                    : isLive && effects === undefined
+                      ? "Loading preview…"
+                      : "Tap a scene to go live"}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Tap a scene to push it to every screen */}
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between bg-brand-dark px-3 py-2">
           <span className="text-sm font-semibold text-white">Scenes</span>
-          {show?.status === "live" && (
+          {isLive && show && (
             <button
               onClick={() => setStatus({ showId: show._id, status: "ended" })}
               className="rounded bg-white/10 px-2 py-0.5 text-xs font-semibold text-white hover:bg-white/20"
@@ -592,14 +822,14 @@ function PlayTab() {
           </p>
         )}
         {scenes?.map((scene, i) => {
-          const isLive = show?.status === "live" && i === show.currentSceneIndex;
+          const sceneIsLive = isLive && i === show?.currentSceneIndex;
           return (
             <button
               key={scene._id}
               onClick={() => show && playScene({ showId: show._id, index: i })}
               className={
                 "flex w-full items-center gap-3 border-b border-gray-100 px-3 py-3 text-left text-sm " +
-                (isLive
+                (sceneIsLive
                   ? "bg-red-50 font-semibold text-red-700"
                   : "hover:bg-gray-50 active:bg-brand-light")
               }
@@ -609,7 +839,7 @@ function PlayTab() {
               <span className="text-xs text-gray-400">
                 {scene.durationSec ? formatClock(scene.durationSec) : ""}
               </span>
-              {isLive && <span className="text-xs">● LIVE</span>}
+              {sceneIsLive && <span className="text-xs">● LIVE</span>}
             </button>
           );
         })}

@@ -23,8 +23,8 @@ type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
 
 const CHROMELESS_PREFIXES = [
   "/player",
-  "/screens/",
-  "/performance/screens/",
+  "/screens",
+  "/performance/screens",
   "/battle-loco",
   "/wrestle-loco",
 ];
