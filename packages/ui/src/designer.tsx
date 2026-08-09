@@ -82,12 +82,13 @@ function youtubeVideoId(url: string): string | null {
 function youtubeEmbedSrc(
   url: string,
   videoStartSec = 0,
+  muted = true,
 ): string | null {
   const id = youtubeVideoId(url);
   if (!id) return null;
   const params = new URLSearchParams({
     autoplay: "1",
-    mute: "1",
+    mute: muted ? "1" : "0",
     controls: "0",
     rel: "0",
     loop: "1",
@@ -96,6 +97,190 @@ function youtubeEmbedSrc(
   });
   if (videoStartSec > 0) params.set("start", String(Math.floor(videoStartSec)));
   return `https://www.youtube.com/embed/${id}?${params.toString()}`;
+}
+
+/** Minimal YT IFrame API surface used for screen-page unmute (legacy LinkAll8). */
+type YtPlayer = {
+  mute: () => void;
+  unMute: () => void;
+  playVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  destroy: () => void;
+};
+
+type YtNamespace = {
+  Player: new (
+    element: HTMLElement | string,
+    options: {
+      width?: string | number;
+      height?: string | number;
+      videoId: string;
+      playerVars?: Record<string, string | number>;
+      events?: {
+        onReady?: (e: { target: YtPlayer }) => void;
+        onStateChange?: (e: { data: number; target: YtPlayer }) => void;
+      };
+    },
+  ) => YtPlayer;
+  PlayerState?: { PLAYING: number };
+};
+
+declare global {
+  interface Window {
+    YT?: YtNamespace;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let youtubeApiPromise: Promise<YtNamespace> | null = null;
+
+function loadYouTubeApi(): Promise<YtNamespace> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("no window"));
+  }
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (youtubeApiPromise) return youtubeApiPromise;
+  youtubeApiPromise = new Promise((resolve, reject) => {
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      if (window.YT?.Player) resolve(window.YT);
+      else reject(new Error("YouTube API missing Player"));
+    };
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    }
+    // API may already be mid-load; poll until ready.
+    const started = Date.now();
+    const t = window.setInterval(() => {
+      if (window.YT?.Player) {
+        window.clearInterval(t);
+        resolve(window.YT);
+      } else if (Date.now() - started > 15_000) {
+        window.clearInterval(t);
+        reject(new Error("YouTube API load timeout"));
+      }
+    }, 50);
+  });
+  return youtubeApiPromise;
+}
+
+/**
+ * Screen-output YouTube player: start muted (autoplay policy), then unmute
+ * once playing — matches LinkAll8 `/screen` onPlayerStateChange behavior.
+ */
+function YouTubeScreenPlayer({
+  videoId,
+  videoStartSec = 0,
+}: {
+  videoId: string;
+  videoStartSec?: number;
+}) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YtPlayer | null>(null);
+  const unmutedRef = useRef(false);
+  const [apiFailed, setApiFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    unmutedRef.current = false;
+    setApiFailed(false);
+    const host = hostRef.current;
+    if (!host) return;
+
+    void loadYouTubeApi()
+      .then((YT) => {
+        if (cancelled || !hostRef.current) return;
+        hostRef.current.innerHTML = "";
+        const mount = document.createElement("div");
+        hostRef.current.appendChild(mount);
+        const start = Math.floor(videoStartSec);
+        playerRef.current = new YT.Player(mount, {
+          width: "100%",
+          height: "100%",
+          videoId,
+          playerVars: {
+            autoplay: 1,
+            playsinline: 1,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            fs: 0,
+            loop: 1,
+            playlist: videoId,
+            ...(start > 0 ? { start } : {}),
+          },
+          events: {
+            onReady: (e) => {
+              e.target.mute();
+              e.target.playVideo();
+            },
+            onStateChange: (e) => {
+              const playing = YT.PlayerState?.PLAYING ?? 1;
+              if (e.data === playing && !unmutedRef.current) {
+                if (start > 0) e.target.seekTo(start, true);
+                e.target.unMute();
+                unmutedRef.current = true;
+              }
+            },
+          },
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setApiFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      try {
+        playerRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
+      playerRef.current = null;
+      if (host) host.innerHTML = "";
+    };
+  }, [videoId, videoStartSec]);
+
+  const embedFallback = apiFailed
+    ? youtubeEmbedSrc(
+        `https://www.youtube.com/watch?v=${videoId}`,
+        videoStartSec,
+        false,
+      )
+    : null;
+
+  return (
+    <>
+      <div
+        ref={hostRef}
+        className={
+          "pointer-events-none absolute left-1/2 top-1/2 h-full w-full " +
+          (apiFailed ? "hidden" : "")
+        }
+        style={{ transform: "translate(-50%, -50%) scale(1.35)" }}
+      />
+      {embedFallback && (
+        <iframe
+          key={embedFallback}
+          src={embedFallback}
+          title="YouTube effect"
+          className="pointer-events-none absolute left-1/2 top-1/2 border-0"
+          style={{
+            width: "100%",
+            height: "100%",
+            minWidth: "100%",
+            minHeight: "100%",
+            transform: "translate(-50%, -50%) scale(1.35)",
+          }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      )}
+    </>
+  );
 }
 
 /** When startTimes tie, keep media over solid color (legacy empty→black overlays). */
@@ -126,6 +311,7 @@ function EffectMedia({
   box,
   screen,
   videoStartSec = 0,
+  muted = true,
 }: {
   kind: string;
   content: string;
@@ -133,6 +319,11 @@ function EffectMedia({
   screen: Pick<Screen, "width" | "height">;
   /** Legacy VideoStartTime — offset into the media. */
   videoStartSec?: number;
+  /**
+   * Designer / player previews stay muted. Screen output passes false so
+   * YouTube can unmute after autoplay (LinkAll8 `/screen` behavior).
+   */
+  muted?: boolean;
 }) {
   // Color fills the whole clipped panel (correct for irregular polygons).
   if (kind === "color") {
@@ -154,42 +345,54 @@ function EffectMedia({
     );
   }
   if (kind === "video") {
-    const embed = youtubeEmbedSrc(content, videoStartSec);
-    if (embed) {
+    const ytId = youtubeVideoId(content);
+    if (ytId) {
       // Scale the 16:9 embed so it covers the panel (YouTube letterboxes otherwise).
       return (
         <div style={frame} className="bg-black">
-          <iframe
-            key={embed}
-            src={embed}
-            title="YouTube effect"
-            className="pointer-events-none absolute left-1/2 top-1/2 border-0"
-            style={{
-              width: "100%",
-              height: "100%",
-              minWidth: "100%",
-              minHeight: "100%",
-              transform: "translate(-50%, -50%) scale(1.35)",
-            }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+          {muted ? (
+            <iframe
+              key={youtubeEmbedSrc(content, videoStartSec, true) ?? ytId}
+              src={youtubeEmbedSrc(content, videoStartSec, true) ?? undefined}
+              title="YouTube effect"
+              className="pointer-events-none absolute left-1/2 top-1/2 border-0"
+              style={{
+                width: "100%",
+                height: "100%",
+                minWidth: "100%",
+                minHeight: "100%",
+                transform: "translate(-50%, -50%) scale(1.35)",
+              }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <YouTubeScreenPlayer
+              key={`${ytId}#${videoStartSec}`}
+              videoId={ytId}
+              videoStartSec={videoStartSec}
+            />
+          )}
         </div>
       );
     }
     return (
       <div style={frame}>
         <video
-          key={`${content}#${videoStartSec}`}
+          key={`${content}#${videoStartSec}#${muted ? "m" : "a"}`}
           src={content}
           autoPlay
-          muted
+          muted={muted}
           loop
           playsInline
           className="h-full w-full object-cover"
           onLoadedMetadata={(e) => {
             if (videoStartSec > 0) {
               e.currentTarget.currentTime = videoStartSec;
+            }
+            if (!muted) {
+              const play = e.currentTarget.play();
+              if (play) void play.catch(() => {});
             }
           }}
         />
@@ -221,6 +424,7 @@ export function PanelStage({
   screen,
   effects,
   clockSec,
+  muted = true,
 }: {
   screen: Screen;
   effects: Pick<
@@ -235,6 +439,8 @@ export function PanelStage({
   >[];
   /** Seconds into the scene; effects appear once clock passes startTime. */
   clockSec: number;
+  /** When false, video effects play with audio (screen output only). */
+  muted?: boolean;
 }) {
   // Per panel: the enabled effect with the highest startTime <= clock wins.
   // An effect is active when startTime <= clock AND (durationSec is null/undefined
@@ -281,6 +487,7 @@ export function PanelStage({
                 box={box}
                 screen={screen}
                 videoStartSec={effect.videoStartSec ?? 0}
+                muted={muted}
               />
             )}
           </div>

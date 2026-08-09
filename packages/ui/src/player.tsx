@@ -31,6 +31,28 @@ type ScreenBinding = {
 
 const BINDING_STORAGE_PREFIX = "linkall.screenBinding.v1";
 const LAST_SCREEN_STORAGE_PREFIX = "linkall.lastScreen.v1";
+/** Per-output mute preference for screen pages (legacy mute / unmute). */
+const SCREEN_SOUND_STORAGE_KEY = "linkall.screenSound.v1";
+
+function readScreenSoundEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const v = window.localStorage.getItem(SCREEN_SOUND_STORAGE_KEY);
+    if (v === null) return true; // default: unmuted like LinkAll8 /screen
+    return v === "1";
+  } catch {
+    return true;
+  }
+}
+
+function writeScreenSoundEnabled(enabled: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SCREEN_SOUND_STORAGE_KEY, enabled ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
 
 function bindingStorageKey(
   userId: Id<"users"> | undefined,
@@ -301,6 +323,7 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
   const [bindingReady, setBindingReady] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [clockSec, setClockSec] = useState(0);
+  const [soundOn, setSoundOn] = useState(true);
   const advanceIfDue = useMutation(api.shows.advanceIfDue);
   const allScreens = useQuery(api.designer.listScreens, {});
 
@@ -308,6 +331,10 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
   useEffect(() => {
     writeLastScreenId(userId, screenId);
   }, [userId, screenId]);
+
+  useEffect(() => {
+    setSoundOn(readScreenSoundEnabled());
+  }, []);
 
   // URL wins on first load; otherwise restore per-user preference (shared
   // across tabs via localStorage). Demo user id is also shared across tabs.
@@ -449,7 +476,12 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
             alignPanelId={screen.alignPanelId!}
           />
         ) : show && scene && show.status === "live" ? (
-          <PanelStage screen={screen} effects={effects} clockSec={clockSec} />
+          <PanelStage
+            screen={screen}
+            effects={effects}
+            clockSec={clockSec}
+            muted={!soundOn}
+          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-600">
             <p className="text-2xl font-semibold">{screen.name}</p>
@@ -503,6 +535,30 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
           </div>
 
           <label className="block text-[11px] font-semibold uppercase tracking-wide text-white/40">
+            Sound
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setSoundOn((prev) => {
+                const next = !prev;
+                writeScreenSoundEnabled(next);
+                return next;
+              });
+            }}
+            className="mt-1 flex w-full items-center justify-between rounded-md border border-white/20 bg-black/60 px-3 py-2 text-sm"
+          >
+            <span>{soundOn ? "On — video audio plays" : "Muted"}</span>
+            <span className="text-[11px] font-semibold text-white/50">
+              {soundOn ? "Mute" : "Unmute"}
+            </span>
+          </button>
+          <p className="mt-1 text-[11px] text-white/35">
+            Browser autoplay starts muted, then unmutes on this screen (same as
+            LinkAll8). Click Setup once if sound is blocked.
+          </p>
+
+          <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-white/40">
             Show
           </label>
           <select
