@@ -178,6 +178,13 @@ const BATTLE_LOCO_IMAGES = {
   crowd: "https://battleloco.com/battle-loco/images/crowd.jpg",
 } as const;
 
+/** Outro LED lockups with BATTLE LOCO baked into the art. */
+const BATTLE_LOCO_OUTRO_IMAGES = {
+  left: "https://battleloco.com/battle-loco/images/outro-left.jpg",
+  center: "https://battleloco.com/battle-loco/images/outro-center.jpg",
+  right: "https://battleloco.com/battle-loco/images/outro-right.jpg",
+} as const;
+
 /**
  * “Bring the Boom” cue for HyperX Left / Center / Right.
  * Legacy mike export pointed at surroundshow.com/video/bananarama/boom*.mp4,
@@ -283,7 +290,7 @@ async function insertBattleLoco(
   const showId = await ctx.db.insert("shows", {
     title: "Battle Loco",
     description:
-      "HyperX Arena · Luxor — Intro, Bring the Boom, and Outro (BATTLE LOCO lockup).",
+      "HyperX Arena · Luxor — Intro, Bring the Boom, and branded Outro lockups.",
     tag: "battleloco",
     status: "live",
     currentSceneIndex: 0,
@@ -339,7 +346,7 @@ async function insertBattleLoco(
     });
   }
 
-  // Outro — same battleloco.com stills as Intro, with a center brand lockup.
+  // Outro — branded LED stills with BATTLE LOCO in the artwork.
   const outroId = await ctx.db.insert("scenes", {
     showId,
     order: 2,
@@ -348,26 +355,22 @@ async function insertBattleLoco(
     content: "",
     durationSec: 90,
   });
+  const outroByLogical: Record<string, string> = {
+    LeftSidebar: BATTLE_LOCO_OUTRO_IMAGES.left,
+    MainContent: BATTLE_LOCO_OUTRO_IMAGES.center,
+    RightSidebar: BATTLE_LOCO_OUTRO_IMAGES.right,
+  };
   for (const spec of screenSpecs) {
     await ctx.db.insert("effects", {
       sceneId: outroId,
       panelId: panelByLogical[spec.logical],
       logicalPanelName: spec.logical,
       kind: "image",
-      content: spec.image,
+      content: outroByLogical[spec.logical],
       startTime: 0,
       isEnabled: true,
     });
   }
-  await ctx.db.insert("effects", {
-    sceneId: outroId,
-    panelId: panelByLogical.MainContent,
-    logicalPanelName: "MainContent",
-    kind: "text",
-    content: "BATTLE LOCO",
-    startTime: 0,
-    isEnabled: true,
-  });
 
   const profileId = await ctx.db.insert("displayProfiles", {
     name: "HyperX Arena",
