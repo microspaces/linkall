@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm --filter funfirst-web build",
-  "installCommand": "pnpm install",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter funfirst-web build",
   "outputDirectory": ".next",
   "rewrites": [
     {
