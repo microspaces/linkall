@@ -768,14 +768,19 @@ function PlayTab() {
             <div
               className={
                 screens.length > 1
-                  ? "grid gap-2 sm:grid-cols-2"
-                  : "grid gap-2"
+                  ? "flex flex-wrap justify-center gap-2"
+                  : "mx-auto w-full max-w-[200px]"
               }
             >
               {screens.map((s) => (
-                <div key={s._id}>
+                <div
+                  key={s._id}
+                  className={
+                    screens.length > 1 ? "w-[110px] sm:w-[128px]" : undefined
+                  }
+                >
                   {screens.length > 1 && (
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    <p className="mb-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                       {s.name}
                     </p>
                   )}
@@ -788,7 +793,7 @@ function PlayTab() {
               ))}
             </div>
           ) : (
-            <div className="flex aspect-[4/3] items-center justify-center px-4 text-center text-sm text-gray-500">
+            <div className="flex min-h-[72px] items-center justify-center px-4 py-3 text-center text-sm text-gray-500">
               {!show
                 ? "No shows yet"
                 : isLive && !previewLayoutId
