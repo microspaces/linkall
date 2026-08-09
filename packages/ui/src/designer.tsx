@@ -312,6 +312,7 @@ function EffectMedia({
   screen,
   videoStartSec = 0,
   muted = true,
+  overlay = false,
 }: {
   kind: string;
   content: string;
@@ -324,6 +325,8 @@ function EffectMedia({
    * YouTube can unmute after autoplay (LinkAll8 `/screen` behavior).
    */
   muted?: boolean;
+  /** When true, text sits on media below instead of a solid fill. */
+  overlay?: boolean;
 }) {
   // Color fills the whole clipped panel (correct for irregular polygons).
   if (kind === "color") {
@@ -400,11 +403,28 @@ function EffectMedia({
     );
   }
   return (
-    <div className="h-full w-full bg-red-900">
+    <div
+      className={
+        overlay
+          ? "h-full w-full bg-transparent"
+          : "h-full w-full bg-red-900"
+      }
+    >
       <div className="flex items-center justify-center" style={frame}>
         <span
-          className="px-2 text-center font-serif font-bold text-amber-100"
-          style={{ fontSize: "clamp(0.8rem, 3vw, 2.2rem)" }}
+          className={
+            overlay
+              ? "px-3 text-center font-sans font-black uppercase tracking-[0.12em] text-white"
+              : "px-2 text-center font-serif font-bold text-amber-100"
+          }
+          style={{
+            fontSize: overlay
+              ? "clamp(1.4rem, 8vw, 5.5rem)"
+              : "clamp(0.8rem, 3vw, 2.2rem)",
+            textShadow: overlay
+              ? "0 0 24px rgba(0,229,255,0.55), 0 0 48px rgba(255,45,149,0.35), 0 4px 18px rgba(0,0,0,0.85)"
+              : undefined,
+          }}
         >
           {content}
         </span>
@@ -442,25 +462,25 @@ export function PanelStage({
   /** When false, video effects play with audio (screen output only). */
   muted?: boolean;
 }) {
-  // Per panel: the enabled effect with the highest startTime <= clock wins.
-  // An effect is active when startTime <= clock AND (durationSec is null/undefined
-  // OR startTime + durationSec >= clock).
-  // On equal startTime, prefer video/image/text over color so legacy empty
-  // black placeholders don't cover GIFs and photos.
-  const active = new Map<string, (typeof effects)[number]>();
+  // Per panel: keep every enabled effect active in the clock window, then
+  // stack them (color → image/video → text) so titles can sit on media.
+  // When only one effect is active, behavior matches the previous “winner”
+  // model (including solid text fills).
+  const active = new Map<string, Array<(typeof effects)[number]>>();
   for (const e of effects) {
     if (!e.isEnabled || e.startTime > clockSec) continue;
     const endTime = e.startTime + (e.durationSec ?? Infinity);
     if (clockSec > endTime) continue;
-    const current = active.get(e.panelId);
-    if (
-      !current ||
-      e.startTime > current.startTime ||
-      (e.startTime === current.startTime &&
-        effectStackRank(e.kind) >= effectStackRank(current.kind))
-    ) {
-      active.set(e.panelId, e);
-    }
+    const list = active.get(e.panelId);
+    if (list) list.push(e);
+    else active.set(e.panelId, [e]);
+  }
+  for (const list of active.values()) {
+    list.sort((a, b) => {
+      const rank = effectStackRank(a.kind) - effectStackRank(b.kind);
+      if (rank !== 0) return rank;
+      return a.startTime - b.startTime;
+    });
   }
 
   return (
@@ -469,26 +489,39 @@ export function PanelStage({
       style={{ aspectRatio: `${screen.width} / ${screen.height}` }}
     >
       {screen.panels.map((panel) => {
-        const effect = active.get(panel._id);
+        const layered = active.get(panel._id);
         const clip = polygonCss(panel.points, screen.width, screen.height);
         const style: CSSProperties = {
           clipPath: clip,
           zIndex: panel.zIndex,
         };
         const box = bbox(panel.points);
+        const hasMediaUnderText =
+          !!layered &&
+          layered.some((e) => e.kind !== "text") &&
+          layered.some((e) => e.kind === "text");
         return (
           <div key={panel._id} className="absolute inset-0" style={style}>
-            {effect === undefined ? (
+            {layered === undefined ? (
               <div className="h-full w-full bg-gray-800/60" />
             ) : (
-              <EffectMedia
-                kind={effect.kind}
-                content={effect.content}
-                box={box}
-                screen={screen}
-                videoStartSec={effect.videoStartSec ?? 0}
-                muted={muted}
-              />
+              layered.map((effect, i) => (
+                <div
+                  key={`${effect.kind}-${effect.startTime}-${i}`}
+                  className="absolute inset-0"
+                  style={{ zIndex: i }}
+                >
+                  <EffectMedia
+                    kind={effect.kind}
+                    content={effect.content}
+                    box={box}
+                    screen={screen}
+                    videoStartSec={effect.videoStartSec ?? 0}
+                    muted={muted}
+                    overlay={effect.kind === "text" && hasMediaUnderText}
+                  />
+                </div>
+              ))
             )}
           </div>
         );
