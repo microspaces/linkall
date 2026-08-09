@@ -31,30 +31,39 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
-      # Build inside the Actions runner (full monorepo checked out), then
-      # upload the prebuilt output. Deploying the app folder alone made
-      # Vercel's remote install fail on workspace:* packages.
-      - name: Build and deploy to Vercel
-        working-directory: apps/${{ matrix.app }}
+      # Upload the full monorepo (not just apps/<app>) so workspace:* packages
+      # resolve on Vercel. Each project's Root Directory is set to apps/<app>,
+      # and that app's vercel.json runs install/build from the repo root.
+      - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          vercel link --yes --project "${{ matrix.app }}" --token "$VERCEL_TOKEN"
-          VERCEL_ORG_ID=$(node -p "require('./.vercel/project.json').orgId")
-          VERCEL_PROJECT_ID=$(node -p "require('./.vercel/project.json').projectId")
-          export VERCEL_ORG_ID VERCEL_PROJECT_ID
-          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
-          vercel build --prod --token "$VERCEL_TOKEN"
-          url=$(vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN")
-          echo "Deployed ${{ matrix.app }} -> $url"
+          APP="${{ matrix.app }}"
+
+          vercel link --yes --project "$APP" --token "$VERCEL_TOKEN" --cwd "apps/$APP"
+          ORG_ID=$(node -p "require('./apps/$APP/.vercel/project.json').orgId")
+          PROJECT_ID=$(node -p "require('./apps/$APP/.vercel/project.json').projectId")
+          export VERCEL_ORG_ID="$ORG_ID"
+          export VERCEL_PROJECT_ID="$PROJECT_ID"
+
+          # Ensure the Vercel project builds from apps/<app> while receiving the
+          # full monorepo upload from the repository root.
+          team_qs=""
+          if [[ "$ORG_ID" == team_* ]]; then
+            team_qs="?teamId=$ORG_ID"
+          fi
+          curl -sS -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID${team_qs}" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"rootDirectory\":\"apps/$APP\"}" >/dev/null
+
+          url=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")
+          echo "Deployed $APP -> $url"
           {
-            echo "### Vercel Deploy: ${{ matrix.app }}"
+            echo "### Vercel Deploy: $APP"
             echo "URL: $url"
           } >> "$GITHUB_STEP_SUMMARY"
