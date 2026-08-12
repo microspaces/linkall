@@ -623,7 +623,7 @@ export const surroundshow = mutation({
       });
     }
 
-    // HyperX Arena three-LED Battle Loco show (physical screen sizes match LEDs).
+    // Vendor-testing copy — FunFirst has its own Battle Loco with separate IDs.
     await insertBattleLoco(ctx, users[0]);
 
     await insertShow(ctx, {
@@ -852,6 +852,10 @@ export const funfirst = mutation({
       });
     }
 
+    // Battle Loco is a FunFirst show. SurroundShow keeps a separate copy
+    // for vendor testing — this insert creates FunFirst's own IDs.
+    await insertBattleLoco(ctx, users[0]);
+
     // --- Comedy game engine demo (legacy Crazyball Show page) ---
     const performanceId = await ctx.db.insert("performances", {
       title: "Friday Night Crazyball",
@@ -948,7 +952,7 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 1 performance (5 rounds), 4 events";
+    return "Seeded FunFirst: 6 users, 7 groups, 5 shows (2 designer), 2 layouts, 2 display profiles, Battle Loco HyperX, 1 performance (5 rounds), 4 events";
   },
 });
 
@@ -1043,10 +1047,12 @@ export const redwave = mutation({
 });
 
 /**
- * Add (or replace) the Battle Loco HyperX Arena show without wiping the
- * deployment — safe for tomorrow's live multi-screen demo.
+ * Insert Battle Loco + HyperX Arena into the current deployment without
+ * wiping anything. If the show already exists, return its IDs and leave
+ * every document untouched — Convex push and re-runs must not change
+ * existing show/screen IDs (SurroundShow's copy is in vendor testing).
  *
- *   pnpm --filter @linkall/backend exec convex run seed:battleLoco --env-file .env.surroundshow
+ *   pnpm --filter @linkall/backend seed:battleLoco
  */
 export const battleLoco = mutation({
   args: {},
@@ -1055,68 +1061,37 @@ export const battleLoco = mutation({
     const ownerId =
       users.find((u) => u.tier === "admin")?._id ?? users[0]?._id;
     if (!ownerId) {
-      throw new Error("No users in deployment — run seed:surroundshow first.");
+      throw new Error("No users in deployment — run seed:funfirst first.");
     }
 
-    // Replace prior Battle Loco / HyperX Arena rows so re-runs are clean.
     const shows = await ctx.db.query("shows").collect();
-    for (const show of shows) {
-      if (show.title !== "Battle Loco" && show.tag !== "battleloco") continue;
-      const profiles = await ctx.db
-        .query("displayProfiles")
-        .withIndex("by_show", (q) => q.eq("showId", show._id))
-        .collect();
-      for (const profile of profiles) {
-        const mappings = await ctx.db
-          .query("panelMappings")
-          .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
-          .collect();
-        for (const m of mappings) await ctx.db.delete(m._id);
-        await ctx.db.delete(profile._id);
-      }
-      const scenes = await ctx.db
-        .query("scenes")
-        .withIndex("by_show", (q) => q.eq("showId", show._id))
-        .collect();
-      for (const scene of scenes) {
-        const effects = await ctx.db
-          .query("effects")
-          .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
-          .collect();
-        for (const e of effects) await ctx.db.delete(e._id);
-        await ctx.db.delete(scene._id);
-      }
-      await ctx.db.delete(show._id);
-    }
-
-    const layouts = await ctx.db.query("layouts").collect();
-    for (const layout of layouts) {
-      if (layout.name !== "HyperX Arena") continue;
-      const screens = await ctx.db
-        .query("screens")
-        .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
-        .collect();
-      for (const screen of screens) {
-        const panels = await ctx.db
-          .query("panels")
-          .withIndex("by_screen", (q) => q.eq("screenId", screen._id))
-          .collect();
-        for (const p of panels) await ctx.db.delete(p._id);
-        await ctx.db.delete(screen._id);
-      }
-      // Orphan profiles that still point at this layout (other shows).
-      const orphanProfiles = (
-        await ctx.db.query("displayProfiles").collect()
-      ).filter((p) => p.layoutId === layout._id);
-      for (const profile of orphanProfiles) {
-        const mappings = await ctx.db
-          .query("panelMappings")
-          .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
-          .collect();
-        for (const m of mappings) await ctx.db.delete(m._id);
-        await ctx.db.delete(profile._id);
-      }
-      await ctx.db.delete(layout._id);
+    const existingShow = shows.find(
+      (show) => show.title === "Battle Loco" || show.tag === "battleloco",
+    );
+    if (existingShow) {
+      const layouts = await ctx.db.query("layouts").collect();
+      const layout =
+        layouts.find((l) => l._id === existingShow.layoutId) ??
+        layouts.find((l) => l.name === "HyperX Arena");
+      const screens = layout
+        ? await ctx.db
+            .query("screens")
+            .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+            .collect()
+        : [];
+      const byName = (name: string) =>
+        screens.find((s) => s.name === name)?._id;
+      return {
+        message:
+          "Battle Loco already exists — left existing show/screen IDs unchanged",
+        showId: existingShow._id,
+        layoutId: layout?._id,
+        screenIds: {
+          left: byName("HyperX Stage Left"),
+          center: byName("HyperX Stage Center"),
+          right: byName("HyperX Stage Right"),
+        },
+      };
     }
 
     const created = await insertBattleLoco(ctx, ownerId);

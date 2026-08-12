@@ -139,6 +139,7 @@ export const brands: Record<BrandId, Brand> = {
       { tag: "headcase", label: "HeadCase", blurb: "AI-assisted comedy bits and sketches." },
       { tag: "wwcce", label: "WWCCE", blurb: "Wrestling comedy championship extravaganza." },
       { tag: "laffup", label: "LaffUp", blurb: "Open-mic stand-up showcases." },
+      { tag: "battleloco", label: "Battle Loco", blurb: "HyperX Arena three-LED live show at the Luxor." },
     ],
     designerLabel: "Show Designer",
     groupsLabel: "Solutions",

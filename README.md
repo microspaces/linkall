@@ -112,6 +112,8 @@ pnpm dev:funfirst   # from packages/backend → convex dev --env-file .env.funfi
 pnpm --filter @linkall/backend seed:surroundshow
 pnpm --filter @linkall/backend seed:funfirst
 pnpm --filter @linkall/backend seed:redwave
+# Additive (does not wipe): copy Battle Loco + HyperX screens into FunFirst
+pnpm --filter @linkall/backend seed:battleLoco
 ```
 
 Seeding clears the deployment and inserts brand-appropriate users, groups, posts, and shows/products/events/resources. When you're ready to import real data (your groups export), replace the arrays in `packages/backend/convex/seed.ts` or write an import script against the same mutations.
@@ -153,7 +155,7 @@ Change `EXPO_PUBLIC_BRAND` (and the matching URL) and restart to run the app as 
 - **All brands**: landing page, groups (join/leave, member list, group wall), community feed (posts, replies, upvotes — all real-time), people directory, demo-user switcher.
 - **SurroundShow**: show list + live show player (scene engine), marketplace with cart, and the **show designer** (`/designer`): Shows tab with Show | Scene | Effect drill-down grids, multi-screen preview with Play, and a per-panel timeline; Screens tab with Layout | Screen | Panel grids and a drag-the-corners polygon panel editor; **Profiles** tab for display profiles (logical→physical panel mapping, defaults, non-destructive apply). Panel-based scenes render in the live player with effects appearing at their start times (legacy Show → Scene → Effect(Panel) + Layout → Screen → Panel + DisplayProfile → PanelMapping model).
 - **Player + Screen output** (legacy mobile Player page + projector Screen page): `/player` is the compact operator console — tap a scene on the Shows tab to push it live to every output; tap a panel on the Screens tab to put the physical output into calibration mode (flat colors + numbered corners) and nudge the whole panel / a corner / a side with arrow controls. `/screens/<id>` is the chrome-less page a projector or LED wall displays; it follows scene taps, panel nudges and alignment toggles through one reactive Convex query (this replaces the SignalR DisplayHub messages).
-- **FunFirst**: shows filtered by stage (Crazyball / HeadCase / WWCCE / LaffUp), live player with scoreboard scenes, events with ticket purchase.
+- **FunFirst**: shows filtered by stage (Crazyball / HeadCase / WWCCE / LaffUp / Battle Loco), live player with scoreboard scenes, HyperX Arena three-LED Battle Loco show, events with ticket purchase.
 - **RedWave**: hierarchical resource library with breadcrumbs, state hub pages, state/county groups.
 - **Live show sync demo**: open a live show in two windows and use the operator controls — every viewer follows instantly (this replaces the SignalR DisplayHub).
 
