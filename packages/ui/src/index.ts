@@ -17,7 +17,11 @@ export { HomeCommunity } from "./home-community";
 export { Landing } from "./landing";
 export { Marketplace } from "./market";
 export { PeopleDirectory } from "./people";
-export { PerformanceConsole, PerformanceScreen } from "./performance";
+export {
+  PerformanceConsole,
+  PerformanceList,
+  PerformanceScreen,
+} from "./performance";
 export { CalibrationStage, ScreenOutput, ShowRemote } from "./player";
 export { ResourceBrowser, ResourceDetail } from "./resources";
 export { ShowList, ShowPlayer } from "./shows";

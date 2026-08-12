@@ -84,7 +84,7 @@ export default defineSchema({
   shows: defineTable({
     title: v.string(),
     description: v.string(),
-    /** Sub-brand tag, e.g. "crazyball" | "headcase" | "halloween". */
+    /** Sub-brand tag, e.g. "comedyloco" | "headcase" | "halloween". */
     tag: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("live"), v.literal("ended")),
     currentSceneIndex: v.number(),
@@ -194,7 +194,7 @@ export default defineSchema({
     .index("by_profile", ["displayProfileId"])
     .index("by_profile_logical", ["displayProfileId", "logicalPanelName"]),
 
-  // ---- comedy game engine (legacy: Crazyball LLPerformance* tables +
+  // ---- comedy game engine (legacy: Comedy Loco LLPerformance* tables +
   //      the game-1.0.1.js next-button state machine) ----
   performances: defineTable({
     title: v.string(),
@@ -248,7 +248,7 @@ export default defineSchema({
     order: v.number(),
   }).index("by_performance", ["performanceId"]),
 
-  // ---- events & tickets (legacy: Laffupalunga/Crazyball tickets pages) ----
+  // ---- events & tickets (legacy: Laffupalunga/Comedy Loco tickets pages) ----
   events: defineTable({
     title: v.string(),
     description: v.string(),
