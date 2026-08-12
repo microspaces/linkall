@@ -667,7 +667,7 @@ export const funfirst = mutation({
     await clearAll(ctx);
 
     const users = await insertUsers(ctx, [
-      { name: "Mia Martinez", handle: "mia", bio: "Crazyball referee and part-time banana.", tier: "admin" },
+      { name: "Mia Martinez", handle: "mia", bio: "Comedy Loco referee and part-time banana.", tier: "admin" },
       { name: "Dev Okafor", handle: "dev", bio: "HeadCase head writer. The AI does the easy jokes.", tier: "gold" },
       { name: "Sammy Kwan", handle: "sammy", bio: "WWCCE ring announcer. YES I talk like this in real life.", tier: "silver" },
       { name: "Lola Reyes", handle: "lola", bio: "Open-mic regular at LaffUp nights.", tier: "free" },
@@ -680,7 +680,7 @@ export const funfirst = mutation({
     const groups = await insertGroups(
       ctx,
       [
-        { name: "Crazyball", description: "League of Laughs Competitive Comedy", kind: "public", leftmenu: 1, category: "crazyball" },
+        { name: "Comedy Loco", description: "League of Laughs Competitive Comedy", kind: "public", leftmenu: 1, category: "comedyloco" },
         { name: "Headcase", description: "Robot Comedy Army", kind: "public", leftmenu: 1, category: "headcase" },
         { name: "Laff-up", description: "Sketch Comedy Live!", kind: "public", leftmenu: 2, category: "laffup" },
         { name: "News", description: "Laffupalunga Comedy Network News", kind: "public", category: "news" },
@@ -694,7 +694,7 @@ export const funfirst = mutation({
     await insertPosts(
       ctx,
       [
-        { content: "Crazyball Championship goes LIVE Friday — Bananas need this one.", groupIndex: 0 },
+        { content: "Comedy Loco Championship goes LIVE Friday — Bananas need this one.", groupIndex: 0 },
         { content: "New HeadCase bit in the show queue: 'My Smart Fridge Judges Me'.", groupIndex: 1 },
         { content: "WWCCE title match ended with a folding-chair pun. Cinema.", groupIndex: 6 },
         { content: "Five spots left for Thursday open mic — sign up in the events page!", groupIndex: 2 },
@@ -706,9 +706,9 @@ export const funfirst = mutation({
     );
 
     await insertShow(ctx, {
-      title: "Crazyball Championship",
+      title: "Comedy Loco Championship",
       description: "Bananas vs Berries. Three rounds, live audience voting, one champion.",
-      tag: "crazyball",
+      tag: "comedyloco",
       status: "live",
       owner: users[0],
       scenes: [
@@ -775,9 +775,9 @@ export const funfirst = mutation({
     }
 
     const stageShowId = await ctx.db.insert("shows", {
-      title: "Crazyball Stage Cues",
+      title: "Comedy Loco Stage Cues",
       description: "Panel-based stage cues for the main house screen — designer / timeline demo.",
-      tag: "crazyball",
+      tag: "comedyloco",
       status: "draft",
       currentSceneIndex: 0,
       layoutId,
@@ -831,7 +831,7 @@ export const funfirst = mutation({
 
     const stageProfileId = await ctx.db.insert("displayProfiles", {
       name: "Main Stage (default)",
-      description: "Default logical → physical mapping for Crazyball stage cues.",
+      description: "Default logical → physical mapping for Comedy Loco stage cues.",
       showId: stageShowId,
       layoutId,
       isDefault: true,
@@ -852,9 +852,9 @@ export const funfirst = mutation({
       });
     }
 
-    // --- Comedy game engine demo (legacy Crazyball Show page) ---
+    // --- Comedy game engine demo (legacy Comedy Loco Show page) ---
     const performanceId = await ctx.db.insert("performances", {
-      title: "Friday Night Crazyball",
+      title: "Friday Night Comedy Loco",
       team1: "Bananas",
       team2: "Berries",
       status: "draft",
@@ -940,7 +940,7 @@ export const funfirst = mutation({
     const day = 24 * 60 * 60 * 1000;
     const events: [string, string, string, number, number, number, number][] = [
       ["FunFirst Comedy Night", "Stand-up showcase with five headliners.", "The Chuckle Hut, Austin TX", now + 3 * day, 2500, 120, 74],
-      ["Crazyball Live Championship", "Bananas vs Berries with live audience voting.", "Rialto Arena, Austin TX", now + 7 * day, 3500, 400, 312],
+      ["Comedy Loco Live Championship", "Bananas vs Berries with live audience voting.", "Rialto Arena, Austin TX", now + 7 * day, 3500, 400, 312],
       ["LaffUp Open Mic", "Ten five-minute sets. Sign up at the door.", "LaffUp Basement Stage", now + 1 * day, 1000, 60, 41],
       ["WWCCE: Winter Brawl-ha-ha", "Wrestling comedy title matches all night.", "Eastside Ballroom", now + 14 * day, 3000, 250, 96],
     ];

@@ -100,12 +100,12 @@ export const brands: Record<BrandId, Brand> = {
     name: "FunFirst",
     tagline: "Comedy first. Everything else second.",
     description:
-      "Live comedy game shows, stand-up nights and audience-driven mayhem from the FunFirst family: Crazyball, HeadCase, WWCCE and more.",
+      "Live comedy game shows, stand-up nights and audience-driven mayhem from the FunFirst family: Comedy Loco, HeadCase, WWCCE and more.",
     domain: "funfirst.com",
     legacyNames: [
       "Laffupalunga (SiteId 2)",
       "laffup.com",
-      "crazyball.com",
+      "comedyloco.com",
       "headcaseai.com",
       "wwcce.com",
       "clubtrotters.com",
@@ -128,6 +128,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "Shows", href: "/shows" },
       { label: "Designer", href: "/designer" },
       { label: "Player", href: "/player" },
+      { label: "Performances", href: "/performances" },
       { label: "Performance", href: "/performance" },
       { label: "Events & Tickets", href: "/events" },
       { label: "Solutions", href: "/groups" },
@@ -135,7 +136,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "People", href: "/people" },
     ],
     showTags: [
-      { tag: "crazyball", label: "Crazyball", blurb: "Team game show: Bananas vs Berries, live scoring and audience votes." },
+      { tag: "comedyloco", label: "Comedy Loco", blurb: "Team game show: Bananas vs Berries, live scoring and audience votes." },
       { tag: "headcase", label: "HeadCase", blurb: "AI-assisted comedy bits and sketches." },
       { tag: "wwcce", label: "WWCCE", blurb: "Wrestling comedy championship extravaganza." },
       { tag: "laffup", label: "LaffUp", blurb: "Open-mic stand-up showcases." },

@@ -1,16 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
-import { Loading } from "./empty-state";
+import { EmptyState, Loading } from "./empty-state";
 
 /**
- * Comedy game engine pages (legacy: Crazyball Show view + game-1.0.1.js).
+ * Comedy game engine pages (legacy: Comedy Loco Performances + Performance views
+ * + game-1.0.1.js).
  *
- * PerformanceConsole — the host's "performance" page. The round grid, the
+ * PerformanceList — the host's "/performances" page. Browse performances and
+ * jump into the live console or venue screen (legacy Performances.cshtml
+ * header: Games / Performers / Performance).
+ *
+ * PerformanceConsole — the host's "/performance" page. The round grid, the
  * next-button state machine (Begin Game → Next Game → End Round → Win 1/2),
  * performers with bell bonuses, and the Overlay / Track columns.
  *
@@ -31,6 +37,12 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "game", label: "Game" },
 ];
 
+const STATUS_STYLE: Record<string, string> = {
+  live: "bg-red-100 text-red-700",
+  draft: "bg-gray-100 text-gray-500",
+  ended: "bg-gray-100 text-gray-400 line-through",
+};
+
 function teamName(view: PerformanceView, teamIndex: 1 | 2) {
   return teamIndex === 1 ? view.team1 : view.team2;
 }
@@ -44,12 +56,101 @@ function rowClasses(game: Game) {
   return "bg-white text-gray-800";
 }
 
+// ---------------------------------------------------------------- list
+
+/** Legacy /performances — pick a show night and open the console or screen. */
+export function PerformanceList() {
+  const performances = useQuery(api.game.list, {});
+
+  if (performances === undefined) return <Loading />;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">Performances</h1>
+        <Link
+          href="/performance"
+          className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Open console
+        </Link>
+      </div>
+      <p className="mt-1 text-sm text-gray-500">
+        Live comedy game nights — run the console, drive overlays, and push the
+        venue screen.
+      </p>
+
+      {performances.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState
+            title="No performances yet"
+            hint="Seed the FunFirst database to load a Comedy Loco demo night."
+          />
+        </div>
+      ) : (
+        <div className="mt-6 space-y-3">
+          {performances.map((p) => (
+            <div
+              key={p._id}
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-5"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold text-gray-900">{p.title}</h3>
+                  <span
+                    className={
+                      "rounded-full px-2 py-0.5 text-xs font-semibold uppercase " +
+                      STATUS_STYLE[p.status]
+                    }
+                  >
+                    {p.status === "live" ? "● Live" : p.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  <span className="font-medium text-amber-600">{p.team1}</span>
+                  <span className="mx-1.5 text-gray-300">vs</span>
+                  <span className="font-medium text-pink-600">{p.team2}</span>
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/performance?id=${p._id}`}
+                  className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  Run
+                </Link>
+                <Link
+                  href={`/performance/screens/${p._id}`}
+                  target="_blank"
+                  className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Screen
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- console
 
-export function PerformanceConsole() {
+export function PerformanceConsole({
+  initialPerformanceId,
+}: {
+  initialPerformanceId?: Id<"performances"> | null;
+} = {}) {
   const performances = useQuery(api.game.list, {});
-  const [selectedId, setSelectedId] = useState<Id<"performances"> | null>(null);
+  const [selectedId, setSelectedId] = useState<Id<"performances"> | null>(
+    initialPerformanceId ?? null,
+  );
   const [tab, setTab] = useState<TabId>("game");
+
+  useEffect(() => {
+    if (initialPerformanceId) setSelectedId(initialPerformanceId);
+  }, [initialPerformanceId]);
 
   const performance =
     performances?.find((p) => p._id === selectedId) ?? performances?.[0] ?? null;
@@ -62,16 +163,34 @@ export function PerformanceConsole() {
   if (performances === undefined) return <Loading />;
   if (performances.length === 0)
     return (
-      <p className="p-6 text-sm text-gray-500">
-        No performances yet — seed the database or create one.
-      </p>
+      <div className="p-6">
+        <EmptyState
+          title="No performances yet"
+          hint="Seed the FunFirst database, or open Performances after data is loaded."
+        />
+        <Link
+          href="/performances"
+          className="mt-4 inline-block text-sm font-semibold text-brand hover:underline"
+        >
+          ← Performances
+        </Link>
+      </div>
     );
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col pb-28">
       {/* Header + performance picker */}
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-3 py-2">
-        <h1 className="text-lg font-bold text-gray-900">Performance</h1>
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href="/performances"
+            className="shrink-0 text-xs font-semibold text-gray-400 hover:text-brand"
+            title="All performances"
+          >
+            ←
+          </Link>
+          <h1 className="text-lg font-bold text-gray-900">Performance</h1>
+        </div>
         <select
           className="max-w-[55%] truncate rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium"
           value={performance?._id ?? ""}

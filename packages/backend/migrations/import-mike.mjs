@@ -114,7 +114,7 @@ function showTag(name) {
   if (n.includes("halloween")) return "halloween";
   if (n.includes("headcase")) return "headcase";
   if (n.includes("laffup")) return "laffup";
-  if (n.includes("league") || n.includes("laugh")) return "crazyball";
+  if (n.includes("league") || n.includes("laugh")) return "comedyloco";
   if (n.includes("westport")) return "westport";
   return undefined;
 }

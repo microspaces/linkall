@@ -5,7 +5,7 @@ Modern rebuild of the LinkAll8 multi-tenant ASP.NET application as a **hybrid mo
 | Brand | Legacy identity | Web app | Port |
 |---|---|---|---|
 | **SurroundShow** | SiteId 1 — holiday shows + marketplace | `apps/surroundshow-web` | 3001 |
-| **FunFirst** | SiteId 2 — Laffupalunga/Laffup + Crazyball, HeadCase, WWCCE, Clubtrotters | `apps/funfirst-web` | 3002 |
+| **FunFirst** | SiteId 2 — Laffupalunga/Laffup + Comedy Loco, HeadCase, WWCCE, Clubtrotters | `apps/funfirst-web` | 3002 |
 | **RedWave** | SiteId 3 — political organizing, resources, state/county groups | `apps/redwave-web` | 3003 |
 
 Plus one Expo mobile app (`apps/mobile`) that serves any brand via an env var.
@@ -153,7 +153,7 @@ Change `EXPO_PUBLIC_BRAND` (and the matching URL) and restart to run the app as 
 - **All brands**: landing page, groups (join/leave, member list, group wall), community feed (posts, replies, upvotes — all real-time), people directory, demo-user switcher.
 - **SurroundShow**: show list + live show player (scene engine), marketplace with cart, and the **show designer** (`/designer`): Shows tab with Show | Scene | Effect drill-down grids, multi-screen preview with Play, and a per-panel timeline; Screens tab with Layout | Screen | Panel grids and a drag-the-corners polygon panel editor; **Profiles** tab for display profiles (logical→physical panel mapping, defaults, non-destructive apply). Panel-based scenes render in the live player with effects appearing at their start times (legacy Show → Scene → Effect(Panel) + Layout → Screen → Panel + DisplayProfile → PanelMapping model).
 - **Player + Screen output** (legacy mobile Player page + projector Screen page): `/player` is the compact operator console — tap a scene on the Shows tab to push it live to every output; tap a panel on the Screens tab to put the physical output into calibration mode (flat colors + numbered corners) and nudge the whole panel / a corner / a side with arrow controls. `/screens/<id>` is the chrome-less page a projector or LED wall displays; it follows scene taps, panel nudges and alignment toggles through one reactive Convex query (this replaces the SignalR DisplayHub messages).
-- **FunFirst**: shows filtered by stage (Crazyball / HeadCase / WWCCE / LaffUp), live player with scoreboard scenes, events with ticket purchase.
+- **FunFirst**: shows filtered by stage (Comedy Loco / HeadCase / WWCCE / LaffUp), live player with scoreboard scenes, events with ticket purchase.
 - **RedWave**: hierarchical resource library with breadcrumbs, state hub pages, state/county groups.
 - **Live show sync demo**: open a live show in two windows and use the operator controls — every viewer follows instantly (this replaces the SignalR DisplayHub).
 

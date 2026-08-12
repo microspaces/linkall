@@ -4,7 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 
 /**
- * Comedy game engine (legacy: Crazyball Show page + game-1.0.1.js).
+ * Comedy game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
  *
  * A performance is a sequence of rounds; each round is a PAIR of rows in
  * `performanceGames` — team 1 plays the game first, then team 2, then the
