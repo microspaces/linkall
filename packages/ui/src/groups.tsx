@@ -9,6 +9,7 @@ import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 import { Feed } from "./feed";
+import { SolutionList } from "./solutions";
 
 const KIND_LABEL: Record<string, string> = {
   public: "Public",
@@ -92,6 +93,7 @@ export function GroupList({
 }
 
 export function GroupDetail({ groupId }: { groupId: Id<"groups"> }) {
+  const brand = useBrand();
   const { userId } = useCurrentUser();
   const group = useQuery(api.groups.get, { groupId, userId });
   const members = useQuery(api.groups.members, { groupId });
@@ -153,6 +155,17 @@ export function GroupDetail({ groupId }: { groupId: Id<"groups"> }) {
         <div className="mt-4">
           <Feed groupId={groupId} />
         </div>
+
+        {brand.features.solutions && (
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Solutions in this group
+            </h2>
+            <div className="mt-4">
+              <SolutionList groupId={groupId} />
+            </div>
+          </div>
+        )}
       </div>
 
       <aside>

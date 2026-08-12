@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
+import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 import { Landing } from "./landing";
 import { PostComposer } from "./feed";
@@ -26,10 +27,18 @@ function CommunityPost({ post }: { post: FeedPost }) {
         <div>
           <p className="text-sm font-semibold text-gray-900">
             {post.author?.name ?? "Unknown"}
+            {post.kind === "news" && (
+              <span className="ml-2 rounded-full bg-brand-light px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-dark">
+                News
+              </span>
+            )}
           </p>
           <p className="text-xs text-gray-400">{timeAgo(post._creationTime)}</p>
         </div>
       </div>
+      {post.title && (
+        <h3 className="mt-3 font-semibold text-gray-900">{post.title}</h3>
+      )}
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
         {post.content}
       </p>
@@ -53,7 +62,7 @@ function CommunityPane() {
 
   return (
     <div className="space-y-4">
-      <PostComposer placeholder="To comment on a solution, go there first. Or on your timeline, comment here." />
+      <PostComposer placeholder="To comment on a solution, go there first. Or post news here." />
       {posts.length === 0 ? (
         <p className="text-sm text-gray-500">No posts in your groups yet.</p>
       ) : (
@@ -64,10 +73,12 @@ function CommunityPane() {
 }
 
 export function HomeCommunity() {
+  const brand = useBrand();
   const { userId } = useCurrentUser();
   const [tab, setTab] = useState<"home" | "community">(
     userId ? "community" : "home",
   );
+  const communityLabel = brand.features.solutions ? "News" : "Community";
 
   return (
     <div>
@@ -92,7 +103,7 @@ export function HomeCommunity() {
               : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50")
           }
         >
-          Community
+          {communityLabel}
         </button>
       </div>
 

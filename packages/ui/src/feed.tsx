@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { Avatar } from "./avatar";
+import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 import { timeAgo } from "./format";
@@ -16,24 +17,46 @@ type FeedPost = Doc<"posts"> & {
 
 export function PostComposer({
   groupId,
-  placeholder = "Share something with the community…",
+  placeholder,
 }: {
   groupId?: Id<"groups">;
   placeholder?: string;
 }) {
+  const brand = useBrand();
   const { user, userId } = useCurrentUser();
   const createPost = useMutation(api.posts.create);
   const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+  const [kind, setKind] = useState<"news" | "discussion">(
+    brand.features.solutions ? "news" : "discussion",
+  );
   const [busy, setBusy] = useState(false);
 
   if (!userId) return null;
 
+  const newsMode = brand.features.solutions;
+  const hint =
+    placeholder ??
+    (newsMode
+      ? kind === "news"
+        ? "Post a news item for your groups…"
+        : "Start a discussion…"
+      : "Share something with the community…");
+
   const submit = async () => {
     if (!content.trim()) return;
+    if (newsMode && kind === "news" && !title.trim()) return;
     setBusy(true);
     try {
-      await createPost({ authorId: userId, content, groupId });
+      await createPost({
+        authorId: userId,
+        content,
+        groupId,
+        kind: newsMode ? kind : undefined,
+        title: newsMode && kind === "news" ? title : undefined,
+      });
       setContent("");
+      setTitle("");
     } finally {
       setBusy(false);
     }
@@ -43,20 +66,51 @@ export function PostComposer({
     <div className="flex gap-3 rounded-xl border border-gray-200 bg-white p-4">
       {user && <Avatar name={user.name} src={user.avatarUrl} />}
       <div className="flex-1">
+        {newsMode && (
+          <div className="mb-2 flex gap-1">
+            {(["news", "discussion"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKind(k)}
+                className={
+                  "rounded-full px-3 py-0.5 text-xs font-semibold capitalize " +
+                  (kind === k
+                    ? "bg-brand text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200")
+                }
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        )}
+        {newsMode && kind === "news" && (
+          <input
+            className="mb-2 w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm font-semibold focus:border-brand focus:outline-none"
+            placeholder="Headline"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        )}
         <textarea
           className="w-full resize-none rounded-md border border-gray-200 p-2 text-sm focus:border-brand focus:outline-none"
           rows={2}
-          placeholder={placeholder}
+          placeholder={hint}
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
         <div className="mt-2 flex justify-end">
           <button
             onClick={submit}
-            disabled={busy || !content.trim()}
+            disabled={
+              busy ||
+              !content.trim() ||
+              (newsMode && kind === "news" && !title.trim())
+            }
             className="rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-40"
           >
-            Post
+            {newsMode && kind === "news" ? "Post news" : "Post"}
           </button>
         </div>
       </div>
@@ -85,10 +139,18 @@ function PostCard({ post }: { post: FeedPost }) {
             <span className="ml-2 font-normal text-gray-400">
               @{post.author?.handle}
             </span>
+            {post.kind === "news" && (
+              <span className="ml-2 rounded-full bg-brand-light px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-dark">
+                News
+              </span>
+            )}
           </p>
           <p className="text-xs text-gray-400">{timeAgo(post._creationTime)}</p>
         </div>
       </div>
+      {post.title && (
+        <h3 className="mt-3 font-semibold text-gray-900">{post.title}</h3>
+      )}
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
         {post.content}
       </p>
@@ -149,7 +211,15 @@ function PostCard({ post }: { post: FeedPost }) {
 
 export function Feed({ groupId }: { groupId?: Id<"groups"> }) {
   const { userId } = useCurrentUser();
-  const posts = useQuery(api.posts.feed, { groupId, userId });
+  const groupPosts = useQuery(
+    api.posts.feed,
+    groupId ? { groupId, userId } : "skip",
+  );
+  const followedPosts = useQuery(
+    api.posts.userFeed,
+    !groupId && userId ? { userId } : "skip",
+  );
+  const posts = groupId ? groupPosts : followedPosts;
 
   if (posts === undefined) return <Loading />;
 

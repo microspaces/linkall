@@ -84,8 +84,10 @@ export const create = mutation({
     content: v.string(),
     groupId: v.optional(v.id("groups")),
     parentId: v.optional(v.id("posts")),
+    title: v.optional(v.string()),
+    kind: v.optional(v.union(v.literal("news"), v.literal("discussion"))),
   },
-  handler: async (ctx, { authorId, content, groupId, parentId }) => {
+  handler: async (ctx, { authorId, content, groupId, parentId, title, kind }) => {
     const trimmed = content.trim();
     if (trimmed.length === 0) throw new Error("Post cannot be empty");
 
@@ -94,6 +96,8 @@ export const create = mutation({
       content: trimmed,
       groupId,
       parentId,
+      title: title?.trim() || undefined,
+      kind: parentId ? undefined : kind,
       upvotes: 0,
       replyCount: 0,
     });

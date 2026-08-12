@@ -302,6 +302,28 @@ export function SocialShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
+          <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto md:flex">
+            {brand.nav.map((item) => {
+              const active =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href + item.label}
+                  href={item.href}
+                  className={
+                    "shrink-0 rounded-md px-2 py-1 text-sm " +
+                    (active
+                      ? "font-semibold text-brand"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900")
+                  }
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
           <div className="ml-auto flex items-center gap-2">
             <MobileGroupsMenu />
             <UserSwitcher />
