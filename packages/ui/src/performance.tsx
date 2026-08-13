@@ -17,7 +17,7 @@ import {
 import { PerformanceNightRows } from "./performance-nights";
 
 /**
- * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, …).
+ * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, …).
  *
  * Routes live under `/locos/[slug]/{performances,performance,games}`. Comedy
  * Loco aliases at `/performances`, `/performance`, `/games` still work.

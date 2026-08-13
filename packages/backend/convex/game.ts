@@ -8,7 +8,8 @@ import { requireLoco, rowTag } from "./locos";
  * Loco game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
  *
  * Templates, catalogs, and default teams live in `locos.ts`. Performances and
- * catalog rows are tagged (`comedyloco` / `battleloco` / `wrestleloco`);
+ * catalog rows are tagged (`comedyloco` / `battleloco` / `wrestleloco` /
+ * `headcase` / `laffup`);
  * untagged legacy rows count as Comedy Loco.
  */
 

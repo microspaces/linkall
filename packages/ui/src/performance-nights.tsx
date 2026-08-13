@@ -53,13 +53,6 @@ export function PerformanceNightRows({
             >
               Run
             </Link>
-            <Link
-              href={paths.screen(p._id)}
-              target="_blank"
-              className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Screen
-            </Link>
           </div>
         </div>
       ))}

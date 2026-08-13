@@ -1,5 +1,5 @@
 /**
- * Loco show formats (Comedy Loco, Battle Loco, Wrestle Loco, …).
+ * Loco show formats (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, …).
  *
  * Templates, catalogs, default teams, overlays, and tracks live here so a new
  * loco is data — not a new page tree. Operator routes are
@@ -11,7 +11,12 @@
  * Keep this file free of Convex function wrappers so the UI can import it.
  */
 
-export type LocoTag = "comedyloco" | "battleloco" | "wrestleloco";
+export type LocoTag =
+  | "comedyloco"
+  | "battleloco"
+  | "wrestleloco"
+  | "headcase"
+  | "laffup";
 
 export type CatalogGameSpec = {
   name: string;
@@ -199,6 +204,91 @@ export const LOCOS: LocoConfig[] = [
       { name: "Fan Referee", roundType: "Fan Ref", shortDescription: "Audience refs", suggestions: "A volunteer", description: "A fan makes the three-count. Host can overturn." },
       { name: "Battle Royal", roundType: "Finale", shortDescription: "Over the top", suggestions: "An elimination order", description: "Last wrestler in the ring." },
       { name: "Multi-pin", roundType: "Finale", shortDescription: "Everybody in", suggestions: "A time limit", description: "Team multi-pin finale. Most pins wins." },
+    ],
+  },
+  {
+    tag: "headcase",
+    slug: "head-case",
+    name: "HeadCase",
+    blurb:
+      "AI-assisted comedy bits and sketches — Humans vs Bots, written by the room.",
+    listHint:
+      "Bit nights: cold opens, AI sketches, crowd prompts, and a callback finale.",
+    catalogHint:
+      "Bits and sketches for HeadCase. Assign these on a performance.",
+    team1: "Humans",
+    team2: "Bots",
+    accent: "from-violet-500 to-cyan-400",
+    templateRounds: [
+      { round: 1, roundType: "Intro", isScored: false },
+      { round: 2, roundType: "Bit", isScored: true },
+      { round: 3, roundType: "Sketch", isScored: true },
+      { round: 4, roundType: "Crowd", isScored: true },
+      { round: 5, roundType: "Bit", isScored: true },
+      { round: 6, roundType: "Callback", isScored: true },
+      { round: 7, roundType: "Finale", isScored: true },
+    ],
+    overlays: [
+      "Game Instructions",
+      "Vote",
+      "Prompt",
+      "Score",
+      "Bit",
+      "Games",
+      "Score Rotation",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Cold Open", roundType: "Intro", shortDescription: "Show open", suggestions: "A headline", description: "Host and bots warm up the room. Unscored." },
+      { name: "Smart Fridge", roundType: "Bit", shortDescription: "AI character", suggestions: "A 2am snack", description: "A fridge with opinions about your choices." },
+      { name: "GPS Therapist", roundType: "Bit", shortDescription: "Recalculating…", suggestions: "A life decision", description: "Navigation as life coaching." },
+      { name: "Generated Sketch", roundType: "Sketch", shortDescription: "Room + model", suggestions: "A premise", description: "The room pitches; the bit plays out." },
+      { name: "Two-Hander", roundType: "Sketch", shortDescription: "Human vs bot", suggestions: "A relationship", description: "One human, one bot, one scene." },
+      { name: "Crowd Prompt", roundType: "Crowd", shortDescription: "Audience seeds the model", suggestions: "A forbidden topic", description: "The room types the next line." },
+      { name: "Heckle Filter", roundType: "Crowd", shortDescription: "Live moderation bit", suggestions: "A heckle", description: "Bots remix the heckle into a joke." },
+      { name: "Earlier Tonight", roundType: "Callback", shortDescription: "Callback reel", suggestions: "A missed joke", description: "Revisit the night's best wrong turns." },
+      { name: "Credits Roast", roundType: "Finale", shortDescription: "Close the file", suggestions: "A credit", description: "Bots roast the humans on the way out." },
+    ],
+  },
+  {
+    tag: "laffup",
+    slug: "laff-up",
+    name: "LaffUp",
+    blurb:
+      "Open-mic stand-up showcases — Openers vs Headliners, five-minute sets.",
+    listHint:
+      "Mic nights: host intro, short sets, crowd work, feature, and a headliner close.",
+    catalogHint:
+      "Sets and crowd bits for LaffUp. Assign these on a performance.",
+    team1: "Openers",
+    team2: "Headliners",
+    accent: "from-rose-400 to-amber-300",
+    templateRounds: [
+      { round: 1, roundType: "Intro", isScored: false },
+      { round: 2, roundType: "Set", isScored: true },
+      { round: 3, roundType: "Crowd", isScored: true },
+      { round: 4, roundType: "Set", isScored: true },
+      { round: 5, roundType: "Feature", isScored: true },
+      { round: 6, roundType: "Headliner", isScored: true },
+    ],
+    overlays: [
+      "Game Instructions",
+      "Vote",
+      "Mic",
+      "Score",
+      "Lineup",
+      "Games",
+      "Score Rotation",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Host Open", roundType: "Intro", shortDescription: "House rules", suggestions: "A city", description: "Host warms the room. Unscored." },
+      { name: "New Material", roundType: "Set", shortDescription: "Five minutes", suggestions: "A premise", description: "Fresh pages. Crowd scores the set." },
+      { name: "Tight Five", roundType: "Set", shortDescription: "Cleanest five", suggestions: "A callback", description: "Best five from the notebook." },
+      { name: "Crowd Work", roundType: "Crowd", shortDescription: "Talk to the room", suggestions: "A job in the front row", description: "Off-book with the audience." },
+      { name: "Roast a Table", roundType: "Crowd", shortDescription: "Table work", suggestions: "An anniversary", description: "One table becomes the bit." },
+      { name: "Feature Set", roundType: "Feature", shortDescription: "Mid-show set", suggestions: "A touring joke", description: "Longer set between openers and the close." },
+      { name: "Headliner Set", roundType: "Headliner", shortDescription: "Close the night", suggestions: "A closer", description: "Headliner takes the room home." },
     ],
   },
 ];

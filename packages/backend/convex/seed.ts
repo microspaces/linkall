@@ -938,7 +938,7 @@ export const funfirst = mutation({
       });
     }
 
-    // --- Loco game-engine demos (Comedy / Battle / Wrestle) ---
+    // --- Loco game-engine demos ---
     const comedy = requireLoco("comedyloco");
     const comedyIds = await insertLocoCatalog(ctx, comedy);
     await insertLocoDemo(
@@ -1008,12 +1008,59 @@ export const funfirst = mutation({
       wrestleIds,
     );
 
+    const headcase = requireLoco("headcase");
+    const headcaseIds = await insertLocoCatalog(ctx, headcase);
+    await insertLocoDemo(
+      ctx,
+      users[1],
+      headcase,
+      "Thursday HeadCase Bits",
+      [
+        [1, "Intro", "Cold Open", "Cold Open", false],
+        [2, "Bit", "Smart Fridge", "GPS Therapist", true],
+        [3, "Sketch", "Generated Sketch", "Two-Hander", true],
+        [4, "Crowd", "Crowd Prompt", "Heckle Filter", true],
+        [5, "Finale", "Credits Roast", "Credits Roast", true],
+      ],
+      [
+        ["Dev Okafor", 1],
+        ["Prompt Queen", 1],
+        ["HAL 9001", 2],
+        ["Clippy", 2],
+      ],
+      headcaseIds,
+    );
+
+    const laffup = requireLoco("laffup");
+    const laffupIds = await insertLocoCatalog(ctx, laffup);
+    await insertLocoDemo(
+      ctx,
+      users[3],
+      laffup,
+      "Wednesday LaffUp Mic",
+      [
+        [1, "Intro", "Host Open", "Host Open", false],
+        [2, "Set", "New Material", "Tight Five", true],
+        [3, "Crowd", "Crowd Work", "Roast a Table", true],
+        [4, "Feature", "Feature Set", "Feature Set", true],
+        [5, "Headliner", "Headliner Set", "Headliner Set", true],
+      ],
+      [
+        ["Lola Reyes", 1],
+        ["First Timer", 1],
+        ["Touring Act", 2],
+        ["Mic Killer", 2],
+      ],
+      laffupIds,
+    );
+
     const now = Date.now();
     const day = 24 * 60 * 60 * 1000;
     const events: [string, string, string, number, number, number, number][] = [
       ["FunFirst Comedy Night", "Stand-up showcase with five headliners.", "The Chuckle Hut, Austin TX", now + 3 * day, 2500, 120, 74],
       ["Comedy Loco Live Championship", "Bananas vs Berries with live audience voting.", "Rialto Arena, Austin TX", now + 7 * day, 3500, 400, 312],
       ["LaffUp Open Mic", "Ten five-minute sets. Sign up at the door.", "LaffUp Basement Stage", now + 1 * day, 1000, 60, 41],
+      ["HeadCase Bits Night", "AI-assisted sketches, written by the room.", "HeadCase Lab, Austin TX", now + 5 * day, 2000, 80, 51],
       ["WWCCE: Winter Brawl-ha-ha", "Wrestling comedy title matches all night.", "Eastside Ballroom", now + 14 * day, 3000, 250, 96],
       ["Battle Loco: Heat vs Ice", "Gaming, stunts, crowd control. Loser spins the wheel.", "HyperX Arena, Luxor Las Vegas", now + 10 * day, 4500, 500, 218],
       ["Wrestle Loco: Faces vs Heels", "Comedy wrestling, fan refs, multi-pin finale.", "Location TBA, Las Vegas", now + 21 * day, 4000, 400, 142],
@@ -1022,7 +1069,7 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 3 loco performances, 6 events";
+    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 5 loco performances, 7 events";
   },
 });
 

@@ -221,7 +221,7 @@ export default defineSchema({
     /** Music track currently cued (legacy SceneLayoutMusic click). */
     activeTrack: v.optional(v.string()),
     ownerId: v.id("users"),
-    /** Loco format (comedyloco / battleloco / wrestleloco). Untagged = comedyloco. */
+    /** Loco format (comedyloco / battleloco / wrestleloco / headcase / laffup). Untagged = comedyloco. */
     tag: v.optional(v.string()),
   }).index("by_tag", ["tag"]),
 
