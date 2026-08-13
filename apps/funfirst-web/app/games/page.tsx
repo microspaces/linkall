@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { GameCatalog } from "@linkall/ui";
 
 export default function GamesPage() {
-  redirect("/locos/comedy-loco/games");
+  return <GameCatalog slug="comedy-loco" />;
 }

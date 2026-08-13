@@ -1,14 +1,25 @@
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function PerformancePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ id?: string }>;
-}) {
-  const { id } = await searchParams;
-  redirect(
-    id
-      ? `/locos/comedy-loco/performance?id=${encodeURIComponent(id)}`
-      : "/locos/comedy-loco/performance",
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Loading, PerformanceConsole } from "@linkall/ui";
+import type { Id } from "@linkall/backend/convex/_generated/dataModel";
+
+function Performance() {
+  const params = useSearchParams();
+  const id = params.get("id");
+  return (
+    <PerformanceConsole
+      slug="comedy-loco"
+      initialPerformanceId={id ? (id as Id<"performances">) : null}
+    />
+  );
+}
+
+export default function PerformancePage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <Performance />
+    </Suspense>
   );
 }

@@ -129,6 +129,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "Designer", href: "/designer" },
       { label: "Player", href: "/player" },
       { label: "Locos", href: "/locos" },
+      { label: "Performances", href: "/performances" },
       { label: "Events & Tickets", href: "/events" },
       { label: "Solutions", href: "/groups" },
       { label: "Feed", href: "/feed" },
