@@ -23,3 +23,7 @@ build/
 
 # Agent test screenshots
 test-screenshots/
+
+# LinkAll8 SQL dump maps (export JSON is regenerated from SQL)
+packages/backend/migrations/linkall8-export.json
+packages/backend/migrations/linkall8-idmap-*.json

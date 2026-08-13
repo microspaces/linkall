@@ -14,6 +14,7 @@ import type * as events from "../events.js";
 import type * as game from "../game.js";
 import type * as groups from "../groups.js";
 import type * as importLegacy from "../importLegacy.js";
+import type * as importLinkAll8 from "../importLinkAll8.js";
 import type * as notifications from "../notifications.js";
 import type * as posts from "../posts.js";
 import type * as products from "../products.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   game: typeof game;
   groups: typeof groups;
   importLegacy: typeof importLegacy;
+  importLinkAll8: typeof importLinkAll8;
   notifications: typeof notifications;
   posts: typeof posts;
   products: typeof products;
