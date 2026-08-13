@@ -3,5 +3,5 @@
 import { PerformanceList } from "@linkall/ui";
 
 export default function PerformancesPage() {
-  return <PerformanceList />;
+  return <PerformanceList slug="comedy-loco" />;
 }

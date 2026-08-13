@@ -2,6 +2,7 @@ import { mutation } from "./_generated/server";
 import { MutationCtx } from "./_generated/server";
 import { Id, TableNames } from "./_generated/dataModel";
 import { christmasMikeScenes } from "./christmasMikeData";
+import { requireLoco, type LocoConfig } from "./locos";
 
 /**
  * Mock data per brand, for testing until real data (groups etc.) is imported.
@@ -16,6 +17,7 @@ const ALL_TABLES: TableNames[] = [
   "performers",
   "performanceGames",
   "performances",
+  "comedyGames",
   "postVotes",
   "posts",
   "groupMembers",
@@ -169,6 +171,90 @@ async function insertShow(
     await ctx.db.insert("scenes", { showId, order: i, ...show.scenes[i] });
   }
   return showId;
+}
+
+async function insertLocoCatalog(ctx: MutationCtx, loco: LocoConfig) {
+  const catalogIds: Record<string, Id<"comedyGames">> = {};
+  for (const g of loco.catalog) {
+    catalogIds[g.name] = await ctx.db.insert("comedyGames", {
+      name: g.name,
+      roundType: g.roundType,
+      shortDescription: g.shortDescription,
+      suggestions: g.suggestions,
+      description: g.description,
+      tag: loco.tag,
+    });
+  }
+  return catalogIds;
+}
+
+async function insertLocoDemo(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+  loco: LocoConfig,
+  title: string,
+  rounds: [number, string, string, string, boolean][],
+  performers: [string, 1 | 2][],
+  catalogIds: Record<string, Id<"comedyGames">>,
+) {
+  const performanceId = await ctx.db.insert("performances", {
+    title,
+    team1: loco.team1,
+    team2: loco.team2,
+    status: "draft",
+    ownerId,
+    tag: loco.tag,
+  });
+  let order = 0;
+  for (const [round, roundType, game1, game2, isScored] of rounds) {
+    for (const [teamIndex, gameName] of [
+      [1, game1],
+      [2, game2],
+    ] as const) {
+      await ctx.db.insert("performanceGames", {
+        performanceId,
+        order: order++,
+        round,
+        roundType,
+        teamIndex,
+        gameName,
+        gameId: catalogIds[gameName],
+        votes: 0,
+        score: 0,
+        isPlaying: false,
+        isPlayed: false,
+        isVoting: false,
+        isWinner: false,
+        rotation: false,
+        isCued: false,
+        volunteers: 0,
+        isScored,
+      });
+    }
+  }
+  for (const [name, teamIndex] of performers) {
+    await ctx.db.insert("performers", {
+      performanceId,
+      name,
+      teamIndex,
+      bellBonus: 0,
+    });
+  }
+  for (let i = 0; i < loco.overlays.length; i++) {
+    await ctx.db.insert("performanceOverlays", {
+      performanceId,
+      name: loco.overlays[i],
+      order: i,
+    });
+  }
+  for (let i = 0; i < loco.tracks.length; i++) {
+    await ctx.db.insert("performanceTracks", {
+      performanceId,
+      name: loco.tracks[i],
+      order: i,
+    });
+  }
+  return performanceId;
 }
 
 /** Official Battle Loco marketing stills (battleloco.com). */
@@ -852,89 +938,75 @@ export const funfirst = mutation({
       });
     }
 
-    // --- Comedy game engine demo (legacy Comedy Loco Show page) ---
-    const performanceId = await ctx.db.insert("performances", {
-      title: "Friday Night Comedy Loco",
-      team1: "Bananas",
-      team2: "Berries",
-      status: "draft",
-      ownerId: users[0],
-    });
+    // --- Loco game-engine demos (Comedy / Battle / Wrestle) ---
+    const comedy = requireLoco("comedyloco");
+    const comedyIds = await insertLocoCatalog(ctx, comedy);
+    await insertLocoDemo(
+      ctx,
+      users[0],
+      comedy,
+      "Friday Night Comedy Loco",
+      [
+        [1, "Intro", "Top This", "Top This", false],
+        [2, "Bucket", "Countdown", "More For Me", true],
+        [3, "Choice", "Oscar", "Club Intro", true],
+        [4, "Audience", "Sound Effects", "Sound Effects", true],
+        [5, "Joke", "Freeze Tag", "Freeze Tag", true],
+      ],
+      [
+        ["BellBoy", 1],
+        ["Slapstick Sally", 1],
+        ["Captain Chuckles", 2],
+        ["Deadpan Dana", 2],
+      ],
+      comedyIds,
+    );
 
-    // Pairs of rows per round: team 1 then team 2 (legacy round grid).
-    const rounds: [number, string, string, string, boolean][] = [
-      // round, type, team1 game, team2 game, isScored
-      [1, "Intro", "Top This", "Top This", false],
-      [2, "Buck", "Countdown", "More For Me", true],
-      [3, "Choice", "Oscar", "Club Intro", true],
-      [4, "Buck", "Sound Effects", "Sound Effects", true],
-      [5, "Finale", "Freeze Tag", "Freeze Tag", true],
-    ];
-    let order = 0;
-    for (const [round, roundType, game1, game2, isScored] of rounds) {
-      for (const [teamIndex, gameName] of [[1, game1], [2, game2]] as const) {
-        await ctx.db.insert("performanceGames", {
-          performanceId,
-          order: order++,
-          round,
-          roundType,
-          teamIndex,
-          gameName,
-          votes: 0,
-          score: 0,
-          isPlaying: false,
-          isPlayed: false,
-          isVoting: false,
-          isWinner: false,
-          rotation: false,
-          isScored,
-        });
-      }
-    }
+    const battle = requireLoco("battleloco");
+    const battleIds = await insertLocoCatalog(ctx, battle);
+    await insertLocoDemo(
+      ctx,
+      users[0],
+      battle,
+      "Saturday Battle Loco",
+      [
+        [1, "Intro", "Face Off", "Face Off", false],
+        [2, "Gaming", "Smash Bros", "Mario Kart", true],
+        [3, "Challenge", "Minute to Win It", "Trivia Blitz", true],
+        [4, "Crowd", "Crowd Control", "Crowd Control", true],
+        [5, "Finale", "Finale Gauntlet", "Finale Gauntlet", true],
+      ],
+      [
+        ["Blaze", 1],
+        ["Spark", 1],
+        ["Frost", 2],
+        ["Glacier", 2],
+      ],
+      battleIds,
+    );
 
-    const performerSpecs: [string, 1 | 2][] = [
-      ["BellBoy", 1],
-      ["Slapstick Sally", 1],
-      ["Captain Chuckles", 2],
-      ["Deadpan Dana", 2],
-    ];
-    for (const [name, teamIndex] of performerSpecs) {
-      await ctx.db.insert("performers", {
-        performanceId,
-        name,
-        teamIndex,
-        bellBonus: 0,
-      });
-    }
-
-    const overlayNames = [
-      "Game Instructions",
-      "Vote",
-      "Suggestions",
-      "Score",
-      "Box Score",
-      "Games",
-      "Score Rotation",
-    ];
-    for (let i = 0; i < overlayNames.length; i++) {
-      await ctx.db.insert("performanceOverlays", {
-        performanceId,
-        name: overlayNames[i],
-        order: i,
-      });
-    }
-
-    const trackNames = [
-      "BackNForth", "BringTheFun", "BubbleGumGirl", "CockatooInTheGrass",
-      "DressedInPink", "DrivingYourVibes",
-    ];
-    for (let i = 0; i < trackNames.length; i++) {
-      await ctx.db.insert("performanceTracks", {
-        performanceId,
-        name: trackNames[i],
-        order: i,
-      });
-    }
+    const wrestle = requireLoco("wrestleloco");
+    const wrestleIds = await insertLocoCatalog(ctx, wrestle);
+    await insertLocoDemo(
+      ctx,
+      users[2],
+      wrestle,
+      "Friday Wrestle Loco",
+      [
+        [1, "Intro", "Opening Bell", "Opening Bell", false],
+        [2, "Match", "Singles Match", "Tag Team", true],
+        [3, "Crowd", "Crowd Scream", "Crowd Scream", false],
+        [4, "Weapons", "Chair Shot", "Chair Shot", true],
+        [5, "Finale", "Multi-pin", "Multi-pin", true],
+      ],
+      [
+        ["The Smile", 1],
+        ["Good Sport", 1],
+        ["Cheap Heat", 2],
+        ["The Heel Turn", 2],
+      ],
+      wrestleIds,
+    );
 
     const now = Date.now();
     const day = 24 * 60 * 60 * 1000;
@@ -943,12 +1015,14 @@ export const funfirst = mutation({
       ["Comedy Loco Live Championship", "Bananas vs Berries with live audience voting.", "Rialto Arena, Austin TX", now + 7 * day, 3500, 400, 312],
       ["LaffUp Open Mic", "Ten five-minute sets. Sign up at the door.", "LaffUp Basement Stage", now + 1 * day, 1000, 60, 41],
       ["WWCCE: Winter Brawl-ha-ha", "Wrestling comedy title matches all night.", "Eastside Ballroom", now + 14 * day, 3000, 250, 96],
+      ["Battle Loco: Heat vs Ice", "Gaming, stunts, crowd control. Loser spins the wheel.", "HyperX Arena, Luxor Las Vegas", now + 10 * day, 4500, 500, 218],
+      ["Wrestle Loco: Faces vs Heels", "Comedy wrestling, fan refs, multi-pin finale.", "Location TBA, Las Vegas", now + 21 * day, 4000, 400, 142],
     ];
     for (const [title, description, venue, startsAt, priceCents, capacity, ticketsSold] of events) {
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 1 performance (5 rounds), 4 events";
+    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 3 loco performances, 6 events";
   },
 });
 

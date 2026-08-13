@@ -1,33 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
+import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
+import {
+  getLocoBySlug,
+  locoPaths,
+  rowTag,
+  type LocoConfig,
+} from "@linkall/backend/convex/locos";
+import { PerformanceNightRows } from "./performance-nights";
 
 /**
- * Comedy game engine pages (legacy: Comedy Loco Performances + Performance views
- * + game-1.0.1.js).
+ * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, …).
  *
- * PerformanceList — the host's "/performances" page. Browse performances and
- * jump into the live console or venue screen (legacy Performances.cshtml
- * header: Games / Performers / Performance).
- *
- * PerformanceConsole — the host's "/performance" page. The round grid, the
- * next-button state machine (Begin Game → Next Game → End Round → Win 1/2),
- * performers with bell bonuses, and the Overlay / Track columns.
- *
- * PerformanceScreen — the chrome-less page the venue screen displays. In the
- * legacy app the console broadcast overlay clicks over SignalR; here both
- * pages subscribe to the same reactive Convex query, so every button press
- * shows up on the screen instantly.
+ * Routes live under `/locos/[slug]/{performances,performance,games}`. Comedy
+ * Loco aliases at `/performances`, `/performance`, `/games` still work.
  */
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;
-type Game = Doc<"performanceGames">;
+type Game = PerformanceView["games"][number];
 type TabId = "shows" | "intros" | "scenes" | "game";
 
 const TABS: { id: TabId; label: string }[] = [
@@ -36,12 +33,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "scenes", label: "Scenes" },
   { id: "game", label: "Game" },
 ];
-
-const STATUS_STYLE: Record<string, string> = {
-  live: "bg-red-100 text-red-700",
-  draft: "bg-gray-100 text-gray-500",
-  ended: "bg-gray-100 text-gray-400 line-through",
-};
 
 function teamName(view: PerformanceView, teamIndex: 1 | 2) {
   return teamIndex === 1 ? view.team1 : view.team2;
@@ -58,91 +49,233 @@ function rowClasses(game: Game) {
 
 // ---------------------------------------------------------------- list
 
-/** Legacy /performances — pick a show night and open the console or screen. */
-export function PerformanceList() {
-  const performances = useQuery(api.game.list, {});
+/** Host's performances list for one loco. */
+export function PerformanceList({ slug = "comedy-loco" }: { slug?: string }) {
+  const loco = getLocoBySlug(slug);
+  const paths = locoPaths(slug);
+  const all = useQuery(api.game.list, {});
+  const performances = all?.filter((p) => rowTag(p.tag) === loco?.tag);
+  const { userId } = useCurrentUser();
+  const [creating, setCreating] = useState(false);
+
+  if (!loco) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          title="Unknown loco"
+          hint="That show format isn't in the registry yet."
+        />
+        <Link
+          href={paths.hub}
+          className="mt-4 inline-block text-sm font-semibold text-brand hover:underline"
+        >
+          ← Locos
+        </Link>
+      </div>
+    );
+  }
 
   if (performances === undefined) return <Loading />;
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Performances</h1>
         <Link
-          href="/performance"
+          href={paths.hub}
+          className="text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-brand"
+        >
+          Locos
+        </Link>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {loco.name} performances
+        </h1>
+        {userId && (
+          <button
+            onClick={() => setCreating(true)}
+            className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+          >
+            New performance
+          </button>
+        )}
+        <Link
+          href={paths.games}
+          className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Games
+        </Link>
+        <Link
+          href={paths.performance}
           className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
         >
           Open console
         </Link>
       </div>
-      <p className="mt-1 text-sm text-gray-500">
-        Live comedy game nights — run the console, drive overlays, and push the
-        venue screen.
-      </p>
+      <p className="mt-1 text-sm text-gray-500">{loco.listHint}</p>
 
       {performances.length === 0 ? (
         <div className="mt-6">
           <EmptyState
             title="No performances yet"
-            hint="Seed the FunFirst database to load a Comedy Loco demo night."
+            hint={`Add a performance to seed the ${loco.name} round grid, or seed the FunFirst database for a demo night.`}
           />
         </div>
       ) : (
-        <div className="mt-6 space-y-3">
-          {performances.map((p) => (
-            <div
-              key={p._id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-5"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{p.title}</h3>
-                  <span
-                    className={
-                      "rounded-full px-2 py-0.5 text-xs font-semibold uppercase " +
-                      STATUS_STYLE[p.status]
-                    }
-                  >
-                    {p.status === "live" ? "● Live" : p.status}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  <span className="font-medium text-amber-600">{p.team1}</span>
-                  <span className="mx-1.5 text-gray-300">vs</span>
-                  <span className="font-medium text-pink-600">{p.team2}</span>
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/performance?id=${p._id}`}
-                  className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
-                >
-                  Run
-                </Link>
-                <Link
-                  href={`/performance/screens/${p._id}`}
-                  target="_blank"
-                  className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                >
-                  Screen
-                </Link>
-              </div>
-            </div>
-          ))}
+        <div className="mt-6">
+          <PerformanceNightRows performances={performances} slug={loco.slug} />
         </div>
+      )}
+
+      {creating && userId && (
+        <CreatePerformanceModal
+          loco={loco}
+          ownerId={userId}
+          onClose={() => setCreating(false)}
+        />
       )}
     </div>
   );
 }
 
+function CreatePerformanceModal({
+  loco,
+  ownerId,
+  onClose,
+}: {
+  loco: LocoConfig;
+  ownerId: Id<"users">;
+  onClose: () => void;
+}) {
+  const create = useMutation(api.game.create);
+  const [title, setTitle] = useState("");
+  const [team1, setTeam1] = useState(loco.team1);
+  const [team2, setTeam2] = useState(loco.team2);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+    try {
+      await create({
+        title,
+        team1,
+        team2,
+        ownerId,
+        tag: loco.tag,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="New performance" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Title">
+          <input
+            className={inputCls}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={`Friday Night ${loco.name}`}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void save();
+            }}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Team 1">
+            <input
+              className={inputCls}
+              value={team1}
+              onChange={(e) => setTeam1(e.target.value)}
+            />
+          </Field>
+          <Field label="Team 2">
+            <input
+              className={inputCls}
+              value={team2}
+              onChange={(e) => setTeam2(e.target.value)}
+            />
+          </Field>
+        </div>
+        <p className="text-xs text-gray-500">
+          Seeds the {loco.templateRounds.length}-round {loco.name} grid for both
+          teams. Pick games from the console after you create it.
+        </p>
+        <button
+          onClick={() => void save()}
+          disabled={!title.trim() || saving}
+          className="w-full rounded-md bg-brand py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? "Creating…" : "Create"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="mt-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputCls =
+  "w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none";
+
 // ---------------------------------------------------------------- console
 
 export function PerformanceConsole({
+  slug = "comedy-loco",
   initialPerformanceId,
 }: {
+  slug?: string;
   initialPerformanceId?: Id<"performances"> | null;
 } = {}) {
-  const performances = useQuery(api.game.list, {});
+  const loco = getLocoBySlug(slug);
+  const paths = locoPaths(slug);
+  const all = useQuery(api.game.list, {});
+  const performances = all?.filter((p) => rowTag(p.tag) === loco?.tag);
   const [selectedId, setSelectedId] = useState<Id<"performances"> | null>(
     initialPerformanceId ?? null,
   );
@@ -160,19 +293,36 @@ export function PerformanceConsole({
   );
   const shows = useQuery(api.shows.list, {});
 
+  if (!loco) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          title="Unknown loco"
+          hint="That show format isn't in the registry yet."
+        />
+        <Link
+          href={paths.hub}
+          className="mt-4 inline-block text-sm font-semibold text-brand hover:underline"
+        >
+          ← Locos
+        </Link>
+      </div>
+    );
+  }
+
   if (performances === undefined) return <Loading />;
   if (performances.length === 0)
     return (
       <div className="p-6">
         <EmptyState
           title="No performances yet"
-          hint="Seed the FunFirst database, or open Performances after data is loaded."
+          hint={`Seed the FunFirst database, or open ${loco.name} performances after data is loaded.`}
         />
         <Link
-          href="/performances"
+          href={paths.performances}
           className="mt-4 inline-block text-sm font-semibold text-brand hover:underline"
         >
-          ← Performances
+          ← {loco.name} performances
         </Link>
       </div>
     );
@@ -183,13 +333,13 @@ export function PerformanceConsole({
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link
-            href="/performances"
+            href={paths.performances}
             className="shrink-0 text-xs font-semibold text-gray-400 hover:text-brand"
-            title="All performances"
+            title={`All ${loco.name} performances`}
           >
             ←
           </Link>
-          <h1 className="text-lg font-bold text-gray-900">Performance</h1>
+          <h1 className="text-lg font-bold text-gray-900">{loco.name}</h1>
         </div>
         <select
           className="max-w-[55%] truncate rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium"
@@ -208,7 +358,13 @@ export function PerformanceConsole({
       {view === undefined || view === null ? (
         <Loading />
       ) : (
-        <Console view={view} tab={tab} shows={shows ?? []} />
+        <Console
+          view={view}
+          tab={tab}
+          shows={shows ?? []}
+          tag={loco.tag}
+          screenHref={paths.screen(view._id)}
+        />
       )}
 
       {/* Bottom tab bar (legacy nav-tabs-container) */}
@@ -239,10 +395,14 @@ function Console({
   view,
   tab,
   shows,
+  tag,
+  screenHref,
 }: {
   view: PerformanceView;
   tab: TabId;
   shows: Doc<"shows">[];
+  tag: string;
+  screenHref: string;
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
   const reset = useMutation(api.game.reset);
@@ -251,7 +411,7 @@ function Console({
   const performanceId = view._id;
   const screenUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/performance/screens/${performanceId}`
+      ? `${window.location.origin}${screenHref}`
       : "";
 
   if (tab === "shows") {
@@ -277,7 +437,12 @@ function Console({
             )}
           </button>
         ))}
-        <ScreenLinks screenUrl={screenUrl} performanceId={performanceId} reset={reset} />
+        <ScreenLinks
+          screenUrl={screenUrl}
+          screenHref={screenHref}
+          performanceId={performanceId}
+          reset={reset}
+        />
       </div>
     );
   }
@@ -307,7 +472,12 @@ function Console({
             </button>
           );
         })}
-        <ScreenLinks screenUrl={screenUrl} performanceId={performanceId} reset={reset} />
+        <ScreenLinks
+          screenUrl={screenUrl}
+          screenHref={screenHref}
+          performanceId={performanceId}
+          reset={reset}
+        />
       </div>
     );
   }
@@ -316,7 +486,12 @@ function Console({
     return (
       <div className="flex-1 overflow-y-auto p-3">
         <OverlayTrackColumns view={view} performanceId={performanceId} />
-        <ScreenLinks screenUrl={screenUrl} performanceId={performanceId} reset={reset} />
+        <ScreenLinks
+          screenUrl={screenUrl}
+          screenHref={screenHref}
+          performanceId={performanceId}
+          reset={reset}
+        />
       </div>
     );
   }
@@ -324,12 +499,17 @@ function Console({
   // Game tab — matches legacy tabGame layout
   return (
     <div className="flex-1 space-y-0 overflow-y-auto">
-      <GameGrid view={view} />
+      <GameGrid view={view} tag={tag} />
       <PerformerBar view={view} bellBonus={bellBonus} />
       <OverlayTrackColumns view={view} performanceId={performanceId} />
       <ControlStrip view={view} />
       <div className="p-3">
-        <ScreenLinks screenUrl={screenUrl} performanceId={performanceId} reset={reset} />
+        <ScreenLinks
+          screenUrl={screenUrl}
+          screenHref={screenHref}
+          performanceId={performanceId}
+          reset={reset}
+        />
       </div>
     </div>
   );
@@ -426,10 +606,12 @@ function OverlayTrackColumns({
 
 function ScreenLinks({
   screenUrl,
+  screenHref,
   performanceId,
   reset,
 }: {
   screenUrl: string;
+  screenHref: string;
   performanceId: Id<"performances">;
   reset: ReturnType<typeof useMutation<typeof api.game.reset>>;
 }) {
@@ -442,7 +624,7 @@ function ScreenLinks({
         Copy screen URL
       </button>
       <a
-        href={`/performance/screens/${performanceId}`}
+        href={screenHref}
         target="_blank"
         className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-center text-xs font-semibold hover:bg-gray-50"
       >
@@ -460,7 +642,13 @@ function ScreenLinks({
 
 // --------------------------------------------------------------- game grid
 
-function GameGrid({ view }: { view: PerformanceView }) {
+function GameGrid({ view, tag }: { view: PerformanceView; tag: string }) {
+  const assignGame = useMutation(api.game.assignGame);
+  const catalog =
+    (useQuery(api.game.listCatalog, {}) ?? []).filter(
+      (c) => rowTag(c.tag) === tag,
+    );
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[320px] text-xs">
@@ -493,8 +681,49 @@ function GameGrid({ view }: { view: PerformanceView }) {
                 <td className="max-w-[4rem] truncate px-1.5 py-1.5">
                   {teamName(view, g.teamIndex)}
                 </td>
-                <td className="max-w-[5rem] truncate px-1.5 py-1.5">{g.gameName}</td>
-                <td className="px-1.5 py-1.5 text-right">{g.votes}</td>
+                <td className="px-1.5 py-1.5">
+                  <select
+                    className="w-full min-w-[6rem] bg-transparent px-0.5 outline-none focus:bg-white/80"
+                    value={g.gameId ?? ""}
+                    onChange={(e) => {
+                      const catalogId = e.target.value
+                        ? (e.target.value as Id<"comedyGames">)
+                        : undefined;
+                      void assignGame({
+                        gameRowId: g._id,
+                        catalogId,
+                        gameName: "",
+                      });
+                    }}
+                  >
+                    <option value="">{g.gameName || "game…"}</option>
+                    {(catalog.filter(
+                      (c) =>
+                        c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
+                        g.roundType.toLowerCase().startsWith(
+                          c.roundType.toLowerCase().slice(0, 4),
+                        ),
+                    ).length
+                      ? catalog.filter(
+                          (c) =>
+                            c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
+                            g.roundType.toLowerCase().startsWith(
+                              c.roundType.toLowerCase().slice(0, 4),
+                            ),
+                        )
+                      : catalog
+                    ).map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-1.5 py-1.5 text-right">
+                  {g.roundType.toLowerCase().includes("volunteer")
+                    ? (g.volunteers ?? 0)
+                    : g.votes}
+                </td>
                 <td className="px-1.5 py-1.5 text-right">
                   {g.score}
                   {g.rotation ? " ↻" : ""}
@@ -511,16 +740,21 @@ function GameGrid({ view }: { view: PerformanceView }) {
 // ------------------------------------------------------------ control strip
 
 /**
- * The legacy next-button logic: exactly the buttons that are valid for the
- * current phase are shown (game-1.0.1.js toggled btnCueGame / btnNextGame /
- * btnEndRound / btnWin1 / btnWin2 / btnRotation1/2 with display:none).
+ * Legacy Show.cshtml button strip from game-1.0.1.js GetCurrentGameRow:
+ *   idle/cued → Begin Game
+ *   team 1 (different games) → Next Game
+ *   team 2 / same-game both playing → End Round (+ Rotation if same game)
+ *   voting → Win 1 / Win 2
+ * Next is the unified advance (Begin / Next Game / End Round).
  */
 function ControlStrip({ view }: { view: PerformanceView }) {
   const beginGame = useMutation(api.game.beginGame);
   const nextGame = useMutation(api.game.nextGame);
   const endRound = useMutation(api.game.endRound);
+  const next = useMutation(api.game.next);
   const winGame = useMutation(api.game.winGame);
   const winRotation = useMutation(api.game.winRotation);
+  const addVolunteers = useMutation(api.game.addVolunteers);
 
   const performanceId = view._id;
   const current = view.current;
@@ -536,6 +770,16 @@ function ControlStrip({ view }: { view: PerformanceView }) {
     );
 
   const game1 = view.games.find((g) => g._id === current.game1Id)!;
+  const game2 = view.games.find((g) => g._id === current.game2Id)!;
+  const playing = current.phase === "team2" ? game2 : game1;
+  const catalog = view.catalog;
+  const phase = current.phase;
+  const showBegin = phase === "idle" || phase === "cued";
+  const showNextGame = phase === "team1";
+  const showEndRound = phase === "team2" || phase === "both";
+  const showWin = phase === "voting";
+  const showRotation = current.sameGame && (phase === "both" || phase === "team2");
+  const showNext = !showWin;
 
   return (
     <div className="border-t border-gray-200 bg-white p-2">
@@ -551,11 +795,56 @@ function ControlStrip({ view }: { view: PerformanceView }) {
           </div>
         ))}
       </div>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-        Round {game1.round} · {game1.roundType} · {game1.gameName}
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+        Round {game1.round} · {game1.roundType}
+        {playing.gameName ? ` · ${playing.gameName}` : ""}
+        {current.sameGame ? " · same game" : ""}
       </p>
-      <div className="flex gap-1">
-        {current.phase === "idle" && (
+      {catalog && (catalog.description || catalog.suggestions) && (
+        <p className="mb-2 text-xs text-gray-600">
+          {catalog.description}
+          {catalog.suggestions ? (
+            <span className="mt-0.5 block text-gray-400">
+              Ask: {catalog.suggestions}
+            </span>
+          ) : null}
+        </p>
+      )}
+
+      {current.volunteerRound && !showBegin && !showWin && (
+        <div className="mb-2 flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+          <span className="text-xs font-semibold text-amber-900">Volunteers</span>
+          {([1, 2] as const).map((t) => {
+            const row = t === 1 ? game1 : game2;
+            return (
+              <div key={t} className="flex flex-1 items-center justify-center gap-1">
+                <button
+                  onClick={() =>
+                    addVolunteers({ performanceId, teamIndex: t, delta: -1 })
+                  }
+                  className="h-7 w-7 rounded bg-white text-sm font-bold shadow-sm"
+                >
+                  −
+                </button>
+                <span className="min-w-[3.5rem] text-center text-xs font-semibold">
+                  {teamName(view, t)} {row.volunteers ?? 0}
+                </span>
+                <button
+                  onClick={() =>
+                    addVolunteers({ performanceId, teamIndex: t, delta: 1 })
+                  }
+                  className="h-7 w-7 rounded bg-white text-sm font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1">
+        {showBegin && (
           <button
             onClick={() => beginGame({ performanceId })}
             className={btn + " bg-brand text-white hover:opacity-90"}
@@ -563,7 +852,7 @@ function ControlStrip({ view }: { view: PerformanceView }) {
             Begin Game
           </button>
         )}
-        {current.phase === "team1" && (
+        {showNextGame && (
           <button
             onClick={() => nextGame({ performanceId })}
             className={btn + " bg-brand text-white hover:opacity-90"}
@@ -571,33 +860,31 @@ function ControlStrip({ view }: { view: PerformanceView }) {
             Next Game
           </button>
         )}
-        {current.phase === "team2" && (
+        {showEndRound && (
+          <button
+            onClick={() => endRound({ performanceId })}
+            className={btn + " bg-brand text-white hover:opacity-90"}
+          >
+            End Round
+          </button>
+        )}
+        {showRotation && (
           <>
             <button
-              onClick={() => endRound({ performanceId })}
-              className={btn + " bg-brand text-white hover:opacity-90"}
+              onClick={() => winRotation({ performanceId, teamIndex: 1 })}
+              className={btn + " bg-gray-100 text-gray-700 hover:bg-gray-200"}
             >
-              End Round
+              Rotation {view.team1}
             </button>
-            {current.sameGame && (
-              <>
-                <button
-                  onClick={() => winRotation({ performanceId, teamIndex: 1 })}
-                  className={btn + " bg-gray-100 text-gray-700 hover:bg-gray-200"}
-                >
-                  Rotation 1
-                </button>
-                <button
-                  onClick={() => winRotation({ performanceId, teamIndex: 2 })}
-                  className={btn + " bg-gray-100 text-gray-700 hover:bg-gray-200"}
-                >
-                  Rotation 2
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => winRotation({ performanceId, teamIndex: 2 })}
+              className={btn + " bg-gray-100 text-gray-700 hover:bg-gray-200"}
+            >
+              Rotation {view.team2}
+            </button>
           </>
         )}
-        {current.phase === "voting" && (
+        {showWin && (
           <>
             <button
               onClick={() => winGame({ performanceId, teamIndex: 1 })}
@@ -614,6 +901,14 @@ function ControlStrip({ view }: { view: PerformanceView }) {
           </>
         )}
       </div>
+      {showNext && (
+        <button
+          onClick={() => next({ performanceId })}
+          className="mt-1 w-full rounded-md border border-brand bg-brand-light px-3 py-2 text-sm font-bold text-brand-dark hover:opacity-90"
+        >
+          Next
+        </button>
+      )}
     </div>
   );
 }

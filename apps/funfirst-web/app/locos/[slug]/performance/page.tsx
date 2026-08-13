@@ -1,25 +1,26 @@
 "use client";
 
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Loading, PerformanceConsole } from "@linkall/ui";
 import type { Id } from "@linkall/backend/convex/_generated/dataModel";
 
-function Performance() {
+function Console() {
+  const { slug } = useParams<{ slug: string }>();
   const params = useSearchParams();
   const id = params.get("id");
   return (
     <PerformanceConsole
-      slug="comedy-loco"
+      slug={slug}
       initialPerformanceId={id ? (id as Id<"performances">) : null}
     />
   );
 }
 
-export default function PerformancePage() {
+export default function LocoPerformancePage() {
   return (
     <Suspense fallback={<Loading />}>
-      <Performance />
+      <Console />
     </Suspense>
   );
 }

@@ -196,6 +196,21 @@ export default defineSchema({
 
   // ---- comedy game engine (legacy: Comedy Loco LLPerformance* tables +
   //      the game-1.0.1.js next-button state machine) ----
+  // Catalog of games (legacy LLGame + Games page). Performance rounds pick from here.
+  comedyGames: defineTable({
+    name: v.string(),
+    /** Round bucket this game belongs to: Intro, Bucket, Choice, Volunteer, … */
+    roundType: v.string(),
+    shortDescription: v.optional(v.string()),
+    suggestions: v.optional(v.string()),
+    ask: v.optional(v.string()),
+    description: v.optional(v.string()),
+    /** Loco format this catalog row belongs to (default: comedyloco). */
+    tag: v.optional(v.string()),
+  })
+    .index("by_roundType", ["roundType"])
+    .index("by_tag", ["tag"]),
+
   performances: defineTable({
     title: v.string(),
     team1: v.string(),
@@ -206,7 +221,9 @@ export default defineSchema({
     /** Music track currently cued (legacy SceneLayoutMusic click). */
     activeTrack: v.optional(v.string()),
     ownerId: v.id("users"),
-  }),
+    /** Loco format (comedyloco / battleloco / wrestleloco). Untagged = comedyloco. */
+    tag: v.optional(v.string()),
+  }).index("by_tag", ["tag"]),
 
   // One row per (round, team) — the legacy LLPerformanceRoundTeamGame grid.
   // Rows come in pairs per round: team 1 plays first, then team 2.
@@ -217,6 +234,8 @@ export default defineSchema({
     roundType: v.string(),
     teamIndex: v.union(v.literal(1), v.literal(2)),
     gameName: v.string(),
+    /** Optional link to the Games catalog (legacy LLGameId). */
+    gameId: v.optional(v.id("comedyGames")),
     votes: v.number(),
     score: v.number(),
     isPlaying: v.boolean(),
@@ -224,6 +243,10 @@ export default defineSchema({
     isVoting: v.boolean(),
     isWinner: v.boolean(),
     rotation: v.boolean(),
+    /** Cue flag (legacy IsCued) — round is lined up, not yet playing. */
+    isCued: v.optional(v.boolean()),
+    /** Volunteer count (legacy VolunteerBonus / volunteers column). */
+    volunteers: v.optional(v.number()),
     /** Whether this round counts toward the score (legacy IsScored). */
     isScored: v.boolean(),
   }).index("by_performance", ["performanceId"]),

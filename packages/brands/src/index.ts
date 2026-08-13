@@ -100,7 +100,7 @@ export const brands: Record<BrandId, Brand> = {
     name: "FunFirst",
     tagline: "Comedy first. Everything else second.",
     description:
-      "Live comedy game shows, stand-up nights and audience-driven mayhem from the FunFirst family: Comedy Loco, HeadCase, WWCCE and more.",
+      "Live comedy game shows, stand-up nights and audience-driven mayhem from the FunFirst family: Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, WWCCE and more.",
     domain: "funfirst.com",
     legacyNames: [
       "Laffupalunga (SiteId 2)",
@@ -128,8 +128,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "Shows", href: "/shows" },
       { label: "Designer", href: "/designer" },
       { label: "Player", href: "/player" },
-      { label: "Performances", href: "/performances" },
-      { label: "Performance", href: "/performance" },
+      { label: "Locos", href: "/locos" },
       { label: "Events & Tickets", href: "/events" },
       { label: "Solutions", href: "/groups" },
       { label: "Feed", href: "/feed" },
@@ -137,6 +136,8 @@ export const brands: Record<BrandId, Brand> = {
     ],
     showTags: [
       { tag: "comedyloco", label: "Comedy Loco", blurb: "Team game show: Bananas vs Berries, live scoring and audience votes." },
+      { tag: "battleloco", label: "Battle Loco", blurb: "Esports, physical chaos, and crowd control — Heat vs Ice." },
+      { tag: "wrestleloco", label: "Wrestle Loco", blurb: "Wrestling comedy — Faces vs Heels, crowd refs, multi-pin finale." },
       { tag: "headcase", label: "HeadCase", blurb: "AI-assisted comedy bits and sketches." },
       { tag: "wwcce", label: "WWCCE", blurb: "Wrestling comedy championship extravaganza." },
       { tag: "laffup", label: "LaffUp", blurb: "Open-mic stand-up showcases." },

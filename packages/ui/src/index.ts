@@ -12,6 +12,8 @@ export { EmptyState, Loading } from "./empty-state";
 export { EventList } from "./events";
 export { Feed, PostComposer } from "./feed";
 export { formatDate, formatPrice, timeAgo } from "./format";
+export { GameCatalog } from "./games";
+export { LocoHub } from "./locos";
 export { GroupDetail, GroupList } from "./groups";
 export { HomeCommunity } from "./home-community";
 export { Landing } from "./landing";
