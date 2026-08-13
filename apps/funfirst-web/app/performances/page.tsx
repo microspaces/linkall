@@ -1,7 +1,5 @@
-"use client";
-
-import { PerformanceList } from "@linkall/ui";
+import { redirect } from "next/navigation";
 
 export default function PerformancesPage() {
-  return <PerformanceList slug="comedy-loco" />;
+  redirect("/locos/comedy-loco/performances");
 }

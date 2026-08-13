@@ -6,6 +6,30 @@ const nextConfig: NextConfig = {
   //   battleloco.com  → /battle-loco
   //   wrestleloco.com → /wrestle-loco
   // Add custom domains in Vercel project settings for funfirst-web.
+  async redirects() {
+    return [
+      {
+        source: "/performances",
+        destination: "/locos/comedy-loco/performances",
+        permanent: true,
+      },
+      {
+        source: "/performance",
+        destination: "/locos/comedy-loco/performance",
+        permanent: true,
+      },
+      {
+        source: "/performance/screens/:id",
+        destination: "/locos/comedy-loco/performance/screens/:id",
+        permanent: true,
+      },
+      {
+        source: "/games",
+        destination: "/locos/comedy-loco/games",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

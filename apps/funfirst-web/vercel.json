@@ -3,6 +3,28 @@
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter funfirst-web build",
   "outputDirectory": ".next",
+  "redirects": [
+    {
+      "source": "/performances",
+      "destination": "/locos/comedy-loco/performances",
+      "permanent": true
+    },
+    {
+      "source": "/performance",
+      "destination": "/locos/comedy-loco/performance",
+      "permanent": true
+    },
+    {
+      "source": "/performance/screens/:id",
+      "destination": "/locos/comedy-loco/performance/screens/:id",
+      "permanent": true
+    },
+    {
+      "source": "/games",
+      "destination": "/locos/comedy-loco/games",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
