@@ -16,7 +16,12 @@ import { EmptyState, Loading } from "./empty-state";
  * Games catalog for one loco. Performance rounds pick from here so the
  * console knows the game type, description, and how to score.
  */
-export function GameCatalog({ slug = "comedy-loco" }: { slug?: string }) {
+export function GameCatalog({
+  slug: slugProp = "comedy-loco",
+}: {
+  slug?: string | string[];
+}) {
+  const slug = (Array.isArray(slugProp) ? slugProp[0] : slugProp) || "comedy-loco";
   const loco = getLocoBySlug(slug);
   const paths = locoPaths(slug);
   const all = useQuery(api.game.listCatalog, {});
@@ -30,7 +35,9 @@ export function GameCatalog({ slug = "comedy-loco" }: { slug?: string }) {
   const [suggestions, setSuggestions] = useState("");
 
   useEffect(() => {
-    if (loco && games && games.length === 0) void seed({ tag: loco.tag });
+    if (loco && games && games.length === 0) {
+      void seed({ tag: loco.tag }).catch(() => undefined);
+    }
   }, [games, seed, loco]);
 
   useEffect(() => {
