@@ -58,16 +58,21 @@ export default defineSchema({
 
   // Threaded posts: global feed (no groupId), group chat (groupId set),
   // replies (parentId set). Replaces the legacy Comment table.
+  // `kind: "news"` is the RedWave bulletin; omitted/`discussion` is the
+  // social wall used by every brand.
   posts: defineTable({
     authorId: v.id("users"),
     groupId: v.optional(v.id("groups")),
     parentId: v.optional(v.id("posts")),
     content: v.string(),
+    title: v.optional(v.string()),
+    kind: v.optional(v.union(v.literal("news"), v.literal("discussion"))),
     upvotes: v.number(),
     replyCount: v.number(),
   })
     .index("by_group", ["groupId"])
-    .index("by_parent", ["parentId"]),
+    .index("by_parent", ["parentId"])
+    .index("by_kind", ["kind"]),
 
   postVotes: defineTable({
     postId: v.id("posts"),
@@ -316,4 +321,50 @@ export default defineSchema({
     parentId: v.optional(v.id("resources")),
     order: v.number(),
   }).index("by_parent", ["parentId"]),
+
+  // ---- America First solutions (RedWave: Stack Overflow-style Q&A) ----
+  // A solution is a policy/play that is proposed, being implemented, or
+  // already working. Responses are answers; any response can be marked
+  // `isWorking` the way Stack Overflow marks an accepted answer.
+  solutions: defineTable({
+    title: v.string(),
+    body: v.string(),
+    category: v.string(),
+    status: v.union(
+      v.literal("proposed"),
+      v.literal("implementing"),
+      v.literal("working"),
+      v.literal("stalled"),
+    ),
+    /** Measured result, e.g. "Encounters down 61% YoY". */
+    outcome: v.optional(v.string()),
+    /** How success is being tracked. */
+    successNote: v.optional(v.string()),
+    authorId: v.id("users"),
+    groupId: v.optional(v.id("groups")),
+    upvotes: v.number(),
+    responseCount: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_group", ["groupId"]),
+
+  solutionResponses: defineTable({
+    solutionId: v.id("solutions"),
+    authorId: v.id("users"),
+    body: v.string(),
+    /** Marked as a working answer (Stack Overflow "accepted"). */
+    isWorking: v.boolean(),
+    upvotes: v.number(),
+  }).index("by_solution", ["solutionId"]),
+
+  solutionVotes: defineTable({
+    solutionId: v.id("solutions"),
+    userId: v.id("users"),
+  }).index("by_solution_user", ["solutionId", "userId"]),
+
+  solutionResponseVotes: defineTable({
+    responseId: v.id("solutionResponses"),
+    userId: v.id("users"),
+  }).index("by_response_user", ["responseId", "userId"]),
 }, { schemaValidation: false });

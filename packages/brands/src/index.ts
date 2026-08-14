@@ -46,6 +46,8 @@ export interface Brand {
     resources: boolean;
     /** State / county organizing groups. */
     states: boolean;
+    /** America First solutions with working-answer marks (RedWave). */
+    solutions: boolean;
   };
   nav: NavItem[];
   /** Sub-brands surfaced as show categories (legacy Site 2 brands). */
@@ -77,6 +79,7 @@ export const brands: Record<BrandId, Brand> = {
       events: false,
       resources: false,
       states: false,
+      solutions: false,
     },
     nav: [
       { label: "Shows", href: "/shows" },
@@ -123,6 +126,7 @@ export const brands: Record<BrandId, Brand> = {
       events: true,
       resources: false,
       states: false,
+      solutions: false,
     },
     nav: [
       { label: "Shows", href: "/shows" },
@@ -149,9 +153,9 @@ export const brands: Record<BrandId, Brand> = {
   redwave: {
     id: "redwave",
     name: "RedWave",
-    tagline: "Organize your precinct. Move your state.",
+    tagline: "America First solutions that work.",
     description:
-      "Grassroots organizing: state and county groups, precinct playbooks, candidate vetting and a library of political resources.",
+      "Post the news, share America First solutions that are working or still need to be implemented, mark the responses that are actually working, and track results — with state and county groups to organize around them.",
     domain: "redwaveapp.com",
     legacyNames: ["RedWaveApp (SiteId 3)", "primaryplan.org", "demhistory.org"],
     colors: {
@@ -166,8 +170,10 @@ export const brands: Record<BrandId, Brand> = {
       events: false,
       resources: true,
       states: true,
+      solutions: true,
     },
     nav: [
+      { label: "Solutions", href: "/solutions" },
       { label: "Resources", href: "/resources" },
       { label: "States", href: "/states" },
       { label: "Groups", href: "/groups" },

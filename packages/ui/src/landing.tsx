@@ -22,6 +22,11 @@ export function Landing() {
       title: "Events & Tickets",
       body: "Grab tickets to live nights before they sell out.",
     },
+    brand.features.solutions && {
+      href: "/solutions",
+      title: "America First Solutions",
+      body: "What is working, what still needs implementing, and which responses are the working answer.",
+    },
     brand.features.resources && {
       href: "/resources",
       title: "Resource Library",
@@ -39,8 +44,10 @@ export function Landing() {
     },
     {
       href: "/feed",
-      title: "Community Feed",
-      body: "The whole community in one stream — post, reply and upvote.",
+      title: brand.features.solutions ? "News Feed" : "Community Feed",
+      body: brand.features.solutions
+        ? "Bulletins, walk lists, and discussion from the groups you follow."
+        : "The whole community in one stream — post, reply and upvote.",
     },
   ].filter(Boolean) as { href: string; title: string; body: string }[];
 

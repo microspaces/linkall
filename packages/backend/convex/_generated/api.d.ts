@@ -21,6 +21,7 @@ import type * as products from "../products.js";
 import type * as resources from "../resources.js";
 import type * as seed from "../seed.js";
 import type * as shows from "../shows.js";
+import type * as solutions from "../solutions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   resources: typeof resources;
   seed: typeof seed;
   shows: typeof shows;
+  solutions: typeof solutions;
   users: typeof users;
 }>;
 

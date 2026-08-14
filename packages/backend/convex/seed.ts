@@ -12,6 +12,10 @@ import { requireLoco, type LocoConfig } from "./locos";
  */
 
 const ALL_TABLES: TableNames[] = [
+  "solutionResponseVotes",
+  "solutionVotes",
+  "solutionResponses",
+  "solutions",
   "performanceTracks",
   "performanceOverlays",
   "performers",
@@ -117,7 +121,12 @@ async function insertGroups(
 
 async function insertPosts(
   ctx: MutationCtx,
-  posts: { content: string; groupIndex?: number }[],
+  posts: {
+    content: string;
+    groupIndex?: number;
+    kind?: "news" | "discussion";
+    title?: string;
+  }[],
   users: Id<"users">[],
   groups: Id<"groups">[],
 ) {
@@ -125,6 +134,8 @@ async function insertPosts(
     const postId = await ctx.db.insert("posts", {
       authorId: users[i % users.length],
       content: posts[i].content,
+      title: posts[i].title,
+      kind: posts[i].kind,
       groupId:
         posts[i].groupIndex !== undefined
           ? groups[posts[i].groupIndex!]
@@ -1102,11 +1113,39 @@ export const redwave = mutation({
     await insertPosts(
       ctx,
       [
-        { content: "New precinct walk lists are up in Resources → Precinct Strategy. Print before Saturday.", groupIndex: 1 },
-        { content: "Welcome to the 14 new Travis County volunteers who joined this week!", groupIndex: 1 },
-        { content: "Candidate vetting surveys for the March primary close Friday.", groupIndex: 5 },
-        { content: "Florida folks: county chair training moved to the 19th.", groupIndex: 2 },
-        { content: "Statewide call this Sunday 7pm — platform priorities for the session.", groupIndex: 0 },
+        {
+          kind: "news",
+          title: "Walk lists posted for Saturday",
+          content:
+            "New precinct walk lists are up in Resources → Precinct Strategy. Print before Saturday.",
+          groupIndex: 1,
+        },
+        {
+          kind: "news",
+          title: "14 new Travis County volunteers",
+          content:
+            "Welcome to the 14 new Travis County volunteers who joined this week. Captains: pair them with a block walk this weekend.",
+          groupIndex: 1,
+        },
+        {
+          kind: "news",
+          title: "Vetting surveys close Friday",
+          content:
+            "Candidate vetting surveys for the March primary close Friday. Scorecards go to the committee Sunday.",
+          groupIndex: 5,
+        },
+        {
+          kind: "news",
+          title: "Florida chair training moved",
+          content: "County chair training moved to the 19th. Same venue, 9am start.",
+          groupIndex: 2,
+        },
+        {
+          kind: "discussion",
+          content:
+            "Statewide call this Sunday 7pm — which America First solutions should we put on the session agenda?",
+          groupIndex: 0,
+        },
       ],
       users,
       groups,
@@ -1159,7 +1198,133 @@ export const redwave = mutation({
       order: 9,
     });
 
-    return "Seeded RedWave: 5 users, 6 groups, 3 resource categories + 7 items";
+    // America First solutions (Stack Overflow-style working answers)
+    const solutionSpecs: {
+      title: string;
+      body: string;
+      category: string;
+      status: "proposed" | "implementing" | "working" | "stalled";
+      outcome?: string;
+      successNote: string;
+      groupIndex: number;
+      responses: { body: string; isWorking: boolean; upvotes: number }[];
+    }[] = [
+      {
+        title: "Remain in Mexico / asylum at the port, not the interior",
+        body: "Encounters collapsed when migrants waited in Mexico for a hearing instead of being released into the U.S. How do states and counties keep that standard in place locally — and what still needs Congress?",
+        category: "border",
+        status: "working",
+        outcome: "Southwest encounters down ~61% from the prior-year peak in the months the policy was enforced.",
+        successNote: "Track CBP southwest land encounters monthly. Working = sustained drop without catch-and-release.",
+        groupIndex: 0,
+        responses: [
+          {
+            body: "Texas: pair state trespass/arrest with busing only after processing, and publish weekly encounter + release numbers so counties can see the result. That is the working local stack.",
+            isWorking: true,
+            upvotes: 12,
+          },
+          {
+            body: "Need a federal statute so a future administration cannot unwind it by memo. Until then, state-level enforcement is the floor.",
+            isWorking: false,
+            upvotes: 5,
+          },
+        ],
+      },
+      {
+        title: "School choice — money follows the child",
+        body: "Parents should be able to take their child's education dollars to a public, charter, or private school. Which state models are actually raising scores and which are just voucher theater?",
+        category: "education",
+        status: "implementing",
+        successNote: "Track NAEP / state test gains for switchers vs stayers, plus waitlist size.",
+        groupIndex: 3,
+        responses: [
+          {
+            body: "Florida's ESA expansion is the template: universal eligibility, published provider outcomes, and a simple parent portal. Start with special-needs and expand.",
+            isWorking: true,
+            upvotes: 9,
+          },
+          {
+            body: "Ohio still needs a funding-weight fix so rural districts are not hollowed out. Don't copy the bill until that is in.",
+            isWorking: false,
+            upvotes: 3,
+          },
+        ],
+      },
+      {
+        title: "Voter ID + same-day list maintenance",
+        body: "Photo ID at the polls and regular removal of ineligible registrations. What has actually reduced fraud complaints without suppressing turnout?",
+        category: "elections",
+        status: "working",
+        outcome: "Georgia 2022: record turnout with photo ID and drop-box limits in place.",
+        successNote: "Compare turnout and rejected-ballot rates before/after ID. Working = turnout holds or rises.",
+        groupIndex: 2,
+        responses: [
+          {
+            body: "Georgia's photo ID + paper ballots + drop-box limits is the working package. Publish county-level turnout so critics cannot claim suppression without numbers.",
+            isWorking: true,
+            upvotes: 14,
+          },
+        ],
+      },
+      {
+        title: "End cashless bail for violent repeat offenders",
+        body: "Cities that released violent suspects pretrial saw repeat offenses. What statute or DA policy actually reversed that — and how do we measure it?",
+        category: "crime",
+        status: "proposed",
+        successNote: "Track rearrests of released violent felons at 30/90 days. Working = rearrest rate drops after the change.",
+        groupIndex: 1,
+        responses: [
+          {
+            body: "New York's 2022/2023 bail amendments for repeat violent felonies are the start. Counties should publish a weekly 'released then rearrested' dashboard so the DA cannot hide the result.",
+            isWorking: false,
+            upvotes: 6,
+          },
+        ],
+      },
+      {
+        title: "Permit energy on federal and state land — drill, permit, build",
+        body: "Gasoline and electricity prices follow supply. Which permitting reforms actually brought projects online in under two years?",
+        category: "energy",
+        status: "stalled",
+        successNote: "Track time-to-permit for wells, pipelines, and generation. Working = median permit time under 24 months and falling prices.",
+        groupIndex: 0,
+        responses: [
+          {
+            body: "NEPA page limits and shot clocks work when agencies are staffed to meet them. Without a shot clock with a deemed-approved default, this stays stalled.",
+            isWorking: false,
+            upvotes: 4,
+          },
+        ],
+      },
+    ];
+
+    for (let i = 0; i < solutionSpecs.length; i++) {
+      const spec = solutionSpecs[i];
+      const solutionId = await ctx.db.insert("solutions", {
+        title: spec.title,
+        body: spec.body,
+        category: spec.category,
+        status: spec.status,
+        outcome: spec.outcome,
+        successNote: spec.successNote,
+        authorId: users[i % users.length],
+        groupId: groups[spec.groupIndex],
+        upvotes: 4 + i * 2,
+        responseCount: spec.responses.length,
+      });
+      for (let r = 0; r < spec.responses.length; r++) {
+        const resp = spec.responses[r];
+        await ctx.db.insert("solutionResponses", {
+          solutionId,
+          authorId: users[(i + r + 1) % users.length],
+          body: resp.body,
+          isWorking: resp.isWorking,
+          upvotes: resp.upvotes,
+        });
+      }
+    }
+
+    return "Seeded RedWave: 5 users, 6 groups, 5 solutions, news feed, 3 resource categories + 7 items";
   },
 });
 

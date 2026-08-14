@@ -26,4 +26,5 @@ export {
 } from "./performance";
 export { CalibrationStage, ScreenOutput, ShowRemote } from "./player";
 export { ResourceBrowser, ResourceDetail } from "./resources";
+export { SolutionList, SolutionDetail } from "./solutions";
 export { ShowList, ShowPlayer } from "./shows";
