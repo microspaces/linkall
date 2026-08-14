@@ -1,4 +1,5 @@
 export { AppShell, SocialShell } from "./app-shell";
+export { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 export { Avatar } from "./avatar";
 export { BrandProvider, useBrand } from "./brand-context";
 export { ConvexAppProvider } from "./convex-provider";
@@ -26,5 +27,4 @@ export {
 } from "./performance";
 export { CalibrationStage, ScreenOutput, ShowRemote } from "./player";
 export { ResourceBrowser, ResourceDetail } from "./resources";
-export { SolutionList, SolutionDetail } from "./solutions";
 export { ShowList, ShowPlayer } from "./shows";

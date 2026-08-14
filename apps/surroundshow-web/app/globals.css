@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../packages/ui/src/theme.css";
 @source "../../../packages/ui/src";
 
 /* SurroundShow brand theme (keep in sync with @linkall/brands). */

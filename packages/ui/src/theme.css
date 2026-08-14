@@ -1,0 +1,62 @@
+/* Dark is the default inside .social-shell. Add .light to restore the original palette. */
+
+.social-shell {
+  color-scheme: dark;
+  --color-gray-50: #09090b;
+  --color-gray-100: #18181b;
+  --color-gray-200: #27272a;
+  --color-gray-300: #3f3f46;
+}
+
+.social-shell:not(.light) {
+  --color-brand-light: color-mix(in srgb, var(--color-brand) 22%, #09090b);
+  --color-emerald-100: color-mix(in srgb, #34d399 18%, #09090b);
+  --color-emerald-800: #6ee7b7;
+  --color-amber-100: color-mix(in srgb, #f59e0b 18%, #09090b);
+  --color-amber-700: #fbbf24;
+  --color-slate-200: #27272a;
+  --color-slate-700: #d4d4d8;
+}
+
+.social-shell.light {
+  color-scheme: light;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+}
+
+.social-shell:not(.light) .bg-white {
+  background-color: #18181b;
+}
+
+.social-shell:not(.light) .bg-white\/90 {
+  background-color: rgb(24 24 27 / 0.92);
+}
+
+.social-shell:not(.light) .text-gray-900,
+.social-shell:not(.light) .text-gray-800,
+.social-shell:not(.light) .text-gray-700 {
+  color: #f4f4f5;
+}
+
+.social-shell:not(.light) .text-gray-600,
+.social-shell:not(.light) .text-gray-500 {
+  color: #a1a1aa;
+}
+
+.social-shell:not(.light) .hover\:text-gray-900:hover {
+  color: #fafafa;
+}
+
+.social-shell:not(.light) .hover\:bg-gray-50:hover,
+.social-shell:not(.light) .hover\:bg-gray-100:hover {
+  background-color: #27272a;
+}
+
+.social-shell:not(.light) input,
+.social-shell:not(.light) textarea,
+.social-shell:not(.light) select {
+  background-color: #18181b;
+  color: #f4f4f5;
+}

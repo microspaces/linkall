@@ -22,11 +22,6 @@ export function Landing() {
       title: "Events & Tickets",
       body: "Grab tickets to live nights before they sell out.",
     },
-    brand.features.solutions && {
-      href: "/solutions",
-      title: "America First Solutions",
-      body: "What is working, what still needs implementing, and which responses are the working answer.",
-    },
     brand.features.resources && {
       href: "/resources",
       title: "Resource Library",
@@ -44,10 +39,8 @@ export function Landing() {
     },
     {
       href: "/feed",
-      title: brand.features.solutions ? "News Feed" : "Community Feed",
-      body: brand.features.solutions
-        ? "Bulletins, walk lists, and discussion from the groups you follow."
-        : "The whole community in one stream — post, reply and upvote.",
+      title: "Community Feed",
+      body: "The whole community in one stream — post, reply and upvote.",
     },
   ].filter(Boolean) as { href: string; title: string; body: string }[];
 
@@ -61,7 +54,7 @@ export function Landing() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href={brand.nav[0].href}
-            className="rounded-lg bg-white px-5 py-2.5 font-semibold text-brand-dark hover:bg-gray-100"
+            className="rounded-lg bg-[#fff] px-5 py-2.5 font-semibold text-brand-dark hover:bg-[#f4f4f5]"
           >
             Explore {brand.nav[0].label}
           </Link>

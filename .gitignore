@@ -23,3 +23,6 @@ build/
 
 # Agent test screenshots
 test-screenshots/
+
+# LinkAll8 user dumps contain emails
+packages/backend/migrations/linkall8-users*.json

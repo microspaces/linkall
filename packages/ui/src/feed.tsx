@@ -15,6 +15,14 @@ type FeedPost = Doc<"posts"> & {
   hasUpvoted: boolean;
 };
 
+function SolutionBadge() {
+  return (
+    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800">
+      ✓ Solution
+    </span>
+  );
+}
+
 export function PostComposer({
   groupId,
   placeholder,
@@ -22,41 +30,23 @@ export function PostComposer({
   groupId?: Id<"groups">;
   placeholder?: string;
 }) {
-  const brand = useBrand();
   const { user, userId } = useCurrentUser();
   const createPost = useMutation(api.posts.create);
   const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
-  const [kind, setKind] = useState<"news" | "discussion">(
-    brand.features.solutions ? "news" : "discussion",
-  );
   const [busy, setBusy] = useState(false);
 
   if (!userId) return null;
 
-  const newsMode = brand.features.solutions;
-  const hint =
-    placeholder ??
-    (newsMode
-      ? kind === "news"
-        ? "Post a news item for your groups…"
-        : "Start a discussion…"
-      : "Share something with the community…");
-
   const submit = async () => {
     if (!content.trim()) return;
-    if (newsMode && kind === "news" && !title.trim()) return;
     setBusy(true);
     try {
       await createPost({
         authorId: userId,
         content,
         groupId,
-        kind: newsMode ? kind : undefined,
-        title: newsMode && kind === "news" ? title : undefined,
       });
       setContent("");
-      setTitle("");
     } finally {
       setBusy(false);
     }
@@ -66,51 +56,20 @@ export function PostComposer({
     <div className="flex gap-3 rounded-xl border border-gray-200 bg-white p-4">
       {user && <Avatar name={user.name} src={user.avatarUrl} />}
       <div className="flex-1">
-        {newsMode && (
-          <div className="mb-2 flex gap-1">
-            {(["news", "discussion"] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setKind(k)}
-                className={
-                  "rounded-full px-3 py-0.5 text-xs font-semibold capitalize " +
-                  (kind === k
-                    ? "bg-brand text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200")
-                }
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-        )}
-        {newsMode && kind === "news" && (
-          <input
-            className="mb-2 w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm font-semibold focus:border-brand focus:outline-none"
-            placeholder="Headline"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        )}
         <textarea
           className="w-full resize-none rounded-md border border-gray-200 p-2 text-sm focus:border-brand focus:outline-none"
           rows={2}
-          placeholder={hint}
+          placeholder={placeholder ?? "Share something with the community…"}
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
         <div className="mt-2 flex justify-end">
           <button
             onClick={submit}
-            disabled={
-              busy ||
-              !content.trim() ||
-              (newsMode && kind === "news" && !title.trim())
-            }
+            disabled={busy || !content.trim()}
             className="rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-40"
           >
-            {newsMode && kind === "news" ? "Post news" : "Post"}
+            Post
           </button>
         </div>
       </div>
@@ -118,7 +77,37 @@ export function PostComposer({
   );
 }
 
-function PostCard({ post }: { post: FeedPost }) {
+function FlagSolutionButton({
+  postId,
+  isSolution,
+}: {
+  postId: Id<"posts">;
+  isSolution?: boolean;
+}) {
+  const { userId } = useCurrentUser();
+  const toggleSolution = useMutation(api.posts.toggleSolution);
+
+  return (
+    <button
+      onClick={() => userId && toggleSolution({ postId, userId })}
+      className={
+        isSolution
+          ? "font-semibold text-emerald-700"
+          : "text-gray-500 hover:text-emerald-700"
+      }
+    >
+      {isSolution ? "Unflag solution" : "Flag as solution"}
+    </button>
+  );
+}
+
+function PostCard({
+  post,
+  canFlag,
+}: {
+  post: FeedPost;
+  canFlag: boolean;
+}) {
   const { userId } = useCurrentUser();
   const toggleUpvote = useMutation(api.posts.toggleUpvote);
   const createPost = useMutation(api.posts.create);
@@ -134,27 +123,25 @@ function PostCard({ post }: { post: FeedPost }) {
       <div className="flex items-center gap-3">
         <Avatar name={post.author?.name ?? "?"} src={post.author?.avatarUrl} />
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
             {post.author?.name ?? "Unknown"}
-            <span className="ml-2 font-normal text-gray-400">
+            <span className="font-normal text-gray-400">
               @{post.author?.handle}
             </span>
-            {post.kind === "news" && (
-              <span className="ml-2 rounded-full bg-brand-light px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-dark">
-                News
+            {post.isSolution && <SolutionBadge />}
+            {!post.isSolution && post.hasSolutionReply && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                Has solution
               </span>
             )}
           </p>
           <p className="text-xs text-gray-400">{timeAgo(post._creationTime)}</p>
         </div>
       </div>
-      {post.title && (
-        <h3 className="mt-3 font-semibold text-gray-900">{post.title}</h3>
-      )}
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
         {post.content}
       </p>
-      <div className="mt-3 flex gap-4 text-sm">
+      <div className="mt-3 flex flex-wrap gap-4 text-sm">
         <button
           onClick={() => userId && toggleUpvote({ postId: post._id, userId })}
           className={
@@ -172,16 +159,28 @@ function PostCard({ post }: { post: FeedPost }) {
         >
           {post.replyCount} repl{post.replyCount === 1 ? "y" : "ies"}
         </button>
+        {canFlag && userId && (
+          <FlagSolutionButton postId={post._id} isSolution={post.isSolution} />
+        )}
       </div>
 
       {showReplies && (
         <div className="mt-3 space-y-3 border-l-2 border-gray-100 pl-4">
           {replies?.map((r) => (
             <div key={r._id} className="text-sm">
-              <span className="font-semibold text-gray-800">
-                {r.author?.name}
-              </span>{" "}
-              <span className="text-gray-600">{r.content}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-gray-800">
+                  {r.author?.name}
+                </span>
+                {r.isSolution && <SolutionBadge />}
+              </div>
+              <p className="text-gray-600">{r.content}</p>
+              {canFlag && userId && (
+                <FlagSolutionButton
+                  postId={r._id}
+                  isSolution={r.isSolution}
+                />
+              )}
             </div>
           ))}
           <div className="flex gap-2">
@@ -210,14 +209,21 @@ function PostCard({ post }: { post: FeedPost }) {
 }
 
 export function Feed({ groupId }: { groupId?: Id<"groups"> }) {
+  const brand = useBrand();
   const { userId } = useCurrentUser();
+  const canFlag = brand.id === "redwave";
+  const [solutionsOnly, setSolutionsOnly] = useState(false);
   const groupPosts = useQuery(
     api.posts.feed,
-    groupId ? { groupId, userId } : "skip",
+    groupId
+      ? { groupId, userId, solutionsOnly: canFlag ? solutionsOnly : undefined }
+      : "skip",
   );
   const followedPosts = useQuery(
     api.posts.userFeed,
-    !groupId && userId ? { userId } : "skip",
+    !groupId && userId
+      ? { userId, solutionsOnly: canFlag ? solutionsOnly : undefined }
+      : "skip",
   );
   const posts = groupId ? groupPosts : followedPosts;
 
@@ -225,11 +231,34 @@ export function Feed({ groupId }: { groupId?: Id<"groups"> }) {
 
   return (
     <div className="space-y-4">
+      {canFlag && (
+        <div className="flex gap-1">
+          {([false, true] as const).map((only) => (
+            <button
+              key={String(only)}
+              type="button"
+              onClick={() => setSolutionsOnly(only)}
+              className={
+                "rounded-full px-3 py-0.5 text-xs font-semibold " +
+                (solutionsOnly === only
+                  ? "bg-brand text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200")
+              }
+            >
+              {only ? "Solutions" : "All posts"}
+            </button>
+          ))}
+        </div>
+      )}
       <PostComposer groupId={groupId} />
       {posts.length === 0 ? (
-        <EmptyState title="No posts yet" />
+        <EmptyState
+          title={solutionsOnly ? "No flagged solutions yet" : "No posts yet"}
+        />
       ) : (
-        posts.map((post) => <PostCard key={post._id} post={post} />)
+        posts.map((post) => (
+          <PostCard key={post._id} post={post} canFlag={canFlag} />
+        ))
       )}
     </div>
   );

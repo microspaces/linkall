@@ -1,0 +1,34 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title/>
+ <desc/>
+ <defs>
+  <rect height="220" id="path-1" width="280" x="60" y="80"/>
+  <polygon id="path-3" points="255 150 320 260 190 260"/>
+  <filter filterUnits="objectBoundingBox" height="200%" id="filter-4" width="200%" x="-50%" y="-50%">
+   <feGaussianBlur stdDeviation="2"/>
+  </filter>
+  <polygon id="path-5" points="260 280 80 280 170 140"/>
+  <filter filterUnits="objectBoundingBox" height="200%" id="filter-6" width="200%" x="-50%" y="-50%">
+   <feGaussianBlur stdDeviation="2"/>
+  </filter>
+  <circle cx="110" cy="115" id="path-7" r="25"/>
+  <filter filterUnits="objectBoundingBox" height="200%" id="filter-8" width="200%" x="-50%" y="-50%">
+   <feGaussianBlur stdDeviation="2"/>
+  </filter>
+ </defs>
+ <g>
+  <title>background</title>
+  <rect x="-1" y="-1" width="57.363239" height="57.363239" id="canvas_background" fill="none"/>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <path d="m200,400c110.45695,0 200,-89.54305 200,-200c0,-110.45695 -89.54305,-200 -200,-200c-110.45695,0 -200,89.54305 -200,200c0,110.45695 89.54305,200 200,200z" fill="#cecece" id="Background-Copy-2"/>
+  <use x="0" y="-2.39234" fill="#ffffff" fill-rule="evenodd" xlink:href="#path-1" id="svg_2"/>
+  <use fill="black" filter="url(#filter-4)" xlink:href="#path-3" id="svg_3"/>
+  <use fill="#f4f4f4" fill-rule="evenodd" xlink:href="#path-3" id="svg_4" y="0.86505" x="0"/>
+  <use fill="black" filter="url(#filter-6)" xlink:href="#path-5" id="svg_5"/>
+  <use fill="#ffffff" fill-rule="evenodd" xlink:href="#path-5" id="svg_6" stroke="null"/>
+  <use fill="black" filter="url(#filter-8)" xlink:href="#path-7" id="svg_7"/>
+  <use fill="#f2f2f2" fill-rule="evenodd" xlink:href="#path-7" id="svg_8"/>
+ </g>
+</svg>

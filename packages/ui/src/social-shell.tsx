@@ -10,6 +10,7 @@ import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 import { UserSwitcher } from "./current-user";
+import { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 
 /**
  * Legacy 3-column social layout (Surroundshow _Layout + responsive-menu.js).
@@ -55,9 +56,11 @@ function GroupLink({ group }: { group: SidebarGroup }) {
           className="h-5 w-5 shrink-0 rounded-full object-cover md:h-8 md:w-8"
         />
       ) : (
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-light text-[10px] font-bold text-brand md:h-8 md:w-8 md:text-xs">
-          {group.name[0]}
-        </span>
+        <img
+          src="/images/default-image.svg"
+          alt=""
+          className="h-5 w-5 shrink-0 rounded-full object-cover md:h-8 md:w-8"
+        />
       )}
       <span className="max-md:line-clamp-2 max-md:text-center max-md:text-[9px] max-md:leading-tight">
         {group.name}
@@ -132,9 +135,11 @@ function LeftSidebar() {
           href="/groups"
           className="flex flex-col items-center gap-0.5 rounded px-1 py-1.5 text-[9px] text-gray-700 hover:bg-gray-200/80 md:flex-row md:gap-2 md:py-2 md:text-sm"
         >
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[10px] md:h-8 md:w-8">
-            {brand.groupsLabel[0]}
-          </span>
+          <img
+            src="/images/user-group.svg"
+            alt=""
+            className="h-5 w-5 rounded-full object-cover md:h-8 md:w-8"
+          />
           <span>{brand.groupsLabel}</span>
         </Link>
       </SidebarSection>
@@ -217,7 +222,20 @@ function RightSidebar() {
   const join = useMutation(api.groups.join);
   const leave = useMutation(api.groups.leave);
 
-  if (!sidebar || !userId) return null;
+  if (!sidebar || !userId) {
+    return (
+      <aside
+        className={
+          "fixed bottom-0 right-0 top-14 z-30 hidden w-52 overflow-y-auto " +
+          "border-l border-gray-200 bg-gray-50 min-[790px]:block"
+        }
+      >
+        <p className="p-3 text-xs text-gray-400">
+          {userId ? "Loading groups…" : "Pick a user to load groups."}
+        </p>
+      </aside>
+    );
+  }
 
   return (
     <aside
@@ -276,7 +294,6 @@ function MobileGroupsMenu() {
 }
 
 export function SocialShell({ children }: { children: ReactNode }) {
-  const brand = useBrand();
   const pathname = usePathname();
   const [host, setHost] = useState<string | undefined>(undefined);
 
@@ -291,7 +308,29 @@ export function SocialShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <ThemeProvider>
+      <SocialChrome pathname={pathname}>{children}</SocialChrome>
+    </ThemeProvider>
+  );
+}
+
+function SocialChrome({
+  pathname,
+  children,
+}: {
+  pathname: string;
+  children: ReactNode;
+}) {
+  const brand = useBrand();
+  const { theme } = useTheme();
+
+  return (
+    <div
+      className={
+        "social-shell flex min-h-screen flex-col bg-gray-50" +
+        (theme === "light" ? " light" : "")
+      }
+    >
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
         <div className="flex h-14 items-center gap-3 px-3 md:px-4">
           <Link href="/" className="flex shrink-0 items-center gap-2">
@@ -326,6 +365,7 @@ export function SocialShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <MobileGroupsMenu />
             <UserSwitcher />
           </div>

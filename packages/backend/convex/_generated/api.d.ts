@@ -12,8 +12,10 @@ import type * as christmasMikeData from "../christmasMikeData.js";
 import type * as designer from "../designer.js";
 import type * as events from "../events.js";
 import type * as game from "../game.js";
+import type * as geo from "../geo.js";
 import type * as groups from "../groups.js";
 import type * as importLegacy from "../importLegacy.js";
+import type * as importLinkAll8 from "../importLinkAll8.js";
 import type * as locos from "../locos.js";
 import type * as notifications from "../notifications.js";
 import type * as posts from "../posts.js";
@@ -21,7 +23,6 @@ import type * as products from "../products.js";
 import type * as resources from "../resources.js";
 import type * as seed from "../seed.js";
 import type * as shows from "../shows.js";
-import type * as solutions from "../solutions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -35,8 +36,10 @@ declare const fullApi: ApiFromModules<{
   designer: typeof designer;
   events: typeof events;
   game: typeof game;
+  geo: typeof geo;
   groups: typeof groups;
   importLegacy: typeof importLegacy;
+  importLinkAll8: typeof importLinkAll8;
   locos: typeof locos;
   notifications: typeof notifications;
   posts: typeof posts;
@@ -44,7 +47,6 @@ declare const fullApi: ApiFromModules<{
   resources: typeof resources;
   seed: typeof seed;
   shows: typeof shows;
-  solutions: typeof solutions;
   users: typeof users;
 }>;
 
