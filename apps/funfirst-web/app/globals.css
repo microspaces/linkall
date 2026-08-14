@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../packages/ui/src/theme.css";
 @source "../../../packages/ui/src";
 
 /* FunFirst brand theme (keep in sync with @linkall/brands). */

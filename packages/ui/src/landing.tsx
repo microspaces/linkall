@@ -54,7 +54,7 @@ export function Landing() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href={brand.nav[0].href}
-            className="rounded-lg bg-white px-5 py-2.5 font-semibold text-brand-dark hover:bg-gray-100"
+            className="rounded-lg bg-[#fff] px-5 py-2.5 font-semibold text-brand-dark hover:bg-[#f4f4f5]"
           >
             Explore {brand.nav[0].label}
           </Link>

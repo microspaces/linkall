@@ -151,7 +151,7 @@ export const brands: Record<BrandId, Brand> = {
     name: "RedWave",
     tagline: "Organize your precinct. Move your state.",
     description:
-      "Grassroots organizing: state and county groups, precinct playbooks, candidate vetting and a library of political resources.",
+      "Grassroots organizing: state and county groups, precinct playbooks, candidate vetting and a library of political resources. Flag posts and replies that are working solutions.",
     domain: "redwaveapp.com",
     legacyNames: ["RedWaveApp (SiteId 3)", "primaryplan.org", "demhistory.org"],
     colors: {
@@ -170,13 +170,13 @@ export const brands: Record<BrandId, Brand> = {
     nav: [
       { label: "Resources", href: "/resources" },
       { label: "States", href: "/states" },
-      { label: "Groups", href: "/groups" },
+      { label: "Solutions", href: "/groups" },
       { label: "Feed", href: "/feed" },
       { label: "People", href: "/people" },
     ],
     showTags: [],
     designerLabel: "Designer",
-    groupsLabel: "Groups",
+    groupsLabel: "Solutions",
   },
 };
 

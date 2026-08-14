@@ -26,6 +26,11 @@ function CommunityPost({ post }: { post: FeedPost }) {
         <div>
           <p className="text-sm font-semibold text-gray-900">
             {post.author?.name ?? "Unknown"}
+            {post.isSolution && (
+              <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800">
+                ✓ Solution
+              </span>
+            )}
           </p>
           <p className="text-xs text-gray-400">{timeAgo(post._creationTime)}</p>
         </div>

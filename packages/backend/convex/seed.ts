@@ -117,7 +117,7 @@ async function insertGroups(
 
 async function insertPosts(
   ctx: MutationCtx,
-  posts: { content: string; groupIndex?: number }[],
+  posts: { content: string; groupIndex?: number; isSolution?: boolean }[],
   users: Id<"users">[],
   groups: Id<"groups">[],
 ) {
@@ -131,6 +131,7 @@ async function insertPosts(
           : undefined,
       upvotes: (i * 3) % 7,
       replyCount: i % 2,
+      isSolution: posts[i].isSolution,
     });
     if (i % 2 === 1) {
       await ctx.db.insert("posts", {
@@ -1089,11 +1090,11 @@ export const redwave = mutation({
     const groups = await insertGroups(
       ctx,
       [
-        { name: "Texas", description: "Statewide organizing hub for Texas.", kind: "state", state: "Texas" },
-        { name: "Texas — Travis County", description: "Travis County precinct operations.", kind: "county", state: "Texas", county: "Travis" },
-        { name: "Florida", description: "Statewide organizing hub for Florida.", kind: "state", state: "Florida" },
-        { name: "Ohio", description: "Statewide organizing hub for Ohio.", kind: "state", state: "Ohio" },
-        { name: "Precinct Captains", description: "Cross-state best practices for precinct leaders.", kind: "public" },
+        { name: "Texas", description: "Statewide organizing hub for Texas.", kind: "state", state: "Texas", leftmenu: 1 },
+        { name: "Texas — Travis County", description: "Travis County precinct operations.", kind: "county", state: "Texas", county: "Travis", leftmenu: 1 },
+        { name: "Florida", description: "Statewide organizing hub for Florida.", kind: "state", state: "Florida", leftmenu: 2 },
+        { name: "Ohio", description: "Statewide organizing hub for Ohio.", kind: "state", state: "Ohio", leftmenu: 2 },
+        { name: "Precinct Captains", description: "Cross-state best practices for precinct leaders.", kind: "public", leftmenu: 1 },
         { name: "Vetting Committee", description: "Candidate survey review. Members only.", kind: "private" },
       ],
       users,
@@ -1107,10 +1108,36 @@ export const redwave = mutation({
         { content: "Candidate vetting surveys for the March primary close Friday.", groupIndex: 5 },
         { content: "Florida folks: county chair training moved to the 19th.", groupIndex: 2 },
         { content: "Statewide call this Sunday 7pm — platform priorities for the session.", groupIndex: 0 },
+        {
+          content:
+            "Remain in Mexico worked: southwest encounters dropped about 61% from the prior-year peak while it was enforced. Keep that standard locally.",
+          groupIndex: 0,
+          isSolution: true,
+        },
       ],
       users,
       groups,
     );
+
+    const eventId = await ctx.db.insert("posts", {
+      authorId: users[0],
+      content:
+        "Travis County released several violent repeat offenders pretrial this week. What actually reverses that?",
+      groupId: groups[1],
+      upvotes: 4,
+      replyCount: 1,
+    });
+    await ctx.db.insert("posts", {
+      authorId: users[4],
+      content:
+        "End cashless bail for violent repeat offenders and publish 30/90-day rearrest numbers. That's the working local play.",
+      parentId: eventId,
+      groupId: groups[1],
+      upvotes: 8,
+      replyCount: 0,
+      isSolution: true,
+    });
+    await ctx.db.patch(eventId, { hasSolutionReply: true });
 
     // Resource library (legacy Resource → ResourceChild → ResourceGrandChild)
     const platform = await ctx.db.insert("resources", {

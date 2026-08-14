@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
+import { joinPublicAndHomeGroups } from "./importLinkAll8";
 
 async function withMembership(
   ctx: QueryCtx,
@@ -61,10 +62,18 @@ export const sidebar = query({
     const groups = await ctx.db.query("groups").collect();
     const rows = await withMembership(ctx, groups, userId);
 
-    const top = rows.filter((g) => g.leftmenu === 1).sort(byName);
-    const hot = rows.filter((g) => g.leftmenu === 2).sort(byName);
+    let top = rows
+      .filter((g) => g.leftmenu === 1 && g.kind === "public")
+      .sort(byName);
+    let hot = rows
+      .filter((g) => g.leftmenu === 2 && g.kind === "public")
+      .sort(byName);
     const favorites = rows.filter((g) => g.isFavorite).sort(byName);
-    const followed = rows.filter((g) => g.isMember).sort(byName);
+    // Followed includes home state/county; Not Followed is public groups only
+    // (Ω geo groups stay out of the general list, same as LinkAll8).
+    const followed = rows
+      .filter((g) => g.isMember)
+      .sort(byName);
     const notFollowed = rows
       .filter((g) => !g.isMember && g.kind === "public")
       .sort(byName);
@@ -169,27 +178,13 @@ export const toggleFavorite = mutation({
 });
 
 /**
- * Legacy behavior: new users are auto-subscribed to all public groups.
- * Safe to call on every login / user switch — skips groups already joined.
+ * Legacy behavior: auto-subscribe to all public groups, plus the user's
+ * state and county (from zip at registration).
  */
 export const ensureMembership = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const publicGroups = await ctx.db
-      .query("groups")
-      .withIndex("by_kind", (q) => q.eq("kind", "public"))
-      .collect();
-    const memberships = await ctx.db
-      .query("groupMembers")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    const joined = new Set(memberships.map((m) => m.groupId));
-
-    for (const group of publicGroups) {
-      if (joined.has(group._id)) continue;
-      await ctx.db.insert("groupMembers", { groupId: group._id, userId, isAdmin: false });
-      await ctx.db.patch(group._id, { memberCount: group.memberCount + 1 });
-    }
+    return await joinPublicAndHomeGroups(ctx, userId);
   },
 });
 

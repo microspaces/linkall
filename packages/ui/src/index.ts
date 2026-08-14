@@ -1,4 +1,5 @@
 export { AppShell, SocialShell } from "./app-shell";
+export { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 export { Avatar } from "./avatar";
 export { BrandProvider, useBrand } from "./brand-context";
 export { ConvexAppProvider } from "./convex-provider";

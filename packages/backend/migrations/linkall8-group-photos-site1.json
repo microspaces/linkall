@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Mardi Gras",
+    "photoUrl": "/group-photos/267c6964-c602-44c9-9997-3b564d26a4d5.png",
+    "bytes": 52392
+  },
+  {
+    "name": "Christmas",
+    "photoUrl": "/group-photos/370125d6-c4e8-4429-8425-6fdb30348777.png",
+    "bytes": 72357
+  },
+  {
+    "name": "New Year's",
+    "photoUrl": "/group-photos/6c3efcaa-2e19-49fa-a427-e4ec97ac12af.png",
+    "bytes": 88172
+  },
+  {
+    "name": "St. Pats",
+    "photoUrl": "/group-photos/92215bca-5b0c-4577-a456-eb004b407acb.png",
+    "bytes": 135575
+  },
+  {
+    "name": "Thanksgiving",
+    "photoUrl": "/group-photos/975b2191-bd0b-4b5b-8b51-61df13753872.png",
+    "bytes": 129761
+  },
+  {
+    "name": "Valentine's",
+    "photoUrl": "/group-photos/acf4961d-692e-46be-bba7-8a852433f32f.png",
+    "bytes": 177381
+  },
+  {
+    "name": "Halloween",
+    "photoUrl": "/group-photos/ca206fbb-3883-4ded-aded-2867cf0981f5.png",
+    "bytes": 81706
+  },
+  {
+    "name": "Easter",
+    "photoUrl": "/group-photos/cd53b908-62ad-45a9-89c6-79c66499876b.png",
+    "bytes": 96517
+  },
+  {
+    "name": "4th of July",
+    "photoUrl": "/group-photos/e3899cc7-7a6f-4ce2-997b-8eb18c31cf65.png",
+    "bytes": 79094
+  }
+]

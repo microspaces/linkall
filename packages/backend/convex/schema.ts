@@ -14,6 +14,10 @@ export default defineSchema({
     handle: v.string(),
     avatarUrl: v.optional(v.string()),
     bio: v.optional(v.string()),
+    email: v.optional(v.string()),
+    zipCode: v.optional(v.string()),
+    /** Legacy AspNetUsers.Id, for re-import / later auth linking. */
+    legacyId: v.optional(v.string()),
     tier: v.union(
       v.literal("free"),
       v.literal("silver"),
@@ -22,7 +26,10 @@ export default defineSchema({
     ),
     state: v.optional(v.string()),
     county: v.optional(v.string()),
-  }).index("by_handle", ["handle"]),
+  })
+    .index("by_handle", ["handle"])
+    .index("by_email", ["email"])
+    .index("by_legacyId", ["legacyId"]),
 
   groups: defineTable({
     name: v.string(),
@@ -43,7 +50,10 @@ export default defineSchema({
     category: v.optional(v.string()),
     createdBy: v.id("users"),
     memberCount: v.number(),
-  }).index("by_kind", ["kind"]),
+  })
+    .index("by_kind", ["kind"])
+    .index("by_name", ["name"])
+    .index("by_state", ["state"]),
 
   groupMembers: defineTable({
     groupId: v.id("groups"),
@@ -58,6 +68,8 @@ export default defineSchema({
 
   // Threaded posts: global feed (no groupId), group chat (groupId set),
   // replies (parentId set). Replaces the legacy Comment table.
+  // `isSolution` can be set on the original post or any reply (RedWave).
+  // `hasSolutionReply` is denormalized on top-level posts for filtering.
   posts: defineTable({
     authorId: v.id("users"),
     groupId: v.optional(v.id("groups")),
@@ -65,6 +77,8 @@ export default defineSchema({
     content: v.string(),
     upvotes: v.number(),
     replyCount: v.number(),
+    isSolution: v.optional(v.boolean()),
+    hasSolutionReply: v.optional(v.boolean()),
   })
     .index("by_group", ["groupId"])
     .index("by_parent", ["parentId"]),

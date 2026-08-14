@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { Avatar } from "./avatar";
+import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 import { timeAgo } from "./format";
@@ -14,9 +15,17 @@ type FeedPost = Doc<"posts"> & {
   hasUpvoted: boolean;
 };
 
+function SolutionBadge() {
+  return (
+    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800">
+      ✓ Solution
+    </span>
+  );
+}
+
 export function PostComposer({
   groupId,
-  placeholder = "Share something with the community…",
+  placeholder,
 }: {
   groupId?: Id<"groups">;
   placeholder?: string;
@@ -32,7 +41,11 @@ export function PostComposer({
     if (!content.trim()) return;
     setBusy(true);
     try {
-      await createPost({ authorId: userId, content, groupId });
+      await createPost({
+        authorId: userId,
+        content,
+        groupId,
+      });
       setContent("");
     } finally {
       setBusy(false);
@@ -46,7 +59,7 @@ export function PostComposer({
         <textarea
           className="w-full resize-none rounded-md border border-gray-200 p-2 text-sm focus:border-brand focus:outline-none"
           rows={2}
-          placeholder={placeholder}
+          placeholder={placeholder ?? "Share something with the community…"}
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
@@ -64,7 +77,37 @@ export function PostComposer({
   );
 }
 
-function PostCard({ post }: { post: FeedPost }) {
+function FlagSolutionButton({
+  postId,
+  isSolution,
+}: {
+  postId: Id<"posts">;
+  isSolution?: boolean;
+}) {
+  const { userId } = useCurrentUser();
+  const toggleSolution = useMutation(api.posts.toggleSolution);
+
+  return (
+    <button
+      onClick={() => userId && toggleSolution({ postId, userId })}
+      className={
+        isSolution
+          ? "font-semibold text-emerald-700"
+          : "text-gray-500 hover:text-emerald-700"
+      }
+    >
+      {isSolution ? "Unflag solution" : "Flag as solution"}
+    </button>
+  );
+}
+
+function PostCard({
+  post,
+  canFlag,
+}: {
+  post: FeedPost;
+  canFlag: boolean;
+}) {
   const { userId } = useCurrentUser();
   const toggleUpvote = useMutation(api.posts.toggleUpvote);
   const createPost = useMutation(api.posts.create);
@@ -80,11 +123,17 @@ function PostCard({ post }: { post: FeedPost }) {
       <div className="flex items-center gap-3">
         <Avatar name={post.author?.name ?? "?"} src={post.author?.avatarUrl} />
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
             {post.author?.name ?? "Unknown"}
-            <span className="ml-2 font-normal text-gray-400">
+            <span className="font-normal text-gray-400">
               @{post.author?.handle}
             </span>
+            {post.isSolution && <SolutionBadge />}
+            {!post.isSolution && post.hasSolutionReply && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                Has solution
+              </span>
+            )}
           </p>
           <p className="text-xs text-gray-400">{timeAgo(post._creationTime)}</p>
         </div>
@@ -92,7 +141,7 @@ function PostCard({ post }: { post: FeedPost }) {
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
         {post.content}
       </p>
-      <div className="mt-3 flex gap-4 text-sm">
+      <div className="mt-3 flex flex-wrap gap-4 text-sm">
         <button
           onClick={() => userId && toggleUpvote({ postId: post._id, userId })}
           className={
@@ -110,16 +159,28 @@ function PostCard({ post }: { post: FeedPost }) {
         >
           {post.replyCount} repl{post.replyCount === 1 ? "y" : "ies"}
         </button>
+        {canFlag && userId && (
+          <FlagSolutionButton postId={post._id} isSolution={post.isSolution} />
+        )}
       </div>
 
       {showReplies && (
         <div className="mt-3 space-y-3 border-l-2 border-gray-100 pl-4">
           {replies?.map((r) => (
             <div key={r._id} className="text-sm">
-              <span className="font-semibold text-gray-800">
-                {r.author?.name}
-              </span>{" "}
-              <span className="text-gray-600">{r.content}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-gray-800">
+                  {r.author?.name}
+                </span>
+                {r.isSolution && <SolutionBadge />}
+              </div>
+              <p className="text-gray-600">{r.content}</p>
+              {canFlag && userId && (
+                <FlagSolutionButton
+                  postId={r._id}
+                  isSolution={r.isSolution}
+                />
+              )}
             </div>
           ))}
           <div className="flex gap-2">
@@ -148,18 +209,56 @@ function PostCard({ post }: { post: FeedPost }) {
 }
 
 export function Feed({ groupId }: { groupId?: Id<"groups"> }) {
+  const brand = useBrand();
   const { userId } = useCurrentUser();
-  const posts = useQuery(api.posts.feed, { groupId, userId });
+  const canFlag = brand.id === "redwave";
+  const [solutionsOnly, setSolutionsOnly] = useState(false);
+  const groupPosts = useQuery(
+    api.posts.feed,
+    groupId
+      ? { groupId, userId, solutionsOnly: canFlag ? solutionsOnly : undefined }
+      : "skip",
+  );
+  const followedPosts = useQuery(
+    api.posts.userFeed,
+    !groupId && userId
+      ? { userId, solutionsOnly: canFlag ? solutionsOnly : undefined }
+      : "skip",
+  );
+  const posts = groupId ? groupPosts : followedPosts;
 
   if (posts === undefined) return <Loading />;
 
   return (
     <div className="space-y-4">
+      {canFlag && (
+        <div className="flex gap-1">
+          {([false, true] as const).map((only) => (
+            <button
+              key={String(only)}
+              type="button"
+              onClick={() => setSolutionsOnly(only)}
+              className={
+                "rounded-full px-3 py-0.5 text-xs font-semibold " +
+                (solutionsOnly === only
+                  ? "bg-brand text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200")
+              }
+            >
+              {only ? "Solutions" : "All posts"}
+            </button>
+          ))}
+        </div>
+      )}
       <PostComposer groupId={groupId} />
       {posts.length === 0 ? (
-        <EmptyState title="No posts yet" />
+        <EmptyState
+          title={solutionsOnly ? "No flagged solutions yet" : "No posts yet"}
+        />
       ) : (
-        posts.map((post) => <PostCard key={post._id} post={post} />)
+        posts.map((post) => (
+          <PostCard key={post._id} post={post} canFlag={canFlag} />
+        ))
       )}
     </div>
   );

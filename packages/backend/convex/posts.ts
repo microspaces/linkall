@@ -3,6 +3,10 @@ import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 
+function isSolutionThread(post: Doc<"posts">) {
+  return !!post.isSolution || !!post.hasSolutionReply;
+}
+
 async function withAuthors(
   ctx: QueryCtx,
   posts: Doc<"posts">[],
@@ -24,20 +28,35 @@ async function withAuthors(
   );
 }
 
+function filterAndSort(
+  posts: Doc<"posts">[],
+  solutionsOnly: boolean | undefined,
+) {
+  const topLevel = posts.filter((p) => p.parentId === undefined);
+  const filtered = solutionsOnly
+    ? topLevel.filter(isSolutionThread)
+    : topLevel;
+  return filtered;
+}
+
 /** Top-level posts: the global feed, or a single group's wall/chat. */
 export const feed = query({
   args: {
     groupId: v.optional(v.id("groups")),
     userId: v.optional(v.id("users")),
+    solutionsOnly: v.optional(v.boolean()),
   },
-  handler: async (ctx, { groupId, userId }) => {
+  handler: async (ctx, { groupId, userId, solutionsOnly }) => {
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_group", (q) => q.eq("groupId", groupId))
       .order("desc")
       .take(100);
-    const topLevel = posts.filter((p) => p.parentId === undefined);
-    return await withAuthors(ctx, topLevel, userId);
+    return await withAuthors(
+      ctx,
+      filterAndSort(posts, solutionsOnly),
+      userId,
+    );
   },
 });
 
@@ -46,8 +65,11 @@ export const feed = query({
  * plus global posts (no groupId). Legacy main-page comments container.
  */
 export const userFeed = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+  args: {
+    userId: v.id("users"),
+    solutionsOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { userId, solutionsOnly }) => {
     const memberships = await ctx.db
       .query("groupMembers")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -60,7 +82,10 @@ export const userFeed = query({
         p.parentId === undefined &&
         (p.groupId === undefined || groupIds.has(p.groupId)),
     );
-    return await withAuthors(ctx, topLevel.slice(0, 100), userId);
+    const filtered = solutionsOnly
+      ? topLevel.filter(isSolutionThread)
+      : topLevel;
+    return await withAuthors(ctx, filtered.slice(0, 100), userId);
   },
 });
 
@@ -74,6 +99,10 @@ export const replies = query({
       .query("posts")
       .withIndex("by_parent", (q) => q.eq("parentId", postId))
       .collect();
+    posts.sort((a, b) => {
+      if (!!a.isSolution !== !!b.isSolution) return a.isSolution ? -1 : 1;
+      return a._creationTime - b._creationTime;
+    });
     return await withAuthors(ctx, posts, userId);
   },
 });
@@ -135,6 +164,33 @@ export const toggleUpvote = mutation({
     } else {
       await ctx.db.insert("postVotes", { postId, userId });
       await ctx.db.patch(postId, { upvotes: post.upvotes + 1 });
+    }
+  },
+});
+
+/** Flag or unflag an original post or a reply as a solution. */
+export const toggleSolution = mutation({
+  args: { postId: v.id("posts"), userId: v.id("users") },
+  handler: async (ctx, { postId, userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+    const post = await ctx.db.get(postId);
+    if (!post) throw new Error("Post not found");
+
+    const next = !post.isSolution;
+    await ctx.db.patch(postId, { isSolution: next });
+
+    if (post.parentId) {
+      const parent = await ctx.db.get(post.parentId);
+      if (!parent) return;
+      const siblings = await ctx.db
+        .query("posts")
+        .withIndex("by_parent", (q) => q.eq("parentId", post.parentId))
+        .collect();
+      const any = siblings.some((s) =>
+        s._id === postId ? next : !!s.isSolution,
+      );
+      await ctx.db.patch(parent._id, { hasSolutionReply: any });
     }
   },
 });

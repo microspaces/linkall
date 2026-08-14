@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../packages/ui/src/theme.css";
 @source "../../../packages/ui/src";
 
 /* RedWave brand theme (keep in sync with @linkall/brands). */
