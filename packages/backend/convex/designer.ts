@@ -375,6 +375,18 @@ export const screenView = query({
       }
     }
 
+    const warp = await warpForScreen(ctx, screenId);
+    const asReference = await ctx.db
+      .query("screenWarps")
+      .withIndex("by_reference", (q) => q.eq("referenceScreenId", screenId))
+      .collect();
+    const refMarkers = asReference.find((w) => w.markersOn);
+    const dualCalibRole: "p1" | "p2" | null = warp?.markersOn
+      ? "p2"
+      : refMarkers
+        ? "p1"
+        : null;
+
     return {
       screen: { ...screen, panels },
       layoutName: layout?.name ?? "",
@@ -383,6 +395,15 @@ export const screenView = query({
       effects,
       displayProfileId: profileId,
       boundExplicitly,
+      dualCalibRole,
+      warp:
+        warp?.matrix && warp.matrix.length === 9
+          ? {
+              matrix: warp.matrix,
+              referenceScreenId: warp.referenceScreenId,
+              capturedAt: warp.capturedAt ?? null,
+            }
+          : null,
     };
   },
 });
@@ -477,6 +498,122 @@ export const setAlignPanel = mutation({
   },
   handler: async (ctx, { screenId, panelId }) => {
     await ctx.db.patch(screenId, { alignPanelId: panelId });
+  },
+});
+
+async function warpForScreen(ctx: QueryCtx | MutationCtx, screenId: Id<"screens">) {
+  return await ctx.db
+    .query("screenWarps")
+    .withIndex("by_screen", (q) => q.eq("screenId", screenId))
+    .first();
+}
+
+/** Show (or refresh) cyan/magenta corner markers on a dual-projector pair. */
+export const setDualCalibMarkers = mutation({
+  args: {
+    p1ScreenId: v.id("screens"),
+    p2ScreenId: v.id("screens"),
+  },
+  handler: async (ctx, { p1ScreenId, p2ScreenId }) => {
+    if (p1ScreenId === p2ScreenId) {
+      throw new Error("Pick two different screens for the cabinet");
+    }
+    const p1 = await ctx.db.get(p1ScreenId);
+    const p2 = await ctx.db.get(p2ScreenId);
+    if (!p1 || !p2) throw new Error("Screen not found");
+
+    const all = await ctx.db.query("screenWarps").collect();
+    for (const w of all) {
+      if (w.markersOn && w.screenId !== p2ScreenId) {
+        await ctx.db.patch(w._id, { markersOn: false });
+      }
+    }
+
+    const existing = await warpForScreen(ctx, p2ScreenId);
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        referenceScreenId: p1ScreenId,
+        markersOn: true,
+      });
+    } else {
+      await ctx.db.insert("screenWarps", {
+        screenId: p2ScreenId,
+        referenceScreenId: p1ScreenId,
+        markersOn: true,
+      });
+    }
+
+    // Marker overlay replaces panel-align mode on both outputs.
+    await ctx.db.patch(p1ScreenId, { alignPanelId: undefined });
+    await ctx.db.patch(p2ScreenId, { alignPanelId: undefined });
+  },
+});
+
+/** Hide corner markers without deleting a saved warp. */
+export const clearDualCalibMarkers = mutation({
+  args: { p2ScreenId: v.optional(v.id("screens")) },
+  handler: async (ctx, { p2ScreenId }) => {
+    if (p2ScreenId) {
+      const w = await warpForScreen(ctx, p2ScreenId);
+      if (w?.markersOn) await ctx.db.patch(w._id, { markersOn: false });
+      return;
+    }
+    const all = await ctx.db.query("screenWarps").collect();
+    for (const w of all) {
+      if (w.markersOn) await ctx.db.patch(w._id, { markersOn: false });
+    }
+  },
+});
+
+/** Persist the P2→P1 homography and turn markers off. */
+export const saveScreenWarp = mutation({
+  args: {
+    screenId: v.id("screens"),
+    referenceScreenId: v.id("screens"),
+    matrix: v.array(v.number()),
+    imageWidth: v.optional(v.number()),
+    imageHeight: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (
+      args.matrix.length !== 9 ||
+      args.matrix.some((n) => !Number.isFinite(n))
+    ) {
+      throw new Error("Warp matrix must be 9 finite numbers");
+    }
+    const existing = await warpForScreen(ctx, args.screenId);
+    const fields = {
+      referenceScreenId: args.referenceScreenId,
+      matrix: args.matrix,
+      capturedAt: Date.now(),
+      imageWidth: args.imageWidth,
+      imageHeight: args.imageHeight,
+      markersOn: false,
+    };
+    if (existing) {
+      await ctx.db.patch(existing._id, fields);
+    } else {
+      await ctx.db.insert("screenWarps", {
+        screenId: args.screenId,
+        ...fields,
+      });
+    }
+  },
+});
+
+/** Delete a stored warp (and hide markers if they were on). */
+export const clearScreenWarp = mutation({
+  args: { screenId: v.id("screens") },
+  handler: async (ctx, { screenId }) => {
+    const w = await warpForScreen(ctx, screenId);
+    if (w) await ctx.db.delete(w._id);
+  },
+});
+
+export const getScreenWarp = query({
+  args: { screenId: v.id("screens") },
+  handler: async (ctx, { screenId }) => {
+    return await warpForScreen(ctx, screenId);
   },
 });
 

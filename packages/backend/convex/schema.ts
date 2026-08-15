@@ -148,6 +148,29 @@ export default defineSchema({
     alignPanelId: v.optional(v.id("panels")),
   }).index("by_layout", ["layoutId"]),
 
+  /**
+   * Dual-projector cabinet warp. One row per Projector-2 screen: a 3×3
+   * homography (normalized [0,1] coords) that maps P2 onto P1, plus a
+   * reactive `markersOn` flag the phone flips so both outputs show corner
+   * crosshairs during capture. Additive — existing screen/panel rows are
+   * unchanged.
+   */
+  screenWarps: defineTable({
+    /** Projector 2 — the output that is pre-warped. */
+    screenId: v.id("screens"),
+    /** Projector 1 — the reference output. */
+    referenceScreenId: v.id("screens"),
+    /** Row-major 3×3 homography in normalized [0,1] coordinates. */
+    matrix: v.optional(v.array(v.number())),
+    capturedAt: v.optional(v.number()),
+    imageWidth: v.optional(v.number()),
+    imageHeight: v.optional(v.number()),
+    /** When true, both cabinet screens show corner markers. */
+    markersOn: v.optional(v.boolean()),
+  })
+    .index("by_screen", ["screenId"])
+    .index("by_reference", ["referenceScreenId"]),
+
   // A panel is a projection surface: a polygon (3–5 points in the legacy
   // X1..X5/Y1..Y5 columns, here an array) drawn on its screen's canvas.
   panels: defineTable({
