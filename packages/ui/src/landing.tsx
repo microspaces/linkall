@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useBrand } from "./brand-context";
+import { useCurrentUser } from "./current-user";
 
 export function Landing() {
   const brand = useBrand();
+  const { user } = useCurrentUser();
 
   const featureCards = [
     brand.features.shows && {
@@ -64,6 +66,14 @@ export function Landing() {
           >
             Browse Groups
           </Link>
+          {!user && (
+            <Link
+              href="/signin"
+              className="rounded-lg border border-white/40 px-5 py-2.5 font-semibold text-white hover:bg-white/10"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </section>
 

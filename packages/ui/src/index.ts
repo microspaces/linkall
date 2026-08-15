@@ -2,12 +2,14 @@ export { AppShell, SocialShell } from "./app-shell";
 export { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 export { Avatar } from "./avatar";
 export { BrandProvider, useBrand } from "./brand-context";
-export { ConvexAppProvider } from "./convex-provider";
+export { ConvexAppProvider, BackendNotConfigured } from "./convex-provider";
 export {
   CurrentUserProvider,
+  AuthUserMenu,
   UserSwitcher,
   useCurrentUser,
 } from "./current-user";
+export { SignInPage } from "./sign-in";
 export { PanelStage, ShowDesigner, PANEL_FILLS } from "./designer";
 export { EmptyState, Loading } from "./empty-state";
 export { EventList } from "./events";

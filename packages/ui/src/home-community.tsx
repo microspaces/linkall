@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
@@ -52,7 +53,12 @@ function CommunityPane() {
 
   if (!userId)
     return (
-      <p className="text-sm text-gray-500">Sign in to see your community feed.</p>
+      <p className="text-sm text-gray-500">
+        <Link href="/signin" className="font-semibold text-brand hover:underline">
+          Sign in
+        </Link>{" "}
+        to see your community feed.
+      </p>
     );
   if (posts === undefined) return <Loading />;
 

@@ -1,8 +1,10 @@
 import { useMemo } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, View } from "react-native";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { brand } from "../src/brand";
 import { CurrentUserProvider } from "../src/current-user";
 
@@ -26,7 +28,13 @@ export default function RootLayout() {
   }
 
   return (
-    <ConvexProvider client={client}>
+    <ConvexAuthProvider
+      client={client}
+      storage={AsyncStorage}
+      replaceURL={(relativeUrl) => {
+        router.replace(relativeUrl);
+      }}
+    >
       <CurrentUserProvider>
         <StatusBar style="light" />
         <Stack
@@ -37,8 +45,9 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="group/[id]" options={{ title: "Group" }} />
+          <Stack.Screen name="signin" options={{ title: "Sign in" }} />
         </Stack>
       </CurrentUserProvider>
-    </ConvexProvider>
+    </ConvexAuthProvider>
   );
 }
