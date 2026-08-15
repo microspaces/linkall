@@ -1,13 +1,20 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 /**
  * Shared schema used by every brand. Each brand runs its OWN Convex
  * deployment, so there is no SiteId column anywhere: tenant isolation is
  * physical, not row-level. Tables a brand doesn't use simply stay empty
  * (e.g. `products` on RedWave).
+ *
+ * `authTables` (sessions, accounts, verification codes, …) come from
+ * Convex Auth. `users` is inlined so we can keep LinkAll profile fields
+ * while satisfying Convex Auth's required `email` / `phone` indexes.
  */
 export default defineSchema({
+  ...authTables,
+
   // ---- social core (legacy: AspNetUsers, Group, Comment, Followers) ----
   users: defineTable({
     name: v.string(),
@@ -15,6 +22,11 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     bio: v.optional(v.string()),
     email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    image: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
     zipCode: v.optional(v.string()),
     /** Legacy AspNetUsers.Id, for re-import / later auth linking. */
     legacyId: v.optional(v.string()),
@@ -27,6 +39,8 @@ export default defineSchema({
     state: v.optional(v.string()),
     county: v.optional(v.string()),
   })
+    .index("email", ["email"])
+    .index("phone", ["phone"])
     .index("by_handle", ["handle"])
     .index("by_email", ["email"])
     .index("by_legacyId", ["legacyId"]),

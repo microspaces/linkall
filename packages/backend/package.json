@@ -11,13 +11,15 @@
     "seed:funfirst": "convex run seed:funfirst --env-file .env.funfirst",
     "seed:redwave": "convex run seed:redwave --env-file .env.redwave",
     "seed:battleLoco": "convex run seed:battleLoco --env-file .env.surroundshow",
-
     "import:mike": "node migrations/import-mike.mjs",
     "codegen": "convex codegen",
     "typecheck": "tsc --noEmit -p convex"
   },
   "dependencies": {
-    "convex": "^1.24.0"
+    "@auth/core": "0.41.1",
+    "@convex-dev/auth": "^0.0.95",
+    "convex": "^1.24.0",
+    "jose": "^5.2.2"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
