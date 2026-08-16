@@ -84,9 +84,15 @@ importers:
       expo:
         specifier: ~53.0.0
         version: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      expo-camera:
+        specifier: ^16.1.11
+        version: 16.1.11(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       expo-constants:
         specifier: ~17.1.4
         version: 17.1.8(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))
+      expo-image-manipulator:
+        specifier: ^13.1.7
+        version: 13.1.7(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))
       expo-linking:
         specifier: ~7.1.4
         version: 7.1.7(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -96,6 +102,9 @@ importers:
       expo-status-bar:
         specifier: ~2.2.3
         version: 2.2.3(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      jpeg-js:
+        specifier: ^0.4.4
+        version: 0.4.4
       react:
         specifier: 19.0.0
         version: 19.0.0
@@ -2105,6 +2114,17 @@ packages:
       react: 19.0.0
       react-native: '*'
 
+  expo-camera@16.1.11:
+    resolution: {integrity: sha512-etA5ZKoC6nPBnWWqiTmlX//zoFZ6cWQCCIdmpUHTGHAKd4qZNCkhPvBWbi8o32pDe57lix1V4+TPFgEcvPwsaA==}
+    peerDependencies:
+      expo: '*'
+      react: 19.0.0
+      react-native: '*'
+      react-native-web: '*'
+    peerDependenciesMeta:
+      react-native-web:
+        optional: true
+
   expo-constants@17.1.8:
     resolution: {integrity: sha512-sOCeMN/BWLA7hBP6lMwoEQzFNgTopk6YY03sBAmwT216IHyL54TjNseg8CRU1IQQ/+qinJ2fYWCl7blx2TiNcA==}
     peerDependencies:
@@ -2122,6 +2142,16 @@ packages:
     peerDependencies:
       expo: '*'
       react: 19.0.0
+
+  expo-image-loader@5.1.0:
+    resolution: {integrity: sha512-sEBx3zDQIODWbB5JwzE7ZL5FJD+DK3LVLWBVJy6VzsqIA6nDEnSFnsnWyCfCTSvbGigMATs1lgkC2nz3Jpve1Q==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-manipulator@13.1.7:
+    resolution: {integrity: sha512-DBy/Xdd0E/yFind14x36XmwfWuUxOHI/oH97/giKjjPaRc2dlyjQ3tuW3x699hX6gAs9Sixj5WEJ1qNf3c8sag==}
+    peerDependencies:
+      expo: '*'
 
   expo-keep-awake@14.1.4:
     resolution: {integrity: sha512-wU9qOnosy4+U4z/o4h8W9PjPvcFMfZXrlUoKTMBW7F4pLqhkkP/5G4EviPZixv4XWFMjn1ExQ5rV6BX8GwJsWA==}
@@ -2436,6 +2466,9 @@ packages:
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
+
+  jpeg-js@0.4.4:
+    resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -5741,6 +5774,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  expo-camera@16.1.11(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
+    dependencies:
+      expo: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      invariant: 2.2.4
+      react: 19.0.0
+      react-native: 0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)
+
   expo-constants@17.1.8(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)):
     dependencies:
       '@expo/config': 11.0.13
@@ -5760,6 +5800,15 @@ snapshots:
       expo: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       fontfaceobserver: 2.3.0
       react: 19.0.0
+
+  expo-image-loader@5.1.0(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)):
+    dependencies:
+      expo: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+
+  expo-image-manipulator@13.1.7(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)):
+    dependencies:
+      expo: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      expo-image-loader: 5.1.0(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))
 
   expo-keep-awake@14.1.4(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react@19.0.0):
     dependencies:
@@ -6128,6 +6177,8 @@ snapshots:
   jimp-compact@0.16.1: {}
 
   jiti@2.7.0: {}
+
+  jpeg-js@0.4.4: {}
 
   js-tokens@4.0.0: {}
 

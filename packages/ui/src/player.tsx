@@ -1,9 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
+import {
+  homographyToMatrix3d,
+  isValidMatrix,
+  markerColor,
+  markerCornersNorm,
+  markerLabel,
+  type DualCalibRole,
+} from "@linkall/backend/dual-calib";
 import { PANEL_FILLS, PanelStage } from "./designer";
 import { Loading } from "./empty-state";
 import { useCurrentUser } from "./current-user";
@@ -16,8 +31,9 @@ import { useCurrentUser } from "./current-user";
  * output into calibration mode and nudge its corners into alignment.
  *
  * ScreenOutput — the chrome-less page a projector or LED wall displays.
- * It subscribes to one reactive query, so scene taps, panel nudges and
- * alignment toggles all show up instantly (this replaces SignalR DisplayHub).
+ * It subscribes to one reactive query, so scene taps, panel nudges,
+ * dual-projector markers, and alignment toggles all show up instantly
+ * (this replaces SignalR DisplayHub).
  */
 
 type Point = { x: number; y: number };
@@ -213,6 +229,140 @@ export function CalibrationStage({
       })}
     </svg>
   );
+}
+
+/**
+ * Four saturated corner crosshairs the phone camera detects. Cyan = P1
+ * (reference), magenta = P2 (the output that will be warped).
+ */
+export function DualCalibMarkers({
+  role,
+  width,
+  height,
+}: {
+  role: DualCalibRole;
+  width: number;
+  height: number;
+}) {
+  const color = markerColor(role);
+  const corners = markerCornersNorm();
+  const arm = Math.min(width, height) * 0.055;
+  const stroke = Math.max(6, Math.min(width, height) * 0.014);
+  const r = Math.max(10, Math.min(width, height) * 0.022);
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-full w-full"
+      preserveAspectRatio="none"
+      style={{ background: "#000" }}
+    >
+      <text
+        x={width / 2}
+        y={height * 0.08}
+        textAnchor="middle"
+        fill="#f8fafc"
+        fontWeight="700"
+        fontSize={Math.min(width, height) * 0.045}
+      >
+        {markerLabel(role)}
+      </text>
+      {corners.map((c, i) => {
+        const x = c.x * width;
+        const y = c.y * height;
+        return (
+          <g key={i}>
+            <line
+              x1={x - arm}
+              y1={y}
+              x2={x + arm}
+              y2={y}
+              stroke="#000"
+              strokeWidth={stroke + 6}
+              strokeLinecap="square"
+            />
+            <line
+              x1={x}
+              y1={y - arm}
+              x2={x}
+              y2={y + arm}
+              stroke="#000"
+              strokeWidth={stroke + 6}
+              strokeLinecap="square"
+            />
+            <line
+              x1={x - arm}
+              y1={y}
+              x2={x + arm}
+              y2={y}
+              stroke={color}
+              strokeWidth={stroke}
+              strokeLinecap="square"
+            />
+            <line
+              x1={x}
+              y1={y - arm}
+              x2={x}
+              y2={y + arm}
+              stroke={color}
+              strokeWidth={stroke}
+              strokeLinecap="square"
+            />
+            <circle
+              cx={x}
+              cy={y}
+              r={r}
+              fill={color}
+              stroke="#000"
+              strokeWidth={3}
+            />
+            <text
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="#000"
+              fontWeight="bold"
+              fontSize={r * 1.1}
+            >
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function useHomographyStyle(matrix: number[] | null): {
+  ref: RefObject<HTMLDivElement | null>;
+  style: CSSProperties;
+} {
+  const ref = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<CSSProperties>({});
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !isValidMatrix(matrix)) {
+      setStyle({});
+      return;
+    }
+    const apply = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w < 2 || h < 2) return;
+      setStyle({
+        transform: homographyToMatrix3d(matrix, w, h),
+        transformOrigin: "0 0",
+      });
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [matrix]);
+
+  return { ref, style };
 }
 
 // ------------------------------------------------------------ screen output
@@ -445,8 +595,19 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
   );
   useEffect(() => {
     if (!bindingReady || view === undefined) return;
+    if (view?.dualCalibRole) {
+      setPickerOpen(false);
+      return;
+    }
     if (!isLiveContent && !binding) setPickerOpen(true);
   }, [bindingReady, view, isLiveContent, binding]);
+
+  const dualCalibRole = view?.dualCalibRole ?? null;
+  const warpMatrix =
+    view && !dualCalibRole && isValidMatrix(view.warp?.matrix)
+      ? view.warp.matrix
+      : null;
+  const { ref: warpRef, style: warpStyle } = useHomographyStyle(warpMatrix);
 
   if (!bindingReady || view === undefined)
     return <div className="fixed inset-0 z-50 bg-black" />;
@@ -459,6 +620,7 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
 
   const { screen, show, scene, effects, layoutName } = view;
   const aligning =
+    !dualCalibRole &&
     screen.alignPanelId !== undefined &&
     screen.panels.some((p) => p._id === screen.alignPanelId);
   const selectedShowOpt = options?.shows.find((s) => s.showId === binding?.showId);
@@ -467,10 +629,20 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
       <div
-        className="max-h-full w-full"
-        style={{ aspectRatio: `${screen.width} / ${screen.height}` }}
+        ref={warpRef}
+        className="max-h-full w-full overflow-hidden"
+        style={{
+          aspectRatio: `${screen.width} / ${screen.height}`,
+          ...warpStyle,
+        }}
       >
-        {aligning ? (
+        {dualCalibRole ? (
+          <DualCalibMarkers
+            role={dualCalibRole}
+            width={screen.width}
+            height={screen.height}
+          />
+        ) : aligning ? (
           <CalibrationStage
             screen={screen}
             alignPanelId={screen.alignPanelId!}
@@ -936,6 +1108,20 @@ function AlignTab() {
 
   const setAlignPanel = useMutation(api.designer.setAlignPanel);
   const updatePanel = useMutation(api.designer.updatePanel);
+  const setDualCalibMarkers = useMutation(api.designer.setDualCalibMarkers);
+  const clearDualCalibMarkers = useMutation(api.designer.clearDualCalibMarkers);
+  const clearScreenWarp = useMutation(api.designer.clearScreenWarp);
+  const [p2ScreenId, setP2ScreenId] = useState<Id<"screens"> | null>(null);
+  const [dualBusy, setDualBusy] = useState(false);
+  const [dualMsg, setDualMsg] = useState<string | null>(null);
+
+  const partnerScreens = screens.filter((s) => s._id !== screen?._id);
+  const p2 =
+    partnerScreens.find((s) => s._id === p2ScreenId) ?? partnerScreens[0] ?? null;
+  const p2Warp = useQuery(
+    api.designer.getScreenWarp,
+    p2 ? { screenId: p2._id } : "skip",
+  );
 
   const snapVal = (v: number) => (snapToGrid ? Math.round(v / 10) * 10 : v);
 
@@ -1196,6 +1382,143 @@ function AlignTab() {
               <p className="mt-2 text-center text-[11px] text-gray-400">
                 Tip: keyboard arrows also nudge
               </p>
+            </div>
+          )}
+
+          {partnerScreens.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <p className="text-sm font-semibold text-gray-900">
+                Dual-projector cabinet
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Stack two outputs for brightness. The phone camera flow lives
+                in the Expo app; here you can put both projectors into marker
+                mode and clear a saved warp.
+              </p>
+              <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Projector 2 (warped)
+              </label>
+              <select
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                value={p2?._id ?? ""}
+                onChange={(e) =>
+                  setP2ScreenId(e.target.value as Id<"screens">)
+                }
+              >
+                {partnerScreens.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-gray-500">
+                Projector 1 (reference):{" "}
+                <span className="font-semibold text-gray-700">
+                  {screen.name}
+                </span>
+                {" · "}
+                {p2Warp?.matrix && p2Warp.matrix.length === 9
+                  ? `Warp saved${
+                      p2Warp.capturedAt
+                        ? ` ${new Date(p2Warp.capturedAt).toLocaleString()}`
+                        : ""
+                    }`
+                  : "No warp stored"}
+                {p2Warp?.markersOn ? " · markers on" : ""}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={!p2 || dualBusy}
+                  onClick={async () => {
+                    if (!p2) return;
+                    setDualBusy(true);
+                    setDualMsg(null);
+                    try {
+                      await setDualCalibMarkers({
+                        p1ScreenId: screen._id,
+                        p2ScreenId: p2._id,
+                      });
+                      setDualMsg("Markers on both outputs. Capture from the phone.");
+                    } catch (err) {
+                      setDualMsg(
+                        err instanceof Error ? err.message : "Could not show markers",
+                      );
+                    } finally {
+                      setDualBusy(false);
+                    }
+                  }}
+                  className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
+                >
+                  Show corner markers
+                </button>
+                <button
+                  type="button"
+                  disabled={dualBusy}
+                  onClick={async () => {
+                    setDualBusy(true);
+                    setDualMsg(null);
+                    try {
+                      await clearDualCalibMarkers(
+                        p2 ? { p2ScreenId: p2._id } : {},
+                      );
+                      setDualMsg("Markers hidden.");
+                    } catch (err) {
+                      setDualMsg(
+                        err instanceof Error ? err.message : "Could not hide markers",
+                      );
+                    } finally {
+                      setDualBusy(false);
+                    }
+                  }}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Hide markers
+                </button>
+                <button
+                  type="button"
+                  disabled={!p2 || dualBusy || !p2Warp}
+                  onClick={async () => {
+                    if (!p2) return;
+                    setDualBusy(true);
+                    setDualMsg(null);
+                    try {
+                      await clearScreenWarp({ screenId: p2._id });
+                      setDualMsg("Alignment cleared.");
+                    } catch (err) {
+                      setDualMsg(
+                        err instanceof Error ? err.message : "Could not clear warp",
+                      );
+                    } finally {
+                      setDualBusy(false);
+                    }
+                  }}
+                  className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  Clear alignment
+                </button>
+              </div>
+              {dualMsg && (
+                <p className="mt-2 text-xs text-gray-600">{dualMsg}</p>
+              )}
+              {p2 && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="overflow-hidden rounded border border-gray-200 bg-black">
+                    <DualCalibMarkers
+                      role="p1"
+                      width={screen.width}
+                      height={screen.height}
+                    />
+                  </div>
+                  <div className="overflow-hidden rounded border border-gray-200 bg-black">
+                    <DualCalibMarkers
+                      role="p2"
+                      width={p2.width}
+                      height={p2.height}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

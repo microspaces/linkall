@@ -25,6 +25,11 @@ export {
   PerformanceList,
   PerformanceScreen,
 } from "./performance";
-export { CalibrationStage, ScreenOutput, ShowRemote } from "./player";
+export {
+  CalibrationStage,
+  DualCalibMarkers,
+  ScreenOutput,
+  ShowRemote,
+} from "./player";
 export { ResourceBrowser, ResourceDetail } from "./resources";
 export { ShowList, ShowPlayer } from "./shows";

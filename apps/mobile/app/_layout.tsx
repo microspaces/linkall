@@ -37,6 +37,10 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="group/[id]" options={{ title: "Group" }} />
+          <Stack.Screen
+            name="calibrate"
+            options={{ title: "Calibrate Dual Projectors" }}
+          />
         </Stack>
       </CurrentUserProvider>
     </ConvexProvider>

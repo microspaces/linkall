@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Link } from "expo-router";
 import { useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import { brand } from "../../src/brand";
@@ -18,9 +19,21 @@ export default function HomeScreen() {
   );
 
   const header = (
-    <View style={[styles.hero, { backgroundColor: brand.colors.primary }]}>
-      <Text style={styles.heroTitle}>{brand.tagline}</Text>
-      <Text style={styles.heroBody}>{brand.description}</Text>
+    <View>
+      <View style={[styles.hero, { backgroundColor: brand.colors.primary }]}>
+        <Text style={styles.heroTitle}>{brand.tagline}</Text>
+        <Text style={styles.heroBody}>{brand.description}</Text>
+      </View>
+      {brand.features.shows && (
+        <Link href="/calibrate" asChild>
+          <Pressable style={styles.calibrate}>
+            <Text style={styles.calibrateTitle}>Calibrate Dual Projectors</Text>
+            <Text style={styles.calibrateBody}>
+              Line up a stacked cabinet with the phone camera
+            </Text>
+          </Pressable>
+        </Link>
+      )}
     </View>
   );
 
@@ -85,4 +98,14 @@ const styles = StyleSheet.create({
   cardBody: { marginTop: 4, color: "#6b7280", fontSize: 13, lineHeight: 18 },
   liveBadge: { color: "#dc2626", fontWeight: "700", fontSize: 12 },
   tag: { marginTop: 8, fontSize: 12, color: "#9ca3af" },
+  calibrate: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#111827",
+  },
+  calibrateTitle: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  calibrateBody: { color: "rgba(255,255,255,0.7)", marginTop: 4, fontSize: 13 },
 });
