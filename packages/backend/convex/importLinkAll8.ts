@@ -5,7 +5,9 @@ import type { Id } from "./_generated/dataModel";
 import { expandStateName } from "./geo";
 
 /**
- * Import LinkAll8 SQL data (groups, users, default memberships).
+ * Import LinkAll8 SQL data: groups, users, memberships (RedWave flow) plus
+ * performances and posts (FunFirst flow). Does not insert or delete shows,
+ * screens, layouts, or panels.
  */
 
 const groupSpec = v.object({
@@ -41,6 +43,34 @@ const userSpec = v.object({
     v.literal("gold"),
     v.literal("admin"),
   ),
+});
+
+const gameSpec = v.object({
+  order: v.number(),
+  round: v.number(),
+  roundType: v.string(),
+  teamIndex: v.union(v.literal(1), v.literal(2)),
+  gameName: v.string(),
+  isScored: v.boolean(),
+});
+
+const performerSpec = v.object({
+  name: v.string(),
+  teamIndex: v.union(v.literal(1), v.literal(2)),
+});
+
+const performanceSpec = v.object({
+  legacyId: v.number(),
+  title: v.string(),
+  team1: v.string(),
+  team2: v.string(),
+  games: v.array(gameSpec),
+  performers: v.array(performerSpec),
+});
+
+const postSpec = v.object({
+  groupId: v.optional(v.string()),
+  content: v.string(),
 });
 
 async function importerUser(ctx: MutationCtx): Promise<Id<"users">> {
@@ -223,6 +253,133 @@ export const followPublicAndHome = mutation({
       joined += (await joinPublicAndHomeGroups(ctx, userId)).joined;
     }
     return { joined, users: userIds.length };
+  },
+});
+
+export const performances = mutation({
+  args: { performances: v.array(performanceSpec) },
+  handler: async (ctx, { performances }) => {
+    const ownerId = await importerUser(ctx);
+    const existing = await ctx.db.query("performances").collect();
+    const byTitle = new Set(existing.map((p) => p.title.toLowerCase()));
+    let inserted = 0;
+    let skipped = 0;
+    let renamed = 0;
+
+    for (const row of existing) {
+      if (!/crazyball/i.test(row.title)) continue;
+      await ctx.db.patch(row._id, {
+        title: row.title.replace(/Crazyball/gi, "Comedy Loco"),
+      });
+      renamed++;
+    }
+
+    const overlayNames = [
+      "Game Instructions",
+      "Vote",
+      "Suggestions",
+      "Score",
+      "Box Score",
+      "Games",
+      "Score Rotation",
+    ];
+    const trackNames = [
+      "BackNForth",
+      "BringTheFun",
+      "BubbleGumGirl",
+      "CockatooInTheGrass",
+      "DressedInPink",
+      "DrivingYourVibes",
+    ];
+
+    for (const p of performances) {
+      if (byTitle.has(p.title.toLowerCase())) {
+        skipped++;
+        continue;
+      }
+      if (p.games.length === 0) {
+        skipped++;
+        continue;
+      }
+      const title = p.title.replace(/Crazyball/gi, "Comedy Loco");
+      const performanceId = await ctx.db.insert("performances", {
+        title,
+        team1: p.team1,
+        team2: p.team2,
+        status: "draft",
+        ownerId,
+      });
+      for (const game of p.games) {
+        await ctx.db.insert("performanceGames", {
+          performanceId,
+          order: game.order,
+          round: game.round,
+          roundType: game.roundType,
+          teamIndex: game.teamIndex,
+          gameName: game.gameName.replace(/Crazyball/gi, "Comedy Loco"),
+          votes: 0,
+          score: 0,
+          isPlaying: false,
+          isPlayed: false,
+          isVoting: false,
+          isWinner: false,
+          rotation: false,
+          isScored: game.isScored,
+        });
+      }
+      for (const performer of p.performers) {
+        await ctx.db.insert("performers", {
+          performanceId,
+          name: performer.name,
+          teamIndex: performer.teamIndex,
+          bellBonus: 0,
+        });
+      }
+      for (let i = 0; i < overlayNames.length; i++) {
+        await ctx.db.insert("performanceOverlays", {
+          performanceId,
+          name: overlayNames[i],
+          order: i,
+        });
+      }
+      for (let i = 0; i < trackNames.length; i++) {
+        await ctx.db.insert("performanceTracks", {
+          performanceId,
+          name: trackNames[i],
+          order: i,
+        });
+      }
+      byTitle.add(p.title.toLowerCase());
+      inserted++;
+    }
+    return { inserted, skipped, renamed, ownerId };
+  },
+});
+
+export const posts = mutation({
+  args: {
+    posts: v.array(postSpec),
+  },
+  handler: async (ctx, { posts }) => {
+    const ownerId = await importerUser(ctx);
+    let inserted = 0;
+    for (const p of posts) {
+      const content = p.content.trim();
+      if (content.length < 8) continue;
+      let groupId: Id<"groups"> | undefined;
+      if (p.groupId) {
+        groupId = p.groupId as Id<"groups">;
+      }
+      await ctx.db.insert("posts", {
+        authorId: ownerId,
+        content,
+        groupId,
+        upvotes: 0,
+        replyCount: 0,
+      });
+      inserted++;
+    }
+    return { inserted, ownerId };
   },
 });
 

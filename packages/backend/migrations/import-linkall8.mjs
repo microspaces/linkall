@@ -5,7 +5,9 @@
  *
  * Site 1 = SurroundShow, 2 = FunFirst, 3 = RedWave.
  * Ω state/county groups are skipped unless --include-omega.
+ * Site 2 also imports performances and posts (FunFirst flow).
  * --users reads linkall8-users-siteN.json and follows public + home geo groups.
+ * Never writes shows/screens/layouts/panels.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -37,6 +39,11 @@ const omega = allSite.filter(
 const groups = includeOmega
   ? allSite
   : allSite.filter((g) => g.kind !== "state" && g.kind !== "county");
+const performances = siteId === 2 ? raw.performances || [] : [];
+const groupIds = new Set(groups.map((g) => g.legacyId));
+const posts = (raw.posts || []).filter(
+  (p) => !p.legacyGroupId || groupIds.has(p.legacyGroupId),
+);
 
 function chunk(arr, size) {
   const out = [];
@@ -91,7 +98,7 @@ if (existsSync(photoMapPath)) {
 
 const client = new ConvexHttpClient(convexUrl);
 console.log(
-  `Site ${siteId} -> ${convexUrl}: importing ${groups.length} groups (omega in this run: ${includeOmega ? omega.length : "skipped " + omega.length})${photoByName.size ? `, photos=${photoByName.size}` : ""}`,
+  `Site ${siteId} -> ${convexUrl}: importing ${groups.length} groups (omega in this run: ${includeOmega ? omega.length : "skipped " + omega.length})${photoByName.size ? `, photos=${photoByName.size}` : ""}, ${performances.length} performances, ${posts.length} posts`,
 );
 
 const idMap = {};
@@ -109,6 +116,37 @@ for (const batch of chunk(groups, 40)) {
 console.log(
   `\nGroups inserted=${groupInserted} updated=${groupUpdated} mapped=${Object.keys(idMap).length}`,
 );
+
+if (performances.length) {
+  let perfInserted = 0;
+  let perfSkipped = 0;
+  for (const batch of chunk(performances, 5)) {
+    const result = await client.mutation("importLinkAll8:performances", {
+      performances: batch,
+    });
+    perfInserted += result.inserted;
+    perfSkipped += result.skipped;
+    process.stdout.write("p");
+  }
+  console.log(`\nPerformances inserted=${perfInserted} skipped=${perfSkipped}`);
+}
+
+if (posts.length) {
+  let postInserted = 0;
+  for (const batch of chunk(posts, 50)) {
+    const result = await client.mutation("importLinkAll8:posts", {
+      posts: batch.map((p) => ({
+        content: p.content,
+        ...(p.legacyGroupId && idMap[p.legacyGroupId]
+          ? { groupId: idMap[p.legacyGroupId] }
+          : {}),
+      })),
+    });
+    postInserted += result.inserted;
+    process.stdout.write("c");
+  }
+  console.log(`\nPosts inserted=${postInserted}`);
+}
 
 const mapPath = join(__dirname, `linkall8-idmap-site${siteId}.json`);
 writeFileSync(mapPath, JSON.stringify(idMap, null, 2));
@@ -166,4 +204,4 @@ if (importUsers) {
   );
 }
 
-console.log("Done.");
+console.log("Done. Show/screen/layout rows were not modified.");
