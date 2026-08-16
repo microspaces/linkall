@@ -11,10 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-<<<<<<< HEAD
-=======
     "@convex-dev/auth": "^0.0.95",
->>>>>>> agent/magic-link-auth
     "@expo/vector-icons": "^14.1.0",
     "@linkall/backend": "workspace:*",
     "@linkall/brands": "workspace:*",

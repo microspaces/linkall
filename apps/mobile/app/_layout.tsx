@@ -45,14 +45,11 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="group/[id]" options={{ title: "Group" }} />
-<<<<<<< HEAD
           <Stack.Screen
             name="calibrate"
             options={{ title: "Calibrate Dual Projectors" }}
           />
-=======
           <Stack.Screen name="signin" options={{ title: "Sign in" }} />
->>>>>>> agent/magic-link-auth
         </Stack>
       </CurrentUserProvider>
     </ConvexAuthProvider>
