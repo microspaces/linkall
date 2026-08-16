@@ -11,7 +11,7 @@ import {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ConvexAppProvider url={process.env.NEXT_PUBLIC_CONVEX_URL}>
+    <ConvexAppProvider url={process.env.NEXT_PUBLIC_CONVEX_URL} variant="nextjs">
       <BrandProvider brand={brands.funfirst}>
         <CurrentUserProvider>
           <AppShell>{children}</AppShell>

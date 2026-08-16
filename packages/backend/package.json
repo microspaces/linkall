@@ -10,15 +10,22 @@
     "seed:surroundshow": "convex run seed:surroundshow --env-file .env.surroundshow",
     "seed:funfirst": "convex run seed:funfirst --env-file .env.funfirst",
     "seed:redwave": "convex run seed:redwave --env-file .env.redwave",
+<<<<<<< HEAD
     "seed:battleLoco": "convex run seed:battleLoco --env-file .env.funfirst",
 
+=======
+    "seed:battleLoco": "convex run seed:battleLoco --env-file .env.surroundshow",
+>>>>>>> agent/magic-link-auth
     "import:mike": "node migrations/import-mike.mjs",
     "import:linkall8": "node migrations/import-linkall8.mjs",
     "codegen": "convex codegen",
     "typecheck": "tsc --noEmit -p convex"
   },
   "dependencies": {
-    "convex": "^1.24.0"
+    "@auth/core": "0.41.1",
+    "@convex-dev/auth": "^0.0.95",
+    "convex": "^1.24.0",
+    "jose": "^5.2.2"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

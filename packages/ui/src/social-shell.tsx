@@ -8,8 +8,7 @@ import { api } from "@linkall/backend/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { useBrand } from "./brand-context";
-import { useCurrentUser } from "./current-user";
-import { UserSwitcher } from "./current-user";
+import { AuthUserMenu, useCurrentUser } from "./current-user";
 import { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 
 /**
@@ -23,6 +22,7 @@ import { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
 
 const CHROMELESS_PREFIXES = [
+  "/signin",
   "/player",
   "/screens",
   "/performance/screens",
@@ -231,7 +231,7 @@ function RightSidebar() {
         }
       >
         <p className="p-3 text-xs text-gray-400">
-          {userId ? "Loading groups…" : "Pick a user to load groups."}
+          {userId ? "Loading groups…" : "Sign in to load your groups."}
         </p>
       </aside>
     );
@@ -367,7 +367,7 @@ function SocialChrome({
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             <MobileGroupsMenu />
-            <UserSwitcher />
+            <AuthUserMenu />
           </div>
         </div>
       </header>

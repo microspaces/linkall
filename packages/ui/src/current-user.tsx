@@ -4,62 +4,44 @@ import {
   createContext,
   useContext,
   useEffect,
-  useState,
   type ReactNode,
 } from "react";
-import { useMutation, useQuery } from "convex/react";
+import Link from "next/link";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { Avatar } from "./avatar";
 
-/**
- * Demo-user selection, standing in for real authentication while testing
- * with mock data. Swap for Convex Auth or Clerk later — consumers only use
- * `useCurrentUser()`, so the swap is contained to this file.
- */
-
 interface CurrentUserValue {
   user: Doc<"users"> | null;
   userId: Id<"users"> | undefined;
-  setUserId: (id: Id<"users"> | null) => void;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signOut: () => Promise<void>;
 }
 
 const CurrentUserContext = createContext<CurrentUserValue | null>(null);
-const STORAGE_KEY = "linkall.demoUserId";
 
 export function CurrentUserProvider({ children }: { children: ReactNode }) {
-  const users = useQuery(api.users.list);
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const user = useQuery(api.users.me, isAuthenticated ? {} : "skip");
   const ensureMembership = useMutation(api.groups.ensureMembership);
-  const [storedId, setStoredId] = useState<string | null>(null);
+  const { signOut } = useAuthActions();
 
-  useEffect(() => {
-    setStoredId(window.localStorage.getItem(STORAGE_KEY));
-    // Keep identity in sync across browser tabs (screen pages, player, etc.).
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== STORAGE_KEY) return;
-      setStoredId(e.newValue);
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  const user =
-    users?.find((u) => u._id === storedId) ?? users?.[0] ?? null;
-
-  // Legacy: new users auto-subscribe to all public groups.
   useEffect(() => {
     if (user?._id) void ensureMembership({ userId: user._id });
   }, [user?._id, ensureMembership]);
 
-  const setUserId = (id: Id<"users"> | null) => {
-    if (id) window.localStorage.setItem(STORAGE_KEY, id);
-    else window.localStorage.removeItem(STORAGE_KEY);
-    setStoredId(id);
-  };
-
   return (
     <CurrentUserContext.Provider
-      value={{ user, userId: user?._id, setUserId }}
+      value={{
+        user: user ?? null,
+        userId: user?._id,
+        isLoading: isLoading || (isAuthenticated && user === undefined),
+        isAuthenticated,
+        signOut,
+      }}
     >
       {children}
     </CurrentUserContext.Provider>
@@ -73,27 +55,46 @@ export function useCurrentUser(): CurrentUserValue {
   return value;
 }
 
-export function UserSwitcher() {
-  const users = useQuery(api.users.list);
-  const { user, setUserId } = useCurrentUser();
+/** Header control: sign-in link or avatar + sign out. */
+export function AuthUserMenu() {
+  const { user, isLoading, signOut } = useCurrentUser();
 
-  if (!users || users.length === 0) return null;
+  if (isLoading) {
+    return (
+      <div
+        className="h-8 w-24 animate-pulse rounded-md bg-gray-200"
+        aria-hidden
+      />
+    );
+  }
+
+  if (!user) {
+    return (
+      <Link
+        href="/signin"
+        className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark"
+      >
+        Sign in
+      </Link>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">
-      {user && <Avatar name={user.name} src={user.avatarUrl} size={28} />}
-      <select
-        aria-label="Demo user"
-        className="max-w-36 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-        value={user?._id ?? ""}
-        onChange={(e) => setUserId(e.target.value as Id<"users">)}
+      <Avatar name={user.name} src={user.avatarUrl} size={28} />
+      <span className="hidden max-w-28 truncate text-sm text-gray-700 sm:inline">
+        {user.name}
+      </span>
+      <button
+        type="button"
+        onClick={() => void signOut()}
+        className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
       >
-        {users.map((u) => (
-          <option key={u._id} value={u._id}>
-            {u.name}
-          </option>
-        ))}
-      </select>
+        Sign out
+      </button>
     </div>
   );
 }
+
+/** @deprecated Use AuthUserMenu — kept so existing imports keep compiling. */
+export const UserSwitcher = AuthUserMenu;

@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as christmasMikeData from "../christmasMikeData.js";
 import type * as designer from "../designer.js";
+import type * as emailProvider from "../emailProvider.js";
 import type * as events from "../events.js";
 import type * as game from "../game.js";
 import type * as geo from "../geo.js";
@@ -32,8 +34,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   christmasMikeData: typeof christmasMikeData;
   designer: typeof designer;
+  emailProvider: typeof emailProvider;
   events: typeof events;
   game: typeof game;
   geo: typeof geo;

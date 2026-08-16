@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@convex-dev/auth": "^0.0.95",
     "@linkall/backend": "workspace:*",
     "@linkall/brands": "workspace:*",
     "convex": "^1.24.0"
