@@ -1,5 +1,11 @@
 /**
- * Loco show formats (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, …).
+ * Loco show formats (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …).
+ *
+ * Two engine modes (`mode` on each format):
+ *   competition — two teams play each round; scored rounds go to audience voting.
+ *     comedyloco, battleloco, wrestleloco, thisgameshow.
+ *   setlist — one segment at a time; no opponents, scores, or winners.
+ *     headcase, laffup, weddingloco, barloco. `team1`/`team2` are cast labels.
  *
  * Templates, catalogs, default teams, overlays, and tracks live here so a new
  * loco is data — not a new page tree. Operator routes are
@@ -16,7 +22,10 @@ export type LocoTag =
   | "battleloco"
   | "wrestleloco"
   | "headcase"
-  | "laffup";
+  | "laffup"
+  | "thisgameshow"
+  | "weddingloco"
+  | "barloco";
 
 export type CatalogGameSpec = {
   name: string;
@@ -36,6 +45,8 @@ export type LocoConfig = {
   tag: LocoTag;
   slug: string;
   name: string;
+  /** competition = paired teams + voting; setlist = one segment at a time. */
+  mode: "competition" | "setlist";
   blurb: string;
   listHint: string;
   catalogHint: string;
@@ -72,6 +83,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "comedyloco",
     slug: "comedy-loco",
     name: "Comedy Loco",
+    mode: "competition",
     blurb:
       "Team game show: Bananas vs Berries, live scoring and audience votes.",
     listHint:
@@ -120,23 +132,35 @@ export const LOCOS: LocoConfig[] = [
     tag: "battleloco",
     slug: "battle-loco",
     name: "Battle Loco",
+    mode: "competition",
     blurb:
-      "Esports, physical chaos, and crowd control — Heat vs Ice, Vegas-style.",
+      "Five scored games with pauses and celebrations — Heat vs Ice, then an award ceremony and outro.",
     listHint:
-      "Competitive Vegas nights — gaming, challenges, crowd votes, and punishments.",
+      "18-round card: five games with pauses and celebrations, then award ceremony and outro.",
     catalogHint:
-      "Gaming, physical, and crowd rounds for Battle Loco. Assign these on a performance.",
+      "Games, pauses, celebrations, award, and outro bits for Battle Loco. Assign these on a performance.",
     team1: "Heat",
     team2: "Ice",
     accent: "from-sky-400 to-fuchsia-500",
     templateRounds: [
       { round: 1, roundType: "Intro", isScored: false },
-      { round: 2, roundType: "Gaming", isScored: true },
-      { round: 3, roundType: "Challenge", isScored: true },
-      { round: 4, roundType: "Physical", isScored: true },
-      { round: 5, roundType: "Crowd", isScored: true },
-      { round: 6, roundType: "Punishment", isScored: false },
-      { round: 7, roundType: "Finale", isScored: true },
+      { round: 2, roundType: "Game", isScored: true },
+      { round: 3, roundType: "Pause", isScored: false },
+      { round: 4, roundType: "Game Celebration", isScored: false },
+      { round: 5, roundType: "Game", isScored: true },
+      { round: 6, roundType: "Pause", isScored: false },
+      { round: 7, roundType: "Game Celebration", isScored: false },
+      { round: 8, roundType: "Game", isScored: true },
+      { round: 9, roundType: "Pause", isScored: false },
+      { round: 10, roundType: "Game Celebration", isScored: false },
+      { round: 11, roundType: "Game", isScored: true },
+      { round: 12, roundType: "Pause", isScored: false },
+      { round: 13, roundType: "Game Celebration", isScored: false },
+      { round: 14, roundType: "Game", isScored: true },
+      { round: 15, roundType: "Pause", isScored: false },
+      { round: 16, roundType: "Game Celebration", isScored: false },
+      { round: 17, roundType: "Award", isScored: false },
+      { round: 18, roundType: "Outro", isScored: false },
     ],
     overlays: [
       "Game Instructions",
@@ -150,22 +174,28 @@ export const LOCOS: LocoConfig[] = [
     tracks: SHARED_TRACKS,
     catalog: [
       { name: "Face Off", roundType: "Intro", shortDescription: "Trash-talk intro", suggestions: "A rivalry", description: "Teams warm up the room. Unscored." },
-      { name: "Smash Bros", roundType: "Gaming", shortDescription: "Console showdown", suggestions: "A character", description: "Best-of set on the big screens." },
-      { name: "Mario Kart", roundType: "Gaming", shortDescription: "Race night", suggestions: "A cup", description: "Rainbow Road energy, live crowd items." },
-      { name: "Trivia Blitz", roundType: "Challenge", shortDescription: "Fast facts", suggestions: "A decade", description: "Buzzer trivia — wrong answers cost you." },
-      { name: "Minute to Win It", roundType: "Challenge", shortDescription: "Party stunts", suggestions: "A household object", description: "60 seconds, one ridiculous task." },
-      { name: "Relay Race", roundType: "Physical", shortDescription: "Team sprint", suggestions: "A handicap", description: "Physical relay with a silly constraint." },
-      { name: "Tug of War", roundType: "Physical", shortDescription: "Pull contest", suggestions: "A wager", description: "Old-school pull. Crowd picks the rope handicap." },
-      { name: "Crowd Control", roundType: "Crowd", shortDescription: "Audience runs it", suggestions: "A chant", description: "The room votes, heckles, and changes the rules." },
-      { name: "Roast the Loser", roundType: "Crowd", shortDescription: "Crowd roast", suggestions: "A nickname", description: "Audience supplies the lines." },
-      { name: "Punishment Wheel", roundType: "Punishment", shortDescription: "Spin the cost", suggestions: "A dare", description: "Loser spins. Spectacle, not a scored round." },
-      { name: "Finale Gauntlet", roundType: "Finale", shortDescription: "Last stand", suggestions: "A sudden-death game", description: "Winner-take-the-night mix of game and stunt." },
+      { name: "Smash Bros", roundType: "Game", shortDescription: "Console showdown", suggestions: "A character", description: "Best-of set on the big screens." },
+      { name: "Mario Kart", roundType: "Game", shortDescription: "Race night", suggestions: "A cup", description: "Rainbow Road energy, live crowd items." },
+      { name: "Trivia Blitz", roundType: "Game", shortDescription: "Fast facts", suggestions: "A decade", description: "Buzzer trivia — wrong answers cost you." },
+      { name: "Minute to Win It", roundType: "Game", shortDescription: "Party stunts", suggestions: "A household object", description: "60 seconds, one ridiculous task." },
+      { name: "Relay Race", roundType: "Game", shortDescription: "Team sprint", suggestions: "A handicap", description: "Physical relay with a silly constraint." },
+      { name: "Tug of War", roundType: "Game", shortDescription: "Pull contest", suggestions: "A wager", description: "Old-school pull. Crowd picks the rope handicap." },
+      { name: "Crowd Control", roundType: "Game", shortDescription: "Audience runs it", suggestions: "A chant", description: "The room votes, heckles, and changes the rules." },
+      { name: "Roast the Loser", roundType: "Game", shortDescription: "Crowd roast", suggestions: "A nickname", description: "Audience supplies the lines." },
+      { name: "Punishment Wheel", roundType: "Pause", shortDescription: "Spin the cost", suggestions: "A dare", description: "Loser spins. Spectacle between games, not scored." },
+      { name: "Water Break", roundType: "Pause", shortDescription: "Reset the floor", suggestions: "A hydration dare", description: "Quick reset between games. Unscored." },
+      { name: "Champion Streak", roundType: "Game Celebration", shortDescription: "Winner flex", suggestions: "A victory pose", description: "Last game's winner milks the win. Unscored." },
+      { name: "Victory Lap", roundType: "Game Celebration", shortDescription: "Crowd lap", suggestions: "A chant", description: "Winners work the room. Unscored celebration." },
+      { name: "Trophy Reveal", roundType: "Award", shortDescription: "Title drop", suggestions: "A trophy name", description: "Announce the night's champion. Unscored." },
+      { name: "Podium Photo", roundType: "Award", shortDescription: "Podium bit", suggestions: "A pose", description: "Podium, photos, and sore-loser sabotage. Unscored." },
+      { name: "Goodnight", roundType: "Outro", shortDescription: "Send-off", suggestions: "A closing chant", description: "Wave, handshake, and thank the room. Unscored." },
     ],
   },
   {
     tag: "wrestleloco",
     slug: "wrestle-loco",
     name: "Wrestle Loco",
+    mode: "competition",
     blurb:
       "Wrestling comedy — Faces vs Heels, five 3-round matches, an award ceremony, and an outro.",
     listHint:
@@ -243,23 +273,24 @@ export const LOCOS: LocoConfig[] = [
     tag: "headcase",
     slug: "head-case",
     name: "HeadCase",
+    mode: "setlist",
     blurb:
-      "AI-assisted comedy bits and sketches — Humans vs Bots, written by the room.",
+      "AI-assisted bits and sketches, stepped through as a set list.",
     listHint:
-      "Bit nights: cold opens, AI sketches, crowd prompts, and a callback finale.",
+      "Step through the night's segments — cold opens, AI sketches, crowd prompts, and a callback finale.",
     catalogHint:
-      "Bits and sketches for HeadCase. Assign these on a performance.",
+      "Bits and sketches for a HeadCase set list. Assign these on a performance.",
     team1: "Humans",
     team2: "Bots",
     accent: "from-violet-500 to-cyan-400",
     templateRounds: [
       { round: 1, roundType: "Intro", isScored: false },
-      { round: 2, roundType: "Bit", isScored: true },
-      { round: 3, roundType: "Sketch", isScored: true },
-      { round: 4, roundType: "Crowd", isScored: true },
-      { round: 5, roundType: "Bit", isScored: true },
-      { round: 6, roundType: "Callback", isScored: true },
-      { round: 7, roundType: "Finale", isScored: true },
+      { round: 2, roundType: "Bit", isScored: false },
+      { round: 3, roundType: "Sketch", isScored: false },
+      { round: 4, roundType: "Crowd", isScored: false },
+      { round: 5, roundType: "Bit", isScored: false },
+      { round: 6, roundType: "Callback", isScored: false },
+      { round: 7, roundType: "Finale", isScored: false },
     ],
     overlays: [
       "Game Instructions",
@@ -276,7 +307,7 @@ export const LOCOS: LocoConfig[] = [
       { name: "Smart Fridge", roundType: "Bit", shortDescription: "AI character", suggestions: "A 2am snack", description: "A fridge with opinions about your choices." },
       { name: "GPS Therapist", roundType: "Bit", shortDescription: "Recalculating…", suggestions: "A life decision", description: "Navigation as life coaching." },
       { name: "Generated Sketch", roundType: "Sketch", shortDescription: "Room + model", suggestions: "A premise", description: "The room pitches; the bit plays out." },
-      { name: "Two-Hander", roundType: "Sketch", shortDescription: "Human vs bot", suggestions: "A relationship", description: "One human, one bot, one scene." },
+      { name: "Two-Hander", roundType: "Sketch", shortDescription: "Human and bot", suggestions: "A relationship", description: "One human, one bot, one scene." },
       { name: "Crowd Prompt", roundType: "Crowd", shortDescription: "Audience seeds the model", suggestions: "A forbidden topic", description: "The room types the next line." },
       { name: "Heckle Filter", roundType: "Crowd", shortDescription: "Live moderation bit", suggestions: "A heckle", description: "Bots remix the heckle into a joke." },
       { name: "Earlier Tonight", roundType: "Callback", shortDescription: "Callback reel", suggestions: "A missed joke", description: "Revisit the night's best wrong turns." },
@@ -287,22 +318,23 @@ export const LOCOS: LocoConfig[] = [
     tag: "laffup",
     slug: "laff-up",
     name: "LaffUp",
+    mode: "setlist",
     blurb:
-      "Open-mic stand-up showcases — Openers vs Headliners, five-minute sets.",
+      "Open-mic stand-up showcases, run as a set list.",
     listHint:
-      "Mic nights: host intro, short sets, crowd work, feature, and a headliner close.",
+      "Step through the night's segments — host intro, short sets, crowd work, feature, and a headliner close.",
     catalogHint:
-      "Sets and crowd bits for LaffUp. Assign these on a performance.",
+      "Sets and crowd bits for a LaffUp set list. Assign these on a performance.",
     team1: "Openers",
     team2: "Headliners",
     accent: "from-rose-400 to-amber-300",
     templateRounds: [
       { round: 1, roundType: "Intro", isScored: false },
-      { round: 2, roundType: "Set", isScored: true },
-      { round: 3, roundType: "Crowd", isScored: true },
-      { round: 4, roundType: "Set", isScored: true },
-      { round: 5, roundType: "Feature", isScored: true },
-      { round: 6, roundType: "Headliner", isScored: true },
+      { round: 2, roundType: "Set", isScored: false },
+      { round: 3, roundType: "Crowd", isScored: false },
+      { round: 4, roundType: "Set", isScored: false },
+      { round: 5, roundType: "Feature", isScored: false },
+      { round: 6, roundType: "Headliner", isScored: false },
     ],
     overlays: [
       "Game Instructions",
@@ -316,12 +348,178 @@ export const LOCOS: LocoConfig[] = [
     tracks: SHARED_TRACKS,
     catalog: [
       { name: "Host Open", roundType: "Intro", shortDescription: "House rules", suggestions: "A city", description: "Host warms the room. Unscored." },
-      { name: "New Material", roundType: "Set", shortDescription: "Five minutes", suggestions: "A premise", description: "Fresh pages. Crowd scores the set." },
+      { name: "New Material", roundType: "Set", shortDescription: "Five minutes", suggestions: "A premise", description: "Fresh pages. Five minutes on the mic." },
       { name: "Tight Five", roundType: "Set", shortDescription: "Cleanest five", suggestions: "A callback", description: "Best five from the notebook." },
       { name: "Crowd Work", roundType: "Crowd", shortDescription: "Talk to the room", suggestions: "A job in the front row", description: "Off-book with the audience." },
       { name: "Roast a Table", roundType: "Crowd", shortDescription: "Table work", suggestions: "An anniversary", description: "One table becomes the bit." },
       { name: "Feature Set", roundType: "Feature", shortDescription: "Mid-show set", suggestions: "A touring joke", description: "Longer set between openers and the close." },
       { name: "Headliner Set", roundType: "Headliner", shortDescription: "Close the night", suggestions: "A closer", description: "Headliner takes the room home." },
+    ],
+  },
+  {
+    tag: "thisgameshow",
+    slug: "this-game-show",
+    name: "This Game Show",
+    mode: "competition",
+    blurb:
+      "Studio game show night — Contestants vs Champions, host open, scored games, audience vote, prize reveal, goodnight.",
+    listHint:
+      "13-round card: host open, three games with pauses and celebrations, then audience vote, prize reveal, and goodnight.",
+    catalogHint:
+      "Games, pauses, celebrations, audience vote, prize, and outro bits for This Game Show. Assign these on a performance.",
+    team1: "Contestants",
+    team2: "Champions",
+    accent: "from-emerald-400 to-lime-300",
+    templateRounds: [
+      { round: 1, roundType: "Intro", isScored: false },
+      { round: 2, roundType: "Game", isScored: true },
+      { round: 3, roundType: "Pause", isScored: false },
+      { round: 4, roundType: "Game Celebration", isScored: false },
+      { round: 5, roundType: "Game", isScored: true },
+      { round: 6, roundType: "Pause", isScored: false },
+      { round: 7, roundType: "Game Celebration", isScored: false },
+      { round: 8, roundType: "Game", isScored: true },
+      { round: 9, roundType: "Pause", isScored: false },
+      { round: 10, roundType: "Game Celebration", isScored: false },
+      { round: 11, roundType: "Audience Vote", isScored: true },
+      { round: 12, roundType: "Prize Reveal", isScored: false },
+      { round: 13, roundType: "Outro", isScored: false },
+    ],
+    overlays: [
+      "Game Instructions",
+      "Vote",
+      "Contestants",
+      "Score",
+      "Games",
+      "Score Rotation",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Host Open", roundType: "Intro", shortDescription: "Studio welcome", suggestions: "A hometown", description: "Host warms the room and introduces the teams. Unscored." },
+      { name: "Lightning Trivia", roundType: "Game", shortDescription: "Fast facts", suggestions: "A category", description: "Buzzer trivia — first correct answer scores." },
+      { name: "Price Check", roundType: "Game", shortDescription: "Guess the price", suggestions: "A prize item", description: "Closest without going over wins the round." },
+      { name: "Hot Potato Dash", roundType: "Game", shortDescription: "Studio stunt", suggestions: "A household object", description: "Timed physical bit on the studio floor." },
+      { name: "Name That Tune", roundType: "Game", shortDescription: "Music trivia", suggestions: "A decade", description: "Buzz in on the hook. First correct title scores." },
+      { name: "Commercial Break", roundType: "Pause", shortDescription: "Reset the floor", suggestions: "A fake product", description: "Sponsor bit and floor reset. Unscored." },
+      { name: "Water Cooler", roundType: "Pause", shortDescription: "Host banter", suggestions: "A callback", description: "Host fills while teams reset. Unscored." },
+      { name: "Winner Bell", roundType: "Game Celebration", shortDescription: "Ding the bell", suggestions: "A victory pose", description: "Last game's winner milks the ding. Unscored." },
+      { name: "Confetti Toss", roundType: "Game Celebration", shortDescription: "Winner flex", suggestions: "A chant", description: "Winners work the studio. Unscored celebration." },
+      { name: "Applause Meter", roundType: "Audience Vote", shortDescription: "Crowd pick", suggestions: "A favorite moment", description: "The room votes the night's favorite. Scored." },
+      { name: "Crowd Favorite", roundType: "Audience Vote", shortDescription: "Audience pick", suggestions: "A standout player", description: "Audience crowns the night's favorite. Scored." },
+      { name: "Showcase Showdown", roundType: "Prize Reveal", shortDescription: "Prize package", suggestions: "A dream prize", description: "Reveal the showcase. Unscored." },
+      { name: "Envelope Please", roundType: "Prize Reveal", shortDescription: "Big envelope", suggestions: "A prize name", description: "Open the envelope and show the loot. Unscored." },
+      { name: "Goodnight", roundType: "Outro", shortDescription: "Send-off", suggestions: "A closing wave", description: "Wave, thank the room, and hit the lights. Unscored." },
+    ],
+  },
+  {
+    tag: "weddingloco",
+    slug: "wedding-loco",
+    name: "Wedding Loco",
+    mode: "setlist",
+    blurb:
+      "Reception set list — step through the night's segments from grand entrance to send-off.",
+    listHint:
+      "14-segment card: grand entrance, toasts, dinner sets, dances, crowd games, cake cutting, and send-off.",
+    catalogHint:
+      "Entrance, toasts, dinner sets, dances, crowd games, cake, and send-off bits for a Wedding Loco set list. Assign these on a performance.",
+    team1: "Bride",
+    team2: "Groom",
+    accent: "from-pink-300 to-rose-200",
+    templateRounds: [
+      { round: 1, roundType: "Intro", isScored: false },
+      { round: 2, roundType: "Toast", isScored: false },
+      { round: 3, roundType: "Set", isScored: false },
+      { round: 4, roundType: "Game", isScored: false },
+      { round: 5, roundType: "Dance", isScored: false },
+      { round: 6, roundType: "Set", isScored: false },
+      { round: 7, roundType: "Game", isScored: false },
+      { round: 8, roundType: "Ceremony", isScored: false },
+      { round: 9, roundType: "Dance", isScored: false },
+      { round: 10, roundType: "Set", isScored: false },
+      { round: 11, roundType: "Dance", isScored: false },
+      { round: 12, roundType: "Set", isScored: false },
+      { round: 13, roundType: "Dance", isScored: false },
+      { round: 14, roundType: "Outro", isScored: false },
+    ],
+    overlays: [
+      "Game Instructions",
+      "Vote",
+      "Dedication",
+      "Score",
+      "Timeline",
+      "Games",
+      "Score Rotation",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Grand Entrance", roundType: "Intro", shortDescription: "Couple walk-in", suggestions: "An entrance song", description: "DJ announces the couple. Unscored." },
+      { name: "Wedding Party Walk", roundType: "Intro", shortDescription: "Party walk-in", suggestions: "A walk-up song", description: "Bridal party hits the floor. Unscored." },
+      { name: "Best Man Toast", roundType: "Toast", shortDescription: "Best man mic", suggestions: "A story", description: "Best man takes the mic. Unscored." },
+      { name: "Maid of Honor Toast", roundType: "Toast", shortDescription: "Maid of honor mic", suggestions: "A story", description: "Maid of honor takes the mic. Unscored." },
+      { name: "Dinner Playlist", roundType: "Set", shortDescription: "Dinner music", suggestions: "A decade", description: "Soft dinner set while tables eat. Unscored." },
+      { name: "Open Floor Set", roundType: "Set", shortDescription: "Dance floor open", suggestions: "A request", description: "Open-floor bangers. Unscored." },
+      { name: "Shoe Game", roundType: "Game", shortDescription: "Who knows who", suggestions: "A question", description: "Couple holds shoes and answers." },
+      { name: "Bouquet and Garter", roundType: "Game", shortDescription: "Toss and catch", suggestions: "A volunteer", description: "Bouquet toss and garter hunt." },
+      { name: "First Dance", roundType: "Dance", shortDescription: "Couple first dance", suggestions: "A first-dance song", description: "Bride and groom take the floor. Unscored." },
+      { name: "Parent Dances", roundType: "Dance", shortDescription: "Family dances", suggestions: "A parent song", description: "Parents take their dances. Unscored." },
+      { name: "Anniversary Dance", roundType: "Dance", shortDescription: "Longest married", suggestions: "A year", description: "Couples stay on the floor by years. Unscored." },
+      { name: "Cake Cutting", roundType: "Ceremony", shortDescription: "Cake bit", suggestions: "A flavor", description: "Cut the cake and feed the bit. Unscored." },
+      { name: "Sparkler Send-off", roundType: "Outro", shortDescription: "Exit the venue", suggestions: "A last song", description: "Sparklers, bubbles, and goodnight. Unscored." },
+      { name: "Getaway Wave", roundType: "Outro", shortDescription: "Car send-off", suggestions: "A getaway song", description: "Wave them out the door. Unscored." },
+    ],
+  },
+  {
+    tag: "barloco",
+    slug: "bar-loco",
+    name: "Bar Loco",
+    mode: "setlist",
+    blurb:
+      "Bar night set list — step through the night's segments from doors to last call.",
+    listHint:
+      "12-segment card: doors, happy-hour sets, crowd warmup, trivia, prime set, singalong, bar games, late set, last call, and close.",
+    catalogHint:
+      "Doors, sets, crowd bits, trivia, bar games, last call, and close bits for a Bar Loco set list. Assign these on a performance.",
+    team1: "Regulars",
+    team2: "Newcomers",
+    accent: "from-teal-400 to-amber-600",
+    templateRounds: [
+      { round: 1, roundType: "Intro", isScored: false },
+      { round: 2, roundType: "Set", isScored: false },
+      { round: 3, roundType: "Crowd", isScored: false },
+      { round: 4, roundType: "Game", isScored: false },
+      { round: 5, roundType: "Break", isScored: false },
+      { round: 6, roundType: "Set", isScored: false },
+      { round: 7, roundType: "Crowd", isScored: false },
+      { round: 8, roundType: "Game", isScored: false },
+      { round: 9, roundType: "Set", isScored: false },
+      { round: 10, roundType: "Break", isScored: false },
+      { round: 11, roundType: "Set", isScored: false },
+      { round: 12, roundType: "Outro", isScored: false },
+    ],
+    overlays: [
+      "Game Instructions",
+      "Vote",
+      "Crowd",
+      "Score",
+      "Timeline",
+      "Games",
+      "Score Rotation",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Doors Open", roundType: "Intro", shortDescription: "House lights up", suggestions: "A welcome song", description: "Doors, specials, and first pours. Unscored." },
+      { name: "Happy Hour Set", roundType: "Set", shortDescription: "Early floor filler", suggestions: "A decade", description: "Easy set while the room fills. Unscored." },
+      { name: "Prime Time Set", roundType: "Set", shortDescription: "Peak-hour set", suggestions: "A request", description: "Prime set when the room is full. Unscored." },
+      { name: "Late Set", roundType: "Set", shortDescription: "After-peak set", suggestions: "A last-hour request", description: "Louder, later, stickier songs. Unscored." },
+      { name: "Crowd Warmup", roundType: "Crowd", shortDescription: "Host works the room", suggestions: "A regular's name", description: "Host and bartenders warm the room. Unscored." },
+      { name: "Singalong", roundType: "Crowd", shortDescription: "Room sings the chorus", suggestions: "A chorus", description: "The room takes the chorus. Unscored." },
+      { name: "Roast a Regular", roundType: "Crowd", shortDescription: "Table work", suggestions: "A nickname", description: "One regular becomes the bit. Unscored." },
+      { name: "Bar Trivia", roundType: "Game", shortDescription: "Pub quiz", suggestions: "A category", description: "The room buzzes in on bar trivia." },
+      { name: "Bar Olympics", roundType: "Game", shortDescription: "Bar stunts", suggestions: "A bar trick", description: "Timed bar games and stunts." },
+      { name: "Drink Specials", roundType: "Break", shortDescription: "Specials board", suggestions: "A house pour", description: "Call the specials and reset. Unscored." },
+      { name: "Last Call", roundType: "Break", shortDescription: "Last round", suggestions: "A last-call chant", description: "Last call and tab check. Unscored." },
+      { name: "Closing Time", roundType: "Outro", shortDescription: "Lights up", suggestions: "A closing song", description: "Last song, lights, and goodnight. Unscored." },
+      { name: "Last Song", roundType: "Outro", shortDescription: "One more song", suggestions: "A closer", description: "One more song and out the door. Unscored." },
     ],
   },
 ];

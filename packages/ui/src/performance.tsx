@@ -17,7 +17,7 @@ import {
 import { PerformanceNightRows } from "./performance-nights";
 
 /**
- * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, …).
+ * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …).
  *
  * Routes live under `/locos/[slug]/{performances,performance,games}`. Comedy
  * Loco aliases at `/performances`, `/performance`, `/games` still work.
@@ -184,14 +184,14 @@ function CreatePerformanceModal({
           />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Team 1">
+          <Field label={loco.mode === "setlist" ? loco.team1 : "Team 1"}>
             <input
               className={inputCls}
               value={team1}
               onChange={(e) => setTeam1(e.target.value)}
             />
           </Field>
-          <Field label="Team 2">
+          <Field label={loco.mode === "setlist" ? loco.team2 : "Team 2"}>
             <input
               className={inputCls}
               value={team2}
@@ -200,8 +200,9 @@ function CreatePerformanceModal({
           </Field>
         </div>
         <p className="text-xs text-gray-500">
-          Seeds the {loco.templateRounds.length}-round {loco.name} grid for both
-          teams. Pick games from the console after you create it.
+          {loco.mode === "setlist"
+            ? `Seeds the ${loco.templateRounds.length}-segment ${loco.name} set list. Assign segments from the console after you create it.`
+            : `Seeds the ${loco.templateRounds.length}-round ${loco.name} grid for both teams. Pick games from the console after you create it.`}
         </p>
         <button
           onClick={() => void save()}
@@ -363,6 +364,7 @@ export function PerformanceConsole({
           tab={tab}
           shows={shows ?? []}
           tag={loco.tag}
+          setlist={loco.mode === "setlist"}
           screenHref={paths.screen(view._id)}
         />
       )}
@@ -396,12 +398,14 @@ function Console({
   tab,
   shows,
   tag,
+  setlist,
   screenHref,
 }: {
   view: PerformanceView;
   tab: TabId;
   shows: Doc<"shows">[];
   tag: string;
+  setlist: boolean;
   screenHref: string;
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
@@ -499,10 +503,10 @@ function Console({
   // Game tab — matches legacy tabGame layout
   return (
     <div className="flex-1 space-y-0 overflow-y-auto">
-      <GameGrid view={view} tag={tag} />
+      <GameGrid view={view} tag={tag} setlist={setlist} />
       <PerformerBar view={view} bellBonus={bellBonus} />
       <OverlayTrackColumns view={view} performanceId={performanceId} />
-      <ControlStrip view={view} />
+      <ControlStrip view={view} setlist={setlist} />
       <div className="p-3">
         <ScreenLinks
           screenUrl={screenUrl}
@@ -642,7 +646,15 @@ function ScreenLinks({
 
 // --------------------------------------------------------------- game grid
 
-function GameGrid({ view, tag }: { view: PerformanceView; tag: string }) {
+function GameGrid({
+  view,
+  tag,
+  setlist,
+}: {
+  view: PerformanceView;
+  tag: string;
+  setlist: boolean;
+}) {
   const assignGame = useMutation(api.game.assignGame);
   const catalog =
     (useQuery(api.game.listCatalog, {}) ?? []).filter(
@@ -656,10 +668,14 @@ function GameGrid({ view, tag }: { view: PerformanceView; tag: string }) {
           <tr className="bg-gray-900 text-left uppercase tracking-wide text-white">
             <th className="px-1.5 py-1.5">#</th>
             <th className="px-1.5 py-1.5">Type</th>
-            <th className="px-1.5 py-1.5">Team</th>
-            <th className="px-1.5 py-1.5">Game</th>
-            <th className="px-1.5 py-1.5 text-right">V</th>
-            <th className="px-1.5 py-1.5 text-right">S</th>
+            <th className="px-1.5 py-1.5">{setlist ? "Cast" : "Team"}</th>
+            <th className="px-1.5 py-1.5">{setlist ? "Segment" : "Game"}</th>
+            {!setlist && (
+              <>
+                <th className="px-1.5 py-1.5 text-right">V</th>
+                <th className="px-1.5 py-1.5 text-right">S</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -719,15 +735,19 @@ function GameGrid({ view, tag }: { view: PerformanceView; tag: string }) {
                     ))}
                   </select>
                 </td>
-                <td className="px-1.5 py-1.5 text-right">
-                  {g.roundType.toLowerCase().includes("volunteer")
-                    ? (g.volunteers ?? 0)
-                    : g.votes}
-                </td>
-                <td className="px-1.5 py-1.5 text-right">
-                  {g.score}
-                  {g.rotation ? " ↻" : ""}
-                </td>
+                {!setlist && (
+                  <>
+                    <td className="px-1.5 py-1.5 text-right">
+                      {g.roundType.toLowerCase().includes("volunteer")
+                        ? (g.volunteers ?? 0)
+                        : g.votes}
+                    </td>
+                    <td className="px-1.5 py-1.5 text-right">
+                      {g.score}
+                      {g.rotation ? " ↻" : ""}
+                    </td>
+                  </>
+                )}
               </tr>
             );
           })}
@@ -746,8 +766,17 @@ function GameGrid({ view, tag }: { view: PerformanceView; tag: string }) {
  *   team 2 / same-game both playing → End Round (+ Rotation if same game)
  *   voting → Win 1 / Win 2
  * Next is the unified advance (Begin / Next Game / End Round).
+ *
+ * Set list: hide scoreboard, votes, Win/Rotation. Buttons read Begin Segment
+ * / End Segment; Next is the step-through control.
  */
-function ControlStrip({ view }: { view: PerformanceView }) {
+function ControlStrip({
+  view,
+  setlist,
+}: {
+  view: PerformanceView;
+  setlist: boolean;
+}) {
   const beginGame = useMutation(api.game.beginGame);
   const nextGame = useMutation(api.game.nextGame);
   const endRound = useMutation(api.game.endRound);
@@ -775,28 +804,32 @@ function ControlStrip({ view }: { view: PerformanceView }) {
   const catalog = view.catalog;
   const phase = current.phase;
   const showBegin = phase === "idle" || phase === "cued";
-  const showNextGame = phase === "team1";
-  const showEndRound = phase === "team2" || phase === "both";
-  const showWin = phase === "voting";
-  const showRotation = current.sameGame && (phase === "both" || phase === "team2");
+  const showNextGame = !setlist && phase === "team1";
+  const showEndRound =
+    setlist ? phase === "team1" : phase === "team2" || phase === "both";
+  const showWin = !setlist && phase === "voting";
+  const showRotation =
+    !setlist && current.sameGame && (phase === "both" || phase === "team2");
   const showNext = !showWin;
 
   return (
     <div className="border-t border-gray-200 bg-white p-2">
-      <div className="mb-2 grid grid-cols-2 gap-1">
-        {([1, 2] as const).map((t) => (
-          <div key={t} className="rounded border border-gray-200 px-2 py-1 text-center">
-            <p className="text-[10px] font-semibold uppercase text-gray-400">
-              {teamName(view, t)}
-            </p>
-            <p className="text-xl font-black text-brand-dark">
-              {t === 1 ? view.scores.team1 : view.scores.team2}
-            </p>
-          </div>
-        ))}
-      </div>
+      {!setlist && (
+        <div className="mb-2 grid grid-cols-2 gap-1">
+          {([1, 2] as const).map((t) => (
+            <div key={t} className="rounded border border-gray-200 px-2 py-1 text-center">
+              <p className="text-[10px] font-semibold uppercase text-gray-400">
+                {teamName(view, t)}
+              </p>
+              <p className="text-xl font-black text-brand-dark">
+                {t === 1 ? view.scores.team1 : view.scores.team2}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-        Round {game1.round} · {game1.roundType}
+        {setlist ? "Segment" : "Round"} {game1.round} · {game1.roundType}
         {playing.gameName ? ` · ${playing.gameName}` : ""}
         {current.sameGame ? " · same game" : ""}
       </p>
@@ -811,7 +844,7 @@ function ControlStrip({ view }: { view: PerformanceView }) {
         </p>
       )}
 
-      {current.volunteerRound && !showBegin && !showWin && (
+      {!setlist && current.volunteerRound && !showBegin && !showWin && (
         <div className="mb-2 flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
           <span className="text-xs font-semibold text-amber-900">Volunteers</span>
           {([1, 2] as const).map((t) => {
@@ -849,7 +882,7 @@ function ControlStrip({ view }: { view: PerformanceView }) {
             onClick={() => beginGame({ performanceId })}
             className={btn + " bg-brand text-white hover:opacity-90"}
           >
-            Begin Game
+            {setlist ? "Begin Segment" : "Begin Game"}
           </button>
         )}
         {showNextGame && (
@@ -865,7 +898,7 @@ function ControlStrip({ view }: { view: PerformanceView }) {
             onClick={() => endRound({ performanceId })}
             className={btn + " bg-brand text-white hover:opacity-90"}
           >
-            End Round
+            {setlist ? "End Segment" : "End Round"}
           </button>
         )}
         {showRotation && (
@@ -906,7 +939,7 @@ function ControlStrip({ view }: { view: PerformanceView }) {
           onClick={() => next({ performanceId })}
           className="mt-1 w-full rounded-md border border-brand bg-brand-light px-3 py-2 text-sm font-bold text-brand-dark hover:opacity-90"
         >
-          Next
+          {setlist ? "Next Segment" : "Next"}
         </button>
       )}
     </div>
@@ -980,7 +1013,7 @@ function OverlayView({ view }: { view: PerformanceView }) {
       </div>
     );
 
-  if (overlay === "vote")
+  if (overlay === "vote" && view.mode !== "setlist")
     return (
       <div className="px-8 text-center">
         <h1 className="text-8xl font-black text-amber-400">VOTE!</h1>
@@ -993,7 +1026,7 @@ function OverlayView({ view }: { view: PerformanceView }) {
       </div>
     );
 
-  if (overlay.startsWith("winner"))
+  if (overlay.startsWith("winner") && view.mode !== "setlist")
     return (
       <div className="px-8 text-center">
         <p className="text-3xl font-semibold uppercase tracking-widest text-white/50">
@@ -1006,7 +1039,10 @@ function OverlayView({ view }: { view: PerformanceView }) {
       </div>
     );
 
-  if (overlay === "score" || overlay === "box score" || overlay === "score rotation")
+  if (
+    view.mode !== "setlist" &&
+    (overlay === "score" || overlay === "box score" || overlay === "score rotation")
+  )
     return (
       <div className="px-8 text-center">
         <h1 className="text-5xl font-black uppercase tracking-widest text-white/70">
@@ -1049,11 +1085,17 @@ function OverlayView({ view }: { view: PerformanceView }) {
   return (
     <div className="px-8 text-center">
       <h1 className="text-7xl font-black">{view.title}</h1>
-      <div className="mt-10 flex items-center justify-center gap-12 text-5xl font-black">
-        <span className="text-yellow-300">{view.team1}</span>
-        <span className="text-2xl text-white/40">vs</span>
-        <span className="text-pink-400">{view.team2}</span>
-      </div>
+      {view.mode === "setlist" ? (
+        <p className="mt-10 text-3xl font-semibold uppercase tracking-widest text-white/50">
+          Set list
+        </p>
+      ) : (
+        <div className="mt-10 flex items-center justify-center gap-12 text-5xl font-black">
+          <span className="text-yellow-300">{view.team1}</span>
+          <span className="text-2xl text-white/40">vs</span>
+          <span className="text-pink-400">{view.team2}</span>
+        </div>
+      )}
     </div>
   );
 }

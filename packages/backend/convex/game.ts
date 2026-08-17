@@ -7,10 +7,16 @@ import { requireLoco, rowTag } from "./locos";
 /**
  * Loco game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
  *
- * Templates, catalogs, and default teams live in `locos.ts`. Performances and
- * catalog rows are tagged (`comedyloco` / `battleloco` / `wrestleloco` /
- * `headcase` / `laffup`);
- * untagged legacy rows count as Comedy Loco.
+ * Templates, catalogs, and default teams live in `locos.ts`. Each format has a
+ * `mode`:
+ *   competition — two `performanceGames` rows per template round (team 1, then
+ *     team 2). Host flow: team1 plays → team2 plays → scored rounds vote → Win.
+ *   setlist — one row per template round (`teamIndex: 1`). Host flow: begin
+ *     segment → end segment → next segment. No opponents, scores, or winners.
+ *
+ * Performances and catalog rows are tagged (`comedyloco` / `battleloco` /
+ * `wrestleloco` / `headcase` / `laffup` / `thisgameshow` / `weddingloco` /
+ * `barloco`); untagged legacy rows count as Comedy Loco.
  */
 
 // ------------------------------------------------------------------ helpers
@@ -82,14 +88,45 @@ async function cueTrack(
   });
 }
 
+function isSetlist(tag?: string | null) {
+  return requireLoco(tag).mode === "setlist";
+}
+
 /**
- * The current round is the first pair where the round hasn't finished.
- * Phase within the pair mirrors GetCurrentGameRow in game-1.0.1.js:
+ * The current round is the first unfinished group.
+ *
+ * Competition: rows come in pairs (team 1, then team 2). Phase mirrors
+ * GetCurrentGameRow in game-1.0.1.js:
  *   same llgameid → both teams play together (Begin Game → End Round)
  *   different games → team 1, Next Game, then team 2, End Round
  *   IsVoting → Win 1 / Win 2
+ *
+ * Set list: one row per template round (teamIndex 1). Phase is idle/cued →
+ * playing (team1) → complete. No opponent step, no voting.
  */
-function currentPair(games: Game[]) {
+function currentPair(games: Game[], setlist = false) {
+  if (setlist) {
+    for (let i = 0; i < games.length; i++) {
+      const g = games[i];
+      if (g.teamIndex !== 1) continue;
+      if (g.isWinner || (g.isPlayed && !g.isVoting)) continue;
+      let phase: Phase;
+      if (g.isVoting) phase = "voting";
+      else if (g.isPlaying) phase = "team1";
+      else if (g.isCued) phase = "cued";
+      else phase = "idle";
+      return {
+        index: i,
+        game1: g,
+        game2: g,
+        phase,
+        sameGame: false,
+        single: true as const,
+      };
+    }
+    return null;
+  }
+
   for (let i = 0; i + 1 < games.length; i += 2) {
     const [g1, g2] = [games[i], games[i + 1]];
     const roundDone =
@@ -112,6 +149,7 @@ function currentPair(games: Game[]) {
       game2: g2,
       phase,
       sameGame: same,
+      single: false as const,
     };
   }
   return null;
@@ -124,7 +162,14 @@ async function beginPair(
   performanceId: Id<"performances">,
   pair: Pair,
 ) {
-  if (pair.sameGame) {
+  if (pair.single) {
+    await ctx.db.patch(pair.game1._id, {
+      isCued: false,
+      isPlaying: true,
+      isPlayed: false,
+      isVoting: false,
+    });
+  } else if (pair.sameGame) {
     await ctx.db.patch(pair.game1._id, {
       isCued: false,
       isPlaying: true,
@@ -202,7 +247,8 @@ export const get = query({
       .collect();
     tracks.sort((a, b) => a.order - b.order);
 
-    const pair = currentPair(games);
+    const setlist = isSetlist(performance.tag);
+    const pair = currentPair(games, setlist);
     const teamScore = (teamIndex: 1 | 2) =>
       games
         .filter((g) => g.teamIndex === teamIndex)
@@ -245,12 +291,14 @@ export const get = query({
             pairIndex: pair.index,
             phase: pair.phase,
             sameGame: pair.sameGame,
+            single: pair.single,
             game1Id: pair.game1._id,
             game2Id: pair.game2._id,
             volunteerRound: isVolunteerRound(pair.game1),
             isScored: pair.game1.isScored,
           }
         : null,
+      mode: requireLoco(performance.tag).mode,
       scores: { team1: teamScore(1), team2: teamScore(2) },
     };
   },
@@ -283,8 +331,10 @@ export const create = mutation({
     });
 
     let order = 0;
+    const teamIndexes =
+      loco.mode === "setlist" ? ([1] as const) : ([1, 2] as const);
     for (const round of loco.templateRounds) {
-      for (const teamIndex of [1, 2] as const) {
+      for (const teamIndex of teamIndexes) {
         await ctx.db.insert("performanceGames", {
           performanceId,
           order: order++,
@@ -345,12 +395,14 @@ export const setTrack = mutation({
   },
 });
 
-/** "Begin Game" (legacy CueGame → BeginGame). Same-game rounds start both teams. */
+/** "Begin Game" / "Begin Segment". Same-game competition rounds start both teams. */
 export const beginGame = mutation({
   args: { performanceId: v.id("performances") },
   handler: async (ctx, { performanceId }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
+    const pair = currentPair(games, isSetlist(performance.tag));
     if (!pair || (pair.phase !== "idle" && pair.phase !== "cued")) return;
     await beginPair(ctx, performanceId, pair);
   },
@@ -358,14 +410,16 @@ export const beginGame = mutation({
 
 /**
  * "Next Game" (legacy EndGame → CueGame): team 1 done, team 2 starts.
- * Same-game rounds skip this — both teams are already playing.
+ * Same-game rounds and set-list segments skip this — no opponent step.
  */
 export const nextGame = mutation({
   args: { performanceId: v.id("performances") },
   handler: async (ctx, { performanceId }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
-    if (!pair || pair.phase !== "team1") return;
+    const pair = currentPair(games, isSetlist(performance.tag));
+    if (!pair || pair.single || pair.phase !== "team1") return;
     await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
     await ctx.db.patch(pair.game2._id, { isCued: false, isPlaying: true });
     await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
@@ -373,15 +427,25 @@ export const nextGame = mutation({
 });
 
 /**
- * "End Round": both teams played. Scored rounds go to audience voting;
- * unscored rounds (intros) complete and the next round is ready.
+ * "End Round" / "End Segment". Competition: both teams played; scored rounds
+ * go to audience voting, unscored rounds complete. Set list: mark the
+ * current segment played and cue the next (never voting).
  */
 export const endRound = mutation({
   args: { performanceId: v.id("performances") },
   handler: async (ctx, { performanceId }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
-    if (!pair || (pair.phase !== "team2" && pair.phase !== "both")) return;
+    const pair = currentPair(games, isSetlist(performance.tag));
+    if (!pair) return;
+    if (pair.single) {
+      if (pair.phase !== "team1") return;
+      await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
+      await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
+      return;
+    }
+    if (pair.phase !== "team2" && pair.phase !== "both") return;
     await ctx.db.patch(pair.game1._id, {
       isPlaying: false,
       isPlayed: true,
@@ -399,17 +463,29 @@ export const endRound = mutation({
 });
 
 /**
- * Unified Next (the host's primary advance button). Dispatches to Begin /
- * Next Game / End Round based on GetCurrentGameRow phase.
+ * Unified Next (the host's primary advance button).
+ *
+ * Competition: dispatches to Begin / Next Game / End Round based on
+ * GetCurrentGameRow phase. Scored rounds land in voting.
+ *
+ * Set list: idle/cued → begin the segment; playing → mark played and cue
+ * the next segment. Never voting, never a team-2 step.
  */
 export const next = mutation({
   args: { performanceId: v.id("performances") },
   handler: async (ctx, { performanceId }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
+    const pair = currentPair(games, isSetlist(performance.tag));
     if (!pair || pair.phase === "voting") return;
     if (pair.phase === "idle" || pair.phase === "cued") {
       await beginPair(ctx, performanceId, pair);
+      return;
+    }
+    if (pair.single) {
+      await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
+      await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
       return;
     }
     if (pair.phase === "team1") {
@@ -430,7 +506,7 @@ export const next = mutation({
   },
 });
 
-/** "Win 1"/"Win 2": audience picked a winner. Unscored rounds skip to the next. */
+/** "Win 1"/"Win 2": audience picked a winner. Unreachable no-op for set lists. */
 export const winGame = mutation({
   args: {
     performanceId: v.id("performances"),
@@ -438,9 +514,9 @@ export const winGame = mutation({
   },
   handler: async (ctx, { performanceId, teamIndex }) => {
     const performance = await ctx.db.get(performanceId);
-    if (!performance) return;
+    if (!performance || isSetlist(performance.tag)) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
+    const pair = currentPair(games, false);
     if (!pair || pair.phase !== "voting") return;
 
     if (!pair.game1.isScored) {
@@ -460,15 +536,17 @@ export const winGame = mutation({
   },
 });
 
-/** "Rotation 1"/"Rotation 2" (same-game rounds): bonus rotation point. */
+/** "Rotation 1"/"Rotation 2" (same-game rounds): bonus rotation point. No-op for set lists. */
 export const winRotation = mutation({
   args: {
     performanceId: v.id("performances"),
     teamIndex: v.union(v.literal(1), v.literal(2)),
   },
   handler: async (ctx, { performanceId, teamIndex }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance || isSetlist(performance.tag)) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
+    const pair = currentPair(games, false);
     if (!pair) return;
     const game = teamIndex === 1 ? pair.game1 : pair.game2;
     await writeScore(ctx, game, { rotation: true });
@@ -484,8 +562,10 @@ export const addVolunteers = mutation({
     delta: v.number(),
   },
   handler: async (ctx, { performanceId, teamIndex, delta }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) return;
     const games = await gamesInOrder(ctx, performanceId);
-    const pair = currentPair(games);
+    const pair = currentPair(games, isSetlist(performance.tag));
     if (!pair) return;
     const game = teamIndex === 1 ? pair.game1 : pair.game2;
     const volunteers = Math.max(0, (game.volunteers ?? 0) + delta);

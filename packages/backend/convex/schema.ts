@@ -42,7 +42,6 @@ export default defineSchema({
     .index("email", ["email"])
     .index("phone", ["phone"])
     .index("by_handle", ["handle"])
-    .index("by_email", ["email"])
     .index("by_legacyId", ["legacyId"]),
 
   groups: defineTable({
@@ -272,12 +271,12 @@ export default defineSchema({
     /** Music track currently cued (legacy SceneLayoutMusic click). */
     activeTrack: v.optional(v.string()),
     ownerId: v.id("users"),
-    /** Loco format (comedyloco / battleloco / wrestleloco / headcase / laffup). Untagged = comedyloco. */
+    /** Loco format (competition: comedyloco / battleloco / wrestleloco / thisgameshow; setlist: headcase / laffup / weddingloco / barloco). Untagged = comedyloco. */
     tag: v.optional(v.string()),
   }).index("by_tag", ["tag"]),
 
-  // One row per (round, team) — the legacy LLPerformanceRoundTeamGame grid.
-  // Rows come in pairs per round: team 1 plays first, then team 2.
+  // Competition: one row per (round, team) — pairs per round, team 1 then team 2.
+  // Set list: one row per template round (teamIndex 1).
   performanceGames: defineTable({
     performanceId: v.id("performances"),
     order: v.number(),
