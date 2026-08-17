@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { LOCOS, locoPaths } from "@linkall/backend/convex/locos";
+import { useBrand } from "./brand-context";
 
 /**
- * Hub of FunFirst loco formats (Comedy Loco, Battle Loco, Wrestle Loco,
- * HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco). Each card links to that loco's
- * performances, console, and games catalog.
+ * Brand-scoped hub of loco formats. Cards are filtered to the current brand
+ * so FunFirst and SurroundShow only list their own. Each card links to that
+ * loco's performances, console, and games catalog.
  */
 export function LocoHub() {
+  const brand = useBrand();
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900">Locos</h1>
@@ -17,7 +19,7 @@ export function LocoHub() {
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {LOCOS.map((loco) => {
+        {LOCOS.filter((l) => l.brand === brand.id).map((loco) => {
           const paths = locoPaths(loco.slug);
           return (
             <div

@@ -1,5 +1,10 @@
 /**
- * Loco show formats (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …).
+ * Shared loco-format registry, brand-scoped per app.
+ *
+ * All formats live in one array (Comedy Loco, Battle Loco, Wrestle Loco,
+ * HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …). Each entry
+ * has a `brand` so FunFirst and SurroundShow only list their own locos.
+ * Direct `/locos/[slug]/...` routes still resolve any slug.
  *
  * Two engine modes (`mode` on each format):
  *   competition — two teams play each round; scored rounds go to audience voting.
@@ -16,6 +21,8 @@
  *
  * Keep this file free of Convex function wrappers so the UI can import it.
  */
+
+import type { BrandId } from "@linkall/brands";
 
 export type LocoTag =
   | "comedyloco"
@@ -45,6 +52,8 @@ export type LocoConfig = {
   tag: LocoTag;
   slug: string;
   name: string;
+  /** Owning brand — hub and any list surfaces filter on this. */
+  brand: BrandId;
   /** competition = paired teams + voting; setlist = one segment at a time. */
   mode: "competition" | "setlist";
   blurb: string;
@@ -83,6 +92,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "comedyloco",
     slug: "comedy-loco",
     name: "Comedy Loco",
+    brand: "funfirst",
     mode: "competition",
     blurb:
       "Team game show: Bananas vs Berries, live scoring and audience votes.",
@@ -132,6 +142,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "battleloco",
     slug: "battle-loco",
     name: "Battle Loco",
+    brand: "funfirst",
     mode: "competition",
     blurb:
       "Five scored games with pauses and celebrations — Heat vs Ice, then an award ceremony and outro.",
@@ -195,6 +206,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "wrestleloco",
     slug: "wrestle-loco",
     name: "Wrestle Loco",
+    brand: "funfirst",
     mode: "competition",
     blurb:
       "Wrestling comedy — Faces vs Heels, five 3-round matches, an award ceremony, and an outro.",
@@ -273,6 +285,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "headcase",
     slug: "head-case",
     name: "HeadCase",
+    brand: "funfirst",
     mode: "setlist",
     blurb:
       "AI-assisted bits and sketches, stepped through as a set list.",
@@ -318,6 +331,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "laffup",
     slug: "laff-up",
     name: "LaffUp",
+    brand: "funfirst",
     mode: "setlist",
     blurb:
       "Open-mic stand-up showcases, run as a set list.",
@@ -360,6 +374,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "thisgameshow",
     slug: "this-game-show",
     name: "This Game Show",
+    brand: "funfirst",
     mode: "competition",
     blurb:
       "Studio game show night — Contestants vs Champions, host open, scored games, audience vote, prize reveal, goodnight.",
@@ -415,6 +430,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "weddingloco",
     slug: "wedding-loco",
     name: "Wedding Loco",
+    brand: "surroundshow",
     mode: "setlist",
     blurb:
       "Reception set list — step through the night's segments from grand entrance to send-off.",
@@ -472,6 +488,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "barloco",
     slug: "bar-loco",
     name: "Bar Loco",
+    brand: "surroundshow",
     mode: "setlist",
     blurb:
       "Bar night set list — step through the night's segments from doors to last call.",
