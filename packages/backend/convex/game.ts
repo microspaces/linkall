@@ -2,7 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { requireLoco, rowTag } from "./locos";
+import { requireLoco, rowTag, type LocoConfig } from "./locos";
 
 /**
  * Loco game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
@@ -156,6 +156,56 @@ function currentPair(games: Game[], setlist = false) {
 }
 
 type Pair = NonNullable<ReturnType<typeof currentPair>>;
+
+function allowedRoundTypes(loco: LocoConfig) {
+  const types = new Set<string>();
+  for (const r of loco.templateRounds) types.add(r.roundType);
+  for (const g of loco.catalog) types.add(g.roundType);
+  return types;
+}
+
+/** Most common template type; ties go to the last template type of that count. */
+function mostCommonRoundType(loco: LocoConfig) {
+  const rounds = loco.templateRounds;
+  if (rounds.length === 0) return "Bit";
+  const counts = new Map<string, number>();
+  for (const r of rounds) {
+    counts.set(r.roundType, (counts.get(r.roundType) ?? 0) + 1);
+  }
+  let best = rounds[rounds.length - 1].roundType;
+  let bestCount = -1;
+  for (const r of rounds) {
+    const n = counts.get(r.roundType) ?? 0;
+    if (n >= bestCount) {
+      bestCount = n;
+      best = r.roundType;
+    }
+  }
+  return best;
+}
+
+function resolveRoundType(loco: LocoConfig, roundType?: string) {
+  const trimmed = roundType?.trim();
+  if (trimmed) {
+    if (!allowedRoundTypes(loco).has(trimmed)) {
+      throw new Error(`Unknown round type "${trimmed}"`);
+    }
+    return trimmed;
+  }
+  return loco.mode === "competition" ? "Game" : mostCommonRoundType(loco);
+}
+
+/** Scored only when this competition type is scored in the template. */
+function isScoredRoundType(loco: LocoConfig, roundType: string) {
+  if (loco.mode !== "competition") return false;
+  return loco.templateRounds.some(
+    (r) => r.roundType === roundType && r.isScored,
+  );
+}
+
+function isRoundActive(rows: Game[]) {
+  return rows.some((g) => g.isPlaying || g.isCued || g.isVoting);
+}
 
 async function beginPair(
   ctx: MutationCtx,
@@ -676,6 +726,96 @@ export const updateGame = mutation({
   },
   handler: async (ctx, { gameId, ...fields }) => {
     await ctx.db.patch(gameId, fields);
+  },
+});
+
+/**
+ * Insert a round after `afterRound` (new number afterRound+1) or at the end.
+ * Competition writes both team rows; set list writes one. Subsequent
+ * `round` / `order` values shift so they stay sequential (team 1 then 2).
+ */
+export const addRound = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    roundType: v.optional(v.string()),
+    afterRound: v.optional(v.number()),
+  },
+  handler: async (ctx, { performanceId, roundType, afterRound }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) throw new Error("Performance not found");
+    const loco = requireLoco(performance.tag);
+    const type = resolveRoundType(loco, roundType);
+    const isScored = isScoredRoundType(loco, type);
+    const teamIndexes =
+      loco.mode === "setlist" ? ([1] as const) : ([1, 2] as const);
+    const stride = teamIndexes.length;
+
+    const games = await gamesInOrder(ctx, performanceId);
+    const maxRound = games.reduce((m, g) => Math.max(m, g.round), 0);
+    const newRound =
+      afterRound !== undefined ? afterRound + 1 : maxRound + 1;
+
+    for (const game of games) {
+      if (game.round >= newRound) {
+        await ctx.db.patch(game._id, {
+          round: game.round + 1,
+          order: game.order + stride,
+        });
+      }
+    }
+
+    let order = games.filter((g) => g.round < newRound).length;
+    for (const teamIndex of teamIndexes) {
+      await ctx.db.insert("performanceGames", {
+        performanceId,
+        order: order++,
+        round: newRound,
+        roundType: type,
+        teamIndex,
+        gameName: "",
+        votes: 0,
+        score: 0,
+        isPlaying: false,
+        isPlayed: false,
+        isVoting: false,
+        isWinner: false,
+        rotation: false,
+        isCued: false,
+        volunteers: 0,
+        isScored,
+      });
+    }
+  },
+});
+
+/**
+ * Remove a round and close the gap. Refuses if any of its rows are
+ * playing, cued, or voting.
+ */
+export const deleteRound = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    round: v.number(),
+  },
+  handler: async (ctx, { performanceId, round }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) throw new Error("Performance not found");
+    const games = await gamesInOrder(ctx, performanceId);
+    const rows = games.filter((g) => g.round === round);
+    if (rows.length === 0) return;
+    if (isRoundActive(rows)) throw new Error("Round is active");
+
+    for (const row of rows) await ctx.db.delete(row._id);
+
+    const stride = rows.length;
+    for (const game of games) {
+      if (game.round > round) {
+        await ctx.db.patch(game._id, {
+          round: game.round - 1,
+          order: game.order - stride,
+        });
+      }
+    }
   },
 });
 

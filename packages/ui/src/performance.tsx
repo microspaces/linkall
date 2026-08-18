@@ -10,7 +10,9 @@ import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 import {
   getLocoBySlug,
+  getLocoByTag,
   locoPaths,
+  locoRoundTypes,
   rowTag,
   type LocoConfig,
 } from "@linkall/backend/convex/locos";
@@ -263,6 +265,30 @@ function Field({
 
 const inputCls =
   "w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none";
+
+/** Preselected type for the Add Round control. */
+function defaultAddRoundType(loco: LocoConfig) {
+  const types = locoRoundTypes(loco);
+  if (loco.mode === "competition") {
+    if (types.includes("Game")) return "Game";
+    const scored = loco.templateRounds.find((r) => r.isScored)?.roundType;
+    return scored ?? types[0] ?? "Game";
+  }
+  const counts = new Map<string, number>();
+  for (const r of loco.templateRounds) {
+    counts.set(r.roundType, (counts.get(r.roundType) ?? 0) + 1);
+  }
+  let best = loco.templateRounds.at(-1)?.roundType ?? types[0] ?? "";
+  let bestCount = -1;
+  for (const r of loco.templateRounds) {
+    const n = counts.get(r.roundType) ?? 0;
+    if (n >= bestCount) {
+      bestCount = n;
+      best = r.roundType;
+    }
+  }
+  return best;
+}
 
 // ---------------------------------------------------------------- console
 
@@ -656,103 +682,169 @@ function GameGrid({
   setlist: boolean;
 }) {
   const assignGame = useMutation(api.game.assignGame);
+  const addRound = useMutation(api.game.addRound);
+  const deleteRound = useMutation(api.game.deleteRound);
+  const loco = getLocoByTag(tag);
+  const roundTypes = loco ? locoRoundTypes(loco) : [];
+  const [addType, setAddType] = useState(() =>
+    loco ? defaultAddRoundType(loco) : "",
+  );
   const catalog =
     (useQuery(api.game.listCatalog, {}) ?? []).filter(
       (c) => rowTag(c.tag) === tag,
     );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[320px] text-xs">
-        <thead>
-          <tr className="bg-gray-900 text-left uppercase tracking-wide text-white">
-            <th className="px-1.5 py-1.5">#</th>
-            <th className="px-1.5 py-1.5">Type</th>
-            <th className="px-1.5 py-1.5">{setlist ? "Cast" : "Team"}</th>
-            <th className="px-1.5 py-1.5">{setlist ? "Segment" : "Game"}</th>
-            {!setlist && (
-              <>
-                <th className="px-1.5 py-1.5 text-right">V</th>
-                <th className="px-1.5 py-1.5 text-right">S</th>
-              </>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {view.games.map((g) => {
-            const isCurrent =
-              view.current !== null &&
-              (g._id === view.current.game1Id || g._id === view.current.game2Id);
-            return (
-              <tr
-                key={g._id}
-                className={
-                  rowClasses(g) +
-                  " border-b border-gray-100" +
-                  (isCurrent ? " ring-2 ring-inset ring-brand" : "")
-                }
-              >
-                <td className="px-1.5 py-1.5">{g.round}</td>
-                <td className="px-1.5 py-1.5">{g.roundType}</td>
-                <td className="max-w-[4rem] truncate px-1.5 py-1.5">
-                  {teamName(view, g.teamIndex)}
-                </td>
-                <td className="px-1.5 py-1.5">
-                  <select
-                    className="w-full min-w-[6rem] bg-transparent px-0.5 outline-none focus:bg-white/80"
-                    value={g.gameId ?? ""}
-                    onChange={(e) => {
-                      const catalogId = e.target.value
-                        ? (e.target.value as Id<"comedyGames">)
-                        : undefined;
-                      void assignGame({
-                        gameRowId: g._id,
-                        catalogId,
-                        gameName: "",
-                      });
-                    }}
-                  >
-                    <option value="">{g.gameName || "game…"}</option>
-                    {(catalog.filter(
-                      (c) =>
-                        c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
-                        g.roundType.toLowerCase().startsWith(
-                          c.roundType.toLowerCase().slice(0, 4),
-                        ),
-                    ).length
-                      ? catalog.filter(
-                          (c) =>
-                            c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
-                            g.roundType.toLowerCase().startsWith(
-                              c.roundType.toLowerCase().slice(0, 4),
-                            ),
-                        )
-                      : catalog
-                    ).map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                {!setlist && (
-                  <>
-                    <td className="px-1.5 py-1.5 text-right">
-                      {g.roundType.toLowerCase().includes("volunteer")
-                        ? (g.volunteers ?? 0)
-                        : g.votes}
-                    </td>
-                    <td className="px-1.5 py-1.5 text-right">
-                      {g.score}
-                      {g.rotation ? " ↻" : ""}
-                    </td>
-                  </>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] text-xs">
+          <thead>
+            <tr className="bg-gray-900 text-left uppercase tracking-wide text-white">
+              <th className="px-1.5 py-1.5">#</th>
+              <th className="px-1.5 py-1.5">Type</th>
+              <th className="px-1.5 py-1.5">{setlist ? "Cast" : "Team"}</th>
+              <th className="px-1.5 py-1.5">{setlist ? "Segment" : "Game"}</th>
+              {!setlist && (
+                <>
+                  <th className="px-1.5 py-1.5 text-right">V</th>
+                  <th className="px-1.5 py-1.5 text-right">S</th>
+                </>
+              )}
+              <th className="w-7 px-1 py-1.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {view.games.map((g) => {
+              const isCurrent =
+                view.current !== null &&
+                (g._id === view.current.game1Id || g._id === view.current.game2Id);
+              const firstOfRound = g.teamIndex === 1;
+              const roundActive = view.games.some(
+                (row) =>
+                  row.round === g.round &&
+                  (row.isPlaying || row.isCued || row.isVoting),
+              );
+              return (
+                <tr
+                  key={g._id}
+                  className={
+                    rowClasses(g) +
+                    " border-b border-gray-100" +
+                    (isCurrent ? " ring-2 ring-inset ring-brand" : "")
+                  }
+                >
+                  <td className="px-1.5 py-1.5">{g.round}</td>
+                  <td className="px-1.5 py-1.5">{g.roundType}</td>
+                  <td className="max-w-[4rem] truncate px-1.5 py-1.5">
+                    {teamName(view, g.teamIndex)}
+                  </td>
+                  <td className="px-1.5 py-1.5">
+                    <select
+                      className="w-full min-w-[6rem] bg-transparent px-0.5 outline-none focus:bg-white/80"
+                      value={g.gameId ?? ""}
+                      onChange={(e) => {
+                        const catalogId = e.target.value
+                          ? (e.target.value as Id<"comedyGames">)
+                          : undefined;
+                        void assignGame({
+                          gameRowId: g._id,
+                          catalogId,
+                          gameName: "",
+                        });
+                      }}
+                    >
+                      <option value="">{g.gameName || "game…"}</option>
+                      {(catalog.filter(
+                        (c) =>
+                          c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
+                          g.roundType.toLowerCase().startsWith(
+                            c.roundType.toLowerCase().slice(0, 4),
+                          ),
+                      ).length
+                        ? catalog.filter(
+                            (c) =>
+                              c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
+                              g.roundType.toLowerCase().startsWith(
+                                c.roundType.toLowerCase().slice(0, 4),
+                              ),
+                          )
+                        : catalog
+                      ).map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  {!setlist && (
+                    <>
+                      <td className="px-1.5 py-1.5 text-right">
+                        {g.roundType.toLowerCase().includes("volunteer")
+                          ? (g.volunteers ?? 0)
+                          : g.votes}
+                      </td>
+                      <td className="px-1.5 py-1.5 text-right">
+                        {g.score}
+                        {g.rotation ? " ↻" : ""}
+                      </td>
+                    </>
+                  )}
+                  <td className="px-1 py-1.5 text-center">
+                    {firstOfRound && (
+                      <button
+                        type="button"
+                        disabled={roundActive}
+                        title={roundActive ? "Round is active" : "Delete round"}
+                        aria-label={
+                          roundActive ? "Round is active" : "Delete round"
+                        }
+                        onClick={() =>
+                          void deleteRound({
+                            performanceId: view._id,
+                            round: g.round,
+                          })
+                        }
+                        className="rounded px-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2">
+        {roundTypes.length > 1 && (
+          <select
+            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
+            value={addType}
+            onChange={(e) => setAddType(e.target.value)}
+            aria-label="Round type"
+          >
+            {roundTypes.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          disabled={!addType}
+          onClick={() =>
+            void addRound({
+              performanceId: view._id,
+              roundType: addType,
+            })
+          }
+          className="shrink-0 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+        >
+          Add Round
+        </button>
+      </div>
     </div>
   );
 }
