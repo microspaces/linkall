@@ -193,7 +193,7 @@ export const getShowCueEffects = query({
       string,
       Array<{
         panelId: Id<"panels">;
-        kind: "image" | "video" | "color" | "text";
+        kind: "image" | "video" | "color" | "text" | "url" | "html";
         content: string;
         startTime: number;
         isEnabled: boolean;
@@ -336,7 +336,7 @@ export const screenView = query({
     let scene: Doc<"scenes"> | null = null;
     let effects: Array<{
       panelId: Id<"panels">;
-      kind: "image" | "video" | "color" | "text";
+      kind: "image" | "video" | "color" | "text" | "url" | "html";
       content: string;
       startTime: number;
       isEnabled: boolean;
@@ -736,6 +736,8 @@ export const createEffect = mutation({
       v.literal("video"),
       v.literal("color"),
       v.literal("text"),
+      v.literal("url"),
+      v.literal("html"),
     ),
     content: v.string(),
     startTime: v.number(),
@@ -780,6 +782,8 @@ export const updateEffect = mutation({
         v.literal("video"),
         v.literal("color"),
         v.literal("text"),
+        v.literal("url"),
+        v.literal("html"),
       ),
     ),
     content: v.optional(v.string()),

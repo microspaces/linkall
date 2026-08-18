@@ -119,6 +119,8 @@ export default defineSchema({
     sceneStartedAt: v.optional(v.number()),
     /** Physical layout this show is designed for (legacy Show.ScreenId). */
     layoutId: v.optional(v.id("layouts")),
+    /** Performance that last cued this show — expands {performanceId} in URL effects. */
+    cuedByPerformanceId: v.optional(v.id("performances")),
     ownerId: v.id("users"),
   }).index("by_status", ["status"]),
 
@@ -211,6 +213,8 @@ export default defineSchema({
       v.literal("video"),
       v.literal("color"),
       v.literal("text"),
+      v.literal("url"),
+      v.literal("html"),
     ),
     content: v.string(),
     startTime: v.number(),

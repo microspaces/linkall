@@ -101,7 +101,10 @@ export function DesignedSceneStage({
   show,
   scene,
 }: {
-  show: Pick<Doc<"shows">, "_id" | "layoutId" | "sceneStartedAt">;
+  show: Pick<
+    Doc<"shows">,
+    "_id" | "layoutId" | "sceneStartedAt" | "cuedByPerformanceId"
+  >;
   scene: Doc<"scenes">;
 }) {
   if (scene.kind === "panels") {
@@ -118,7 +121,10 @@ function PanelSceneView({
   show,
   scene,
 }: {
-  show: Pick<Doc<"shows">, "layoutId" | "sceneStartedAt">;
+  show: Pick<
+    Doc<"shows">,
+    "layoutId" | "sceneStartedAt" | "cuedByPerformanceId"
+  >;
   scene: Doc<"scenes">;
 }) {
   const layout = useQuery(
@@ -155,6 +161,7 @@ function PanelSceneView({
           screen={screen}
           effects={effects}
           clockSec={clockSec}
+          urlContext={{ performanceId: show.cuedByPerformanceId }}
         />
       ))}
     </div>

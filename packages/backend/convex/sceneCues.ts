@@ -69,6 +69,63 @@ export function winnerCue(teamName: string) {
   return `Winner ${teamName.trim()}`;
 }
 
+/** Overlay page slug for a designed scene title (legacy URL-in-effect). */
+export function overlayKindForTitle(title: string): string | null {
+  const t = normalizeCue(title);
+  if (t === "game instructions" || t === "instructions") return "instructions";
+  if (t === "vote") return "vote";
+  if (t === "score") return "score";
+  if (t === "box score") return "box-score";
+  if (t === "score rotation") return "rotation";
+  if (t.startsWith("winner")) return "winner";
+  if (t === "games") return "games";
+  if (t === "introduction" || t.startsWith("introduction")) return "introduction";
+  if (t === "suggestions") return "suggestions";
+  if (t === "crowd") return "crowd";
+  if (t === "punishment") return "punishment";
+  if (t === "ring") return "ring";
+  return null;
+}
+
+export function overlayPath(slug: string, kind: string) {
+  return `/locos/${slug}/performance/overlay/${kind}?id={performanceId}`;
+}
+
+/** Expand LinkAll8-style tokens in a URL effect. */
+export function expandEffectUrl(
+  raw: string,
+  ctx: {
+    performanceId?: string;
+    score1?: string | number;
+    score2?: string | number;
+    team1?: string;
+    team2?: string;
+  },
+) {
+  let url = raw;
+  if (ctx.performanceId) {
+    url = url.replaceAll("{performanceId}", ctx.performanceId);
+    url = url.replaceAll("[performanceId]", ctx.performanceId);
+  }
+  if (ctx.score1 !== undefined) {
+    url = url.replaceAll("[Score1]", String(ctx.score1));
+    url = url.replaceAll("{score1}", String(ctx.score1));
+  }
+  if (ctx.score2 !== undefined) {
+    url = url.replaceAll("[Score2]", String(ctx.score2));
+    url = url.replaceAll("{score2}", String(ctx.score2));
+  }
+  if (ctx.team1) {
+    url = url.replaceAll("[Team1]", encodeURIComponent(ctx.team1));
+    url = url.replaceAll("{team1}", encodeURIComponent(ctx.team1));
+  }
+  if (ctx.team2) {
+    url = url.replaceAll("[Team2]", encodeURIComponent(ctx.team2));
+    url = url.replaceAll("{team2}", encodeURIComponent(ctx.team2));
+  }
+  return url;
+}
+
 function compact(name: string) {
   return normalizeCue(name).replace(/[^a-z0-9]+/g, "");
 }

@@ -40,6 +40,7 @@ const CHROMELESS_HOSTS = [
 function isChromeless(pathname: string, host?: string) {
   if (host && CHROMELESS_HOSTS.includes(host)) return true;
   if (pathname.includes("/performance/screens")) return true;
+  if (pathname.includes("/performance/overlay")) return true;
   return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
 }
 

@@ -1250,6 +1250,29 @@ function ControlStrip({
 
 // -------------------------------------------------------------- screen page
 
+/** Chrome-less iframe target for URL effects (legacy Score / Vote / GameInstruction pages). */
+export function PerformanceOverlay({
+  performanceId,
+  kind,
+}: {
+  performanceId: Id<"performances">;
+  kind: string;
+}) {
+  const view = useQuery(api.game.get, { performanceId });
+  if (view === undefined) return <div className="fixed inset-0 bg-black" />;
+  if (view === null)
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black text-gray-500">
+        Performance not found.
+      </div>
+    );
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-gray-950 to-gray-900 text-white">
+      <OverlayView view={view} forceKind={kind} />
+    </div>
+  );
+}
+
 /** Fullscreen venue display: designed live scene, else the overlay HUD. */
 export function PerformanceScreen({
   performanceId,
@@ -1303,14 +1326,37 @@ export function PerformanceScreen({
   );
 }
 
+const OVERLAY_KIND_TO_CUE: Record<string, string> = {
+  instructions: "game instructions",
+  "game-instructions": "game instructions",
+  vote: "vote",
+  score: "score",
+  "box-score": "box score",
+  rotation: "score rotation",
+  "score-rotation": "score rotation",
+  winner: "winner",
+  games: "games",
+  introduction: "introduction",
+  suggestions: "suggestions",
+  crowd: "crowd",
+  punishment: "punishment",
+  ring: "ring",
+};
+
 function OverlayView({
   view,
   compact = false,
+  forceKind,
 }: {
   view: PerformanceView;
   compact?: boolean;
+  forceKind?: string;
 }) {
-  const overlay = (view.activeOverlay ?? "").toLowerCase();
+  const overlay = (
+    (forceKind && OVERLAY_KIND_TO_CUE[forceKind]) ||
+    view.activeOverlay ||
+    ""
+  ).toLowerCase();
   const titleCls = compact ? "text-4xl font-black" : "text-7xl font-black";
   const subCls = compact
     ? "text-lg font-semibold uppercase tracking-widest text-white/60"
@@ -1401,6 +1447,38 @@ function OverlayView({
         <p className="mt-6 text-3xl text-white/70">
           Shout out a place, a job, and a problem!
         </p>
+      </div>
+    );
+
+  if (overlay === "crowd")
+    return (
+      <div className="px-8 text-center">
+        <h1 className={"text-fuchsia-400 " + titleCls}>CROWD</h1>
+        <p className="mt-6 text-3xl text-white/70">Make some noise!</p>
+      </div>
+    );
+
+  if (overlay === "punishment")
+    return (
+      <div className="px-8 text-center">
+        <h1 className={"text-red-500 " + titleCls}>PUNISHMENT</h1>
+      </div>
+    );
+
+  if (overlay === "ring")
+    return (
+      <div className="px-8 text-center">
+        <h1 className={"text-sky-400 " + titleCls}>RING</h1>
+      </div>
+    );
+
+  if (overlay === "introduction" || overlay.startsWith("introduction"))
+    return (
+      <div className="px-8 text-center">
+        <p className={subCls}>Introducing</p>
+        <h1 className={"mt-4 text-amber-400 " + titleCls}>
+          {(view.activeOverlay ?? "Introduction").replace(/^introduction:\s*/i, "")}
+        </h1>
       </div>
     );
 

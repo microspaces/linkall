@@ -143,6 +143,7 @@ async function playMatchingScene(
     status: "live",
     currentSceneIndex: index,
     sceneStartedAt: Date.now(),
+    cuedByPerformanceId: performance._id,
   });
   return scene._id;
 }
@@ -599,6 +600,7 @@ export const playPerformanceScene = mutation({
       status: "live",
       currentSceneIndex: index,
       sceneStartedAt: Date.now(),
+      cuedByPerformanceId: performanceId,
     });
     await ctx.db.patch(performanceId, {
       showId: scene.showId,

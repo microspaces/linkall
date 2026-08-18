@@ -25,6 +25,7 @@ export { PeopleDirectory } from "./people";
 export {
   PerformanceConsole,
   PerformanceList,
+  PerformanceOverlay,
   PerformanceScreen,
 } from "./performance";
 export {

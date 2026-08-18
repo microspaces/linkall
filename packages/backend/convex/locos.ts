@@ -580,5 +580,7 @@ export function locoPaths(slug: string) {
     performance: `${base}/performance`,
     games: `${base}/games`,
     screen: (id: string) => `${base}/performance/screens/${id}`,
+    overlay: (id: string, kind: string) =>
+      `${base}/performance/overlay/${kind}?id=${id}`,
   };
 }

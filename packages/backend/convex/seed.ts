@@ -2,8 +2,12 @@ import { mutation } from "./_generated/server";
 import { MutationCtx } from "./_generated/server";
 import { Id, TableNames } from "./_generated/dataModel";
 import { christmasMikeScenes } from "./christmasMikeData";
-import { requireLoco, type LocoConfig } from "./locos";
-import { winnerCue } from "./sceneCues";
+import { requireLoco, rowTag, type LocoConfig } from "./locos";
+import {
+  overlayKindForTitle,
+  overlayPath,
+  winnerCue,
+} from "./sceneCues";
 
 /**
  * Mock data per brand, for testing until real data (groups etc.) is imported.
@@ -302,11 +306,13 @@ type CueSceneSpec = {
   leftImage?: string;
   centerImage?: string;
   rightImage?: string;
+  video?: string;
 };
 
 function performanceCuesFor(
   loco: LocoConfig,
   images: { hero: string; side: string; crowd: string },
+  winVideo?: string,
 ): CueSceneSpec[] {
   const cues: CueSceneSpec[] = [
     {
@@ -339,6 +345,7 @@ function performanceCuesFor(
       accent: "#ca8a04",
       centerText: `${loco.team1.toUpperCase()} WIN`,
       leftImage: images.side,
+      video: winVideo,
     },
     {
       title: winnerCue(loco.team2),
@@ -347,6 +354,7 @@ function performanceCuesFor(
       accent: "#0e7490",
       centerText: `${loco.team2.toUpperCase()} WIN`,
       rightImage: images.crowd,
+      video: winVideo,
     },
     {
       title: "Score Rotation",
@@ -421,6 +429,7 @@ async function insertCueScenesOnShow(
   panelByLogical: Record<string, Id<"panels">>,
   specs: CueSceneSpec[],
   scoreLine: string,
+  slug: string,
 ) {
   const existing = await ctx.db
     .query("scenes")
@@ -433,7 +442,7 @@ async function insertCueScenesOnShow(
   const put = async (
     sceneId: Id<"scenes">,
     logical: string,
-    kind: "image" | "color" | "text",
+    kind: "image" | "color" | "text" | "url" | "video",
     content: string,
     startTime = 0,
     durationSec?: number,
@@ -487,7 +496,17 @@ async function insertCueScenesOnShow(
       await put(sceneId, "Scoreboard", "text", scoreLine);
     }
     if (panelByLogical.MainContent) {
-      if (spec.centerImage) {
+      const overlayKind = overlayKindForTitle(spec.title);
+      if (spec.video) {
+        await put(sceneId, "MainContent", "video", spec.video);
+      } else if (overlayKind) {
+        await put(
+          sceneId,
+          "MainContent",
+          "url",
+          overlayPath(slug, overlayKind),
+        );
+      } else if (spec.centerImage) {
         await put(sceneId, "MainContent", "image", spec.centerImage);
         await put(sceneId, "MainContent", "text", spec.centerText, 0, 30);
       } else {
@@ -498,6 +517,58 @@ async function insertCueScenesOnShow(
     }
   }
   return added;
+}
+
+/** Add URL / win-video effects to existing cue scenes (does not create scenes). */
+async function ensureOverlayEffectsOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+  slug: string,
+  winVideo?: string,
+) {
+  const panels = await panelLogicalsForShow(ctx, showId);
+  const main = panels.MainContent;
+  if (!main) return { urls: 0, videos: 0 };
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  let urls = 0;
+  let videos = 0;
+  for (const scene of scenes) {
+    const overlayKind = overlayKindForTitle(scene.title);
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    const hasUrl = effects.some((e) => e.kind === "url");
+    const hasVideo = effects.some((e) => e.kind === "video");
+    const isWinner = scene.title.toLowerCase().startsWith("winner");
+    if (isWinner && winVideo && !hasVideo) {
+      await ctx.db.insert("effects", {
+        sceneId: scene._id,
+        panelId: main,
+        logicalPanelName: "MainContent",
+        kind: "video",
+        content: winVideo,
+        startTime: 0,
+        isEnabled: true,
+      });
+      videos++;
+    } else if (overlayKind && !hasUrl && !isWinner) {
+      await ctx.db.insert("effects", {
+        sceneId: scene._id,
+        panelId: main,
+        logicalPanelName: "MainContent",
+        kind: "url",
+        content: overlayPath(slug, overlayKind),
+        startTime: 0,
+        isEnabled: true,
+      });
+      urls++;
+    }
+  }
+  return { urls, videos };
 }
 
 async function panelLogicalsForShow(
@@ -547,7 +618,7 @@ async function bindPerformancesToShow(
   const performances = await ctx.db.query("performances").collect();
   let bound = 0;
   for (const p of performances) {
-    if (p.tag !== tag) continue;
+    if (rowTag(p.tag) !== tag) continue;
     if (p.showId === showId) continue;
     await ctx.db.patch(p._id, { showId });
     bound++;
@@ -752,12 +823,17 @@ async function insertBattleLoco(
     ctx,
     showId,
     panelByLogical,
-    performanceCuesFor(requireLoco("battleloco"), {
-      hero: BATTLE_LOCO_IMAGES.hero,
-      side: BATTLE_LOCO_IMAGES.competitors,
-      crowd: BATTLE_LOCO_IMAGES.crowd,
-    }),
+    performanceCuesFor(
+      requireLoco("battleloco"),
+      {
+        hero: BATTLE_LOCO_IMAGES.hero,
+        side: BATTLE_LOCO_IMAGES.competitors,
+        crowd: BATTLE_LOCO_IMAGES.crowd,
+      },
+      BATTLE_LOCO_BOOM_VIDEOS.center,
+    ),
     "Heat 0 – 0 Ice",
+    "battle-loco",
   );
 
   return { showId, layoutId, screenIds };
@@ -908,6 +984,7 @@ async function insertWrestleLoco(
       crowd: WRESTLE_LOCO_IMAGES.crowd,
     }),
     "Faces 0 – 0 Heels",
+    "wrestle-loco",
   );
 
   return { showId, layoutId, screenIds };
@@ -1688,12 +1765,17 @@ export const battleLoco = mutation({
         ctx,
         existingShow._id,
         panels,
-        performanceCuesFor(requireLoco("battleloco"), {
-          hero: BATTLE_LOCO_IMAGES.hero,
-          side: BATTLE_LOCO_IMAGES.competitors,
-          crowd: BATTLE_LOCO_IMAGES.crowd,
-        }),
+        performanceCuesFor(
+          requireLoco("battleloco"),
+          {
+            hero: BATTLE_LOCO_IMAGES.hero,
+            side: BATTLE_LOCO_IMAGES.competitors,
+            crowd: BATTLE_LOCO_IMAGES.crowd,
+          },
+          BATTLE_LOCO_BOOM_VIDEOS.center,
+        ),
         "Heat 0 – 0 Ice",
+        "battle-loco",
       );
       const bound = await bindPerformancesToShow(
         ctx,
@@ -1760,17 +1842,30 @@ export const locoCueShows = mutation({
         ctx,
         battleShow._id,
         panels,
-        performanceCuesFor(requireLoco("battleloco"), {
-          hero: BATTLE_LOCO_IMAGES.hero,
-          side: BATTLE_LOCO_IMAGES.competitors,
-          crowd: BATTLE_LOCO_IMAGES.crowd,
-        }),
+        performanceCuesFor(
+          requireLoco("battleloco"),
+          {
+            hero: BATTLE_LOCO_IMAGES.hero,
+            side: BATTLE_LOCO_IMAGES.competitors,
+            crowd: BATTLE_LOCO_IMAGES.crowd,
+          },
+          BATTLE_LOCO_BOOM_VIDEOS.center,
+        ),
         "Heat 0 – 0 Ice",
+        "battle-loco",
       );
     }
     const battleBound = battleShow
       ? await bindPerformancesToShow(ctx, "battleloco", battleShow._id)
       : 0;
+    const battleFx = battleShow
+      ? await ensureOverlayEffectsOnShow(
+          ctx,
+          battleShow._id,
+          "battle-loco",
+          BATTLE_LOCO_BOOM_VIDEOS.center,
+        )
+      : { urls: 0, videos: 0 };
 
     let wrestleShow = shows.find(
       (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
@@ -1793,10 +1888,41 @@ export const locoCueShows = mutation({
           crowd: WRESTLE_LOCO_IMAGES.crowd,
         }),
         "Faces 0 – 0 Heels",
+        "wrestle-loco",
       );
     }
     const wrestleBound = wrestleShow
       ? await bindPerformancesToShow(ctx, "wrestleloco", wrestleShow._id)
+      : 0;
+    const wrestleFx = wrestleShow
+      ? await ensureOverlayEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
+      : { urls: 0, videos: 0 };
+
+    const comedyShow =
+      shows.find((s) => s.title.toLowerCase().includes("stage cues")) ??
+      shows.find((s) => s.tag === "comedyloco") ??
+      shows.find((s) => s.title.toLowerCase().includes("comedy loco"));
+    let comedyAdded = 0;
+    if (comedyShow) {
+      const panels = await panelLogicalsForShow(ctx, comedyShow._id);
+      comedyAdded = await insertCueScenesOnShow(
+        ctx,
+        comedyShow._id,
+        panels,
+        performanceCuesFor(requireLoco("comedyloco"), {
+          hero: BATTLE_LOCO_IMAGES.hero,
+          side: BATTLE_LOCO_IMAGES.competitors,
+          crowd: BATTLE_LOCO_IMAGES.crowd,
+        }),
+        "Bananas 0 – 0 Berries",
+        "comedy-loco",
+      );
+    }
+    const comedyFx = comedyShow
+      ? await ensureOverlayEffectsOnShow(ctx, comedyShow._id, "comedy-loco")
+      : { urls: 0, videos: 0 };
+    const comedyBound = comedyShow
+      ? await bindPerformancesToShow(ctx, "comedyloco", comedyShow._id)
       : 0;
 
     return {
@@ -1805,12 +1931,20 @@ export const locoCueShows = mutation({
         created: battleCreated,
         addedScenes: battleAdded,
         boundPerformances: battleBound,
+        ...battleFx,
       },
       wrestle: {
         showId: wrestleShow?._id,
         created: wrestleCreated,
         addedScenes: wrestleAdded,
         boundPerformances: wrestleBound,
+        ...wrestleFx,
+      },
+      comedy: {
+        showId: comedyShow?._id,
+        addedScenes: comedyAdded,
+        boundPerformances: comedyBound,
+        ...comedyFx,
       },
     };
   },
@@ -1842,6 +1976,7 @@ export const wrestleLoco = mutation({
           crowd: WRESTLE_LOCO_IMAGES.crowd,
         }),
         "Faces 0 – 0 Heels",
+        "wrestle-loco",
       );
       const bound = await bindPerformancesToShow(ctx, "wrestleloco", existing._id);
       return {

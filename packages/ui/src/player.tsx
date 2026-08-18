@@ -653,6 +653,9 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
             effects={effects}
             clockSec={clockSec}
             muted={!soundOn}
+            urlContext={{
+              performanceId: show.cuedByPerformanceId,
+            }}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-600">

@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
+import { expandEffectUrl } from "@linkall/backend/convex/sceneCues";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 
@@ -285,6 +286,7 @@ function YouTubeScreenPlayer({
 
 /** When startTimes tie, keep media over solid color (legacy empty→black overlays). */
 function effectStackRank(kind: string): number {
+  if (kind === "url" || kind === "html") return 4;
   if (kind === "video") return 3;
   if (kind === "image") return 2;
   if (kind === "text") return 1;
@@ -313,6 +315,7 @@ function EffectMedia({
   videoStartSec = 0,
   muted = true,
   overlay = false,
+  urlContext,
 }: {
   kind: string;
   content: string;
@@ -327,6 +330,7 @@ function EffectMedia({
   muted?: boolean;
   /** When true, text sits on media below instead of a solid fill. */
   overlay?: boolean;
+  urlContext?: { performanceId?: string };
 }) {
   // Color fills the whole clipped panel (correct for irregular polygons).
   if (kind === "color") {
@@ -402,6 +406,28 @@ function EffectMedia({
       </div>
     );
   }
+  if (kind === "url") {
+    const src = expandEffectUrl(content, urlContext ?? {});
+    return (
+      <div style={frame} className="bg-black">
+        <iframe
+          src={src}
+          title="Overlay"
+          className="h-full w-full border-0"
+          allow="autoplay; fullscreen"
+        />
+      </div>
+    );
+  }
+  if (kind === "html") {
+    return (
+      <div
+        style={frame}
+        className="overflow-hidden bg-black text-white"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
   return (
     <div
       className={
@@ -445,6 +471,7 @@ export function PanelStage({
   effects,
   clockSec,
   muted = true,
+  urlContext,
 }: {
   screen: Screen;
   effects: Pick<
@@ -461,6 +488,8 @@ export function PanelStage({
   clockSec: number;
   /** When false, video effects play with audio (screen output only). */
   muted?: boolean;
+  /** Expands {performanceId} in URL effects (legacy iframe overlays). */
+  urlContext?: { performanceId?: string };
 }) {
   // Per panel: keep every enabled effect active in the clock window, then
   // stack them (color → image/video → text) so titles can sit on media.
@@ -519,6 +548,7 @@ export function PanelStage({
                     videoStartSec={effect.videoStartSec ?? 0}
                     muted={muted}
                     overlay={effect.kind === "text" && hasMediaUnderText}
+                    urlContext={urlContext}
                   />
                 </div>
               ))
@@ -1573,9 +1603,9 @@ function EffectModal({
   const [logicalPanelName, setLogicalPanelName] = useState(
     effect?.logicalPanelName ?? "",
   );
-  const [kind, setKind] = useState<"image" | "video" | "color" | "text">(
-    effect?.kind ?? "color",
-  );
+  const [kind, setKind] = useState<
+    "image" | "video" | "color" | "text" | "url" | "html"
+  >(effect?.kind ?? "color");
   const [content, setContent] = useState(effect?.content ?? "#dc2626");
   const [startTime, setStartTime] = useState(
     String(effect?.startTime ?? prefillStartTime ?? 0),
@@ -1671,6 +1701,8 @@ function EffectModal({
             <option value="image">Image URL</option>
             <option value="video">Video URL</option>
             <option value="text">Text</option>
+            <option value="url">Page URL (score / vote iframe)</option>
+            <option value="html">HTML</option>
           </select>
         </Field>
         <Field
@@ -1679,7 +1711,11 @@ function EffectModal({
               ? "Color"
               : kind === "text"
                 ? "Text"
-                : `${kind[0].toUpperCase() + kind.slice(1)} URL`
+                : kind === "html"
+                  ? "HTML"
+                  : kind === "url"
+                    ? "Page URL ({performanceId} allowed)"
+                    : `${kind[0].toUpperCase() + kind.slice(1)} URL`
           }
         >
           {kind === "color" ? (
