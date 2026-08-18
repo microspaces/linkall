@@ -106,6 +106,7 @@ export const LOGICAL_PANEL_TYPES = [
   "RightSidebar",
   "Header",
   "Footer",
+  "Phone",
 ] as const;
 
 export const listLogicalPanelTypes = query({
@@ -1220,6 +1221,8 @@ export const autoMapByPanelName = mutation({
       "right wing": "RightSidebar",
       "garage top right": "Overlay",
       scoreboard: "Scoreboard",
+      phone: "Phone",
+      "audience phone": "Phone",
     };
     let count = 0;
     for (const panel of panels) {

@@ -2,7 +2,7 @@ import { mutation } from "./_generated/server";
 import { MutationCtx } from "./_generated/server";
 import { Id, TableNames } from "./_generated/dataModel";
 import { christmasMikeScenes } from "./christmasMikeData";
-import { requireLoco, rowTag, type LocoConfig } from "./locos";
+import { getLocoByTag, requireLoco, rowTag, type LocoConfig } from "./locos";
 import {
   overlayKindForTitle,
   overlayPath,
@@ -537,6 +537,9 @@ async function insertCueScenesOnShow(
         await put(sceneId, "MainContent", "color", "#fbbf24", 30, 15);
       }
     }
+    if (panelByLogical.Phone) {
+      await put(sceneId, "Phone", "url", overlayPath(slug, "live"));
+    }
   }
   return added;
 }
@@ -721,6 +724,7 @@ async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
 
     if (boomNamed.has(title)) {
       for (const e of effects) {
+        if (e.logicalPanelName === "Phone") continue;
         if (e.kind !== "video") await ctx.db.delete(e._id);
       }
       const leftHas = effects.some(
@@ -845,6 +849,7 @@ async function dressWrestleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
 
     if (bellNamed.has(title)) {
       for (const e of effects) {
+        if (e.logicalPanelName === "Phone") continue;
         if (e.kind !== "video") await ctx.db.delete(e._id);
       }
       const leftHas = effects.some(
@@ -930,7 +935,10 @@ async function ensureWrestleLockupScenes(
       .query("effects")
       .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
       .collect();
-    for (const e of existing) await ctx.db.delete(e._id);
+    for (const e of existing) {
+      if (e.logicalPanelName === "Phone") continue;
+      await ctx.db.delete(e._id);
+    }
     const walls: Array<[string, Id<"panels">]> = [
       ["LeftSidebar", left],
       ["MainContent", center],
@@ -1005,6 +1013,124 @@ async function ensureWrestleLockupScenes(
   return { lockups };
 }
 
+const PHONE_CANVAS = { width: 1080, height: 1920 } as const;
+
+function slugForShow(show: { title: string; tag?: string }) {
+  const loco = show.tag ? getLocoByTag(show.tag) : undefined;
+  if (loco) return loco.slug;
+  const t = show.title.toLowerCase();
+  if (t.includes("battle")) return "battle-loco";
+  if (t.includes("wrestle")) return "wrestle-loco";
+  if (t.includes("comedy") || t.includes("stage cues")) return "comedy-loco";
+  return null;
+}
+
+function phoneOverlayPath(slug: string | null) {
+  return slug
+    ? overlayPath(slug, "live")
+    : "/performance/overlay/live?id={performanceId}";
+}
+
+/**
+ * Portrait audience phone on every show layout + display profile.
+ * Live overlay URL follows Begin / Next / Win via activeOverlay.
+ */
+async function ensurePhoneScreenOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+) {
+  const show = await ctx.db.get(showId);
+  if (!show?.layoutId) return { phone: 0, mapped: 0, urls: 0 };
+
+  const screens = await ctx.db
+    .query("screens")
+    .withIndex("by_layout", (q) => q.eq("layoutId", show.layoutId!))
+    .collect();
+  let phone = screens.find((s) => s.name.toLowerCase() === "phone");
+  let panelId: Id<"panels"> | undefined;
+  if (phone) {
+    const panels = await ctx.db
+      .query("panels")
+      .withIndex("by_screen", (q) => q.eq("screenId", phone!._id))
+      .collect();
+    panelId = panels[0]?._id;
+  } else {
+    const order = screens.reduce((m, s) => Math.max(m, s.order), -1) + 1;
+    const screenId = await ctx.db.insert("screens", {
+      layoutId: show.layoutId,
+      name: "Phone",
+      order,
+      width: PHONE_CANVAS.width,
+      height: PHONE_CANVAS.height,
+    });
+    panelId = await ctx.db.insert("panels", {
+      screenId,
+      name: "Phone",
+      zIndex: 0,
+      points: [
+        { x: 0, y: 0 },
+        { x: PHONE_CANVAS.width, y: 0 },
+        { x: PHONE_CANVAS.width, y: PHONE_CANVAS.height },
+        { x: 0, y: PHONE_CANVAS.height },
+      ],
+    });
+  }
+  if (!panelId) return { phone: 0, mapped: 0, urls: 0 };
+
+  let profiles = await ctx.db
+    .query("displayProfiles")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  if (profiles.length === 0) {
+    const all = await ctx.db.query("displayProfiles").collect();
+    profiles = all.filter((p) => p.layoutId === show.layoutId);
+  }
+  let mapped = 0;
+  for (const profile of profiles) {
+    const existing = await ctx.db
+      .query("panelMappings")
+      .withIndex("by_profile_logical", (q) =>
+        q.eq("displayProfileId", profile._id).eq("logicalPanelName", "Phone"),
+      )
+      .unique();
+    if (existing) continue;
+    await ctx.db.insert("panelMappings", {
+      displayProfileId: profile._id,
+      logicalPanelName: "Phone",
+      panelId,
+    });
+    mapped++;
+  }
+
+  const url = phoneOverlayPath(slugForShow(show));
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  let urls = 0;
+  for (const scene of scenes) {
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    const has = effects.some(
+      (e) => e.logicalPanelName === "Phone" && e.kind === "url",
+    );
+    if (has) continue;
+    await ctx.db.insert("effects", {
+      sceneId: scene._id,
+      panelId,
+      logicalPanelName: "Phone",
+      kind: "url",
+      content: url,
+      startTime: 0,
+      isEnabled: true,
+    });
+    urls++;
+  }
+  return { phone: 1, mapped, urls };
+}
+
 async function panelLogicalsForShow(
   ctx: MutationCtx,
   showId: Id<"shows">,
@@ -1031,7 +1157,12 @@ async function panelLogicalsForShow(
     .withIndex("by_layout", (q) => q.eq("layoutId", show.layoutId!))
     .collect();
   screens.sort((a, b) => a.order - b.order);
-  const fallbackLogicals = ["LeftSidebar", "MainContent", "RightSidebar"];
+  const fallbackLogicals = [
+    "LeftSidebar",
+    "MainContent",
+    "RightSidebar",
+    "Phone",
+  ];
   for (let i = 0; i < screens.length; i++) {
     const panels = await ctx.db
       .query("panels")
@@ -1270,6 +1401,8 @@ async function insertBattleLoco(
     "battle-loco",
   );
 
+  await ensurePhoneScreenOnShow(ctx, showId);
+
   return { showId, layoutId, screenIds };
 }
 
@@ -1474,6 +1607,8 @@ async function insertWrestleLoco(
     "Faces 0 – 0 Heels",
     "wrestle-loco",
   );
+
+  await ensurePhoneScreenOnShow(ctx, showId);
 
   return { showId, layoutId, screenIds };
 }
@@ -2282,6 +2417,7 @@ export const battleLoco = mutation({
         existingShow._id,
         "battle-loco",
       );
+      const phone = await ensurePhoneScreenOnShow(ctx, existingShow._id);
       return {
         message:
           "Battle Loco already exists — added missing cue scenes and bound performances",
@@ -2292,6 +2428,7 @@ export const battleLoco = mutation({
         ...fx,
         ...dress,
         ...sides,
+        phone,
         screenIds: {
           left: byName("HyperX Stage Left"),
           center: byName("HyperX Stage Center"),
@@ -2375,6 +2512,9 @@ export const locoCueShows = mutation({
     const battleSides = battleShow
       ? await ensureSideScoreEffectsOnShow(ctx, battleShow._id, "battle-loco")
       : { sides: 0 };
+    const battlePhone = battleShow
+      ? await ensurePhoneScreenOnShow(ctx, battleShow._id)
+      : { phone: 0, mapped: 0, urls: 0 };
 
     let wrestleShow = shows.find(
       (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
@@ -2419,6 +2559,9 @@ export const locoCueShows = mutation({
     const wrestleSides = wrestleShow
       ? await ensureSideScoreEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
       : { sides: 0 };
+    const wrestlePhone = wrestleShow
+      ? await ensurePhoneScreenOnShow(ctx, wrestleShow._id)
+      : { phone: 0, mapped: 0, urls: 0 };
 
     const comedyShow =
       shows.find((s) => s.title.toLowerCase().includes("stage cues")) ??
@@ -2446,6 +2589,9 @@ export const locoCueShows = mutation({
     const comedySides = comedyShow
       ? await ensureSideScoreEffectsOnShow(ctx, comedyShow._id, "comedy-loco")
       : { sides: 0 };
+    const comedyPhone = comedyShow
+      ? await ensurePhoneScreenOnShow(ctx, comedyShow._id)
+      : { phone: 0, mapped: 0, urls: 0 };
     const comedyBound = comedyShow
       ? await bindPerformancesToShow(ctx, "comedyloco", comedyShow._id)
       : 0;
@@ -2459,6 +2605,7 @@ export const locoCueShows = mutation({
         ...battleFx,
         ...battleDress,
         ...battleSides,
+        phone: battlePhone,
       },
       wrestle: {
         showId: wrestleShow?._id,
@@ -2469,6 +2616,7 @@ export const locoCueShows = mutation({
         ...wrestleLockups,
         ...wrestleDress,
         ...wrestleSides,
+        phone: wrestlePhone,
       },
       comedy: {
         showId: comedyShow?._id,
@@ -2476,6 +2624,7 @@ export const locoCueShows = mutation({
         boundPerformances: comedyBound,
         ...comedyFx,
         ...comedySides,
+        phone: comedyPhone,
       },
     };
   },
@@ -2522,6 +2671,7 @@ export const wrestleLoco = mutation({
         existing._id,
         "wrestle-loco",
       );
+      const phone = await ensurePhoneScreenOnShow(ctx, existing._id);
       return {
         message: "Wrestle Loco already exists — added missing cue scenes and bound performances",
         showId: existing._id,
@@ -2531,6 +2681,7 @@ export const wrestleLoco = mutation({
         ...lockups,
         ...dress,
         ...sides,
+        phone,
       };
     }
     const created = await insertWrestleLoco(ctx, ownerId);
@@ -2539,6 +2690,35 @@ export const wrestleLoco = mutation({
       message: "Seeded Wrestle Loco · Wrestle Ring (Left/Center/Right)",
       boundPerformances: bound,
       ...created,
+    };
+  },
+});
+
+/**
+ * Add the portrait Phone screen to every show that has a layout.
+ *   pnpm --filter @linkall/backend exec convex run seed:phoneScreens --env-file .env.funfirst
+ */
+export const phoneScreens = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const shows = await ctx.db.query("shows").collect();
+    const results: Array<{
+      showId: Id<"shows">;
+      title: string;
+      phone: number;
+      mapped: number;
+      urls: number;
+    }> = [];
+    for (const show of shows) {
+      const out = await ensurePhoneScreenOnShow(ctx, show._id);
+      results.push({ showId: show._id, title: show.title, ...out });
+    }
+    return {
+      shows: results.length,
+      phones: results.reduce((n, r) => n + r.phone, 0),
+      mapped: results.reduce((n, r) => n + r.mapped, 0),
+      urls: results.reduce((n, r) => n + r.urls, 0),
+      results,
     };
   },
 });

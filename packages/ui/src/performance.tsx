@@ -419,6 +419,7 @@ export function PerformanceConsole({
             setlist={loco.mode === "setlist"}
             screenHref={paths.screen(view._id)}
             previewHref={paths.preview(view._id)}
+            phoneHref={paths.phone(view._id)}
           />
         )}
       </div>
@@ -464,6 +465,7 @@ function Console({
   setlist,
   screenHref,
   previewHref,
+  phoneHref,
 }: {
   view: PerformanceView;
   tab: TabId;
@@ -472,6 +474,7 @@ function Console({
   setlist: boolean;
   screenHref: string;
   previewHref: string;
+  phoneHref: string;
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
   const setShow = useMutation(api.game.setShow);
@@ -561,6 +564,7 @@ function Console({
           screenUrl={screenUrl}
           screenHref={screenHref}
           previewHref={previewHref}
+          phoneHref={phoneHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -619,6 +623,7 @@ function Console({
           screenUrl={screenUrl}
           screenHref={screenHref}
           previewHref={previewHref}
+          phoneHref={phoneHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -634,6 +639,7 @@ function Console({
           screenUrl={screenUrl}
           screenHref={screenHref}
           previewHref={previewHref}
+          phoneHref={phoneHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -651,6 +657,7 @@ function Console({
           screenUrl={screenUrl}
           screenHref={screenHref}
           previewHref={previewHref}
+          phoneHref={phoneHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -864,17 +871,23 @@ function ScreenLinks({
   screenUrl,
   screenHref,
   previewHref,
+  phoneHref,
   performanceId,
   reset,
 }: {
   screenUrl: string;
   screenHref: string;
   previewHref: string;
+  phoneHref: string;
   performanceId: Id<"performances">;
   reset: ReturnType<typeof useMutation<typeof api.game.reset>>;
 }) {
+  const phoneUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${phoneHref}`
+      : phoneHref;
   return (
-    <div className="mt-4 flex items-center gap-2">
+    <div className="mt-4 flex flex-wrap items-center gap-2">
       <button
         onClick={() => navigator.clipboard.writeText(screenUrl)}
         className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-xs font-semibold hover:bg-gray-50"
@@ -894,6 +907,14 @@ function ScreenLinks({
         className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-center text-xs font-semibold hover:bg-gray-50"
       >
         Open screen
+      </a>
+      <a
+        href={phoneHref}
+        target="_blank"
+        title={phoneUrl}
+        className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-center text-xs font-semibold hover:bg-gray-50"
+      >
+        Open phone
       </a>
       <button
         onClick={() => reset({ performanceId })}
@@ -1387,6 +1408,8 @@ const OVERLAY_KIND_TO_CUE: Record<string, string> = {
   crowd: "crowd",
   punishment: "punishment",
   ring: "ring",
+  live: "",
+  phone: "",
 };
 
 function OverlayView({
