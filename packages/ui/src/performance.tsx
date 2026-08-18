@@ -17,6 +17,7 @@ import {
   type LocoConfig,
 } from "@linkall/backend/convex/locos";
 import { PerformanceNightRows } from "./performance-nights";
+import { DesignedSceneStage } from "./shows";
 
 /**
  * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …).
@@ -148,9 +149,11 @@ function CreatePerformanceModal({
   onClose: () => void;
 }) {
   const create = useMutation(api.game.create);
+  const shows = useQuery(api.shows.list, {});
   const [title, setTitle] = useState("");
   const [team1, setTeam1] = useState(loco.team1);
   const [team2, setTeam2] = useState(loco.team2);
+  const [showId, setShowId] = useState<Id<"shows"> | "">("");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -163,6 +166,7 @@ function CreatePerformanceModal({
         team2,
         ownerId,
         tag: loco.tag,
+        ...(showId ? { showId } : {}),
       });
       onClose();
     } finally {
@@ -201,10 +205,31 @@ function CreatePerformanceModal({
             />
           </Field>
         </div>
+        {shows && shows.length > 0 && (
+          <Field label="Designed show (optional)">
+            <select
+              className={inputCls}
+              value={showId}
+              onChange={(e) =>
+                setShowId((e.target.value || "") as Id<"shows"> | "")
+              }
+            >
+              <option value="">None — cue names only</option>
+              {shows.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <p className="text-xs text-gray-500">
           {loco.mode === "setlist"
             ? `Seeds the ${loco.templateRounds.length}-segment ${loco.name} set list. Assign segments from the console after you create it.`
             : `Seeds the ${loco.templateRounds.length}-round ${loco.name} grid for both teams. Pick games from the console after you create it.`}
+          {showId
+            ? " Game buttons play matching scenes from the bound show."
+            : ""}
         </p>
         <button
           onClick={() => void save()}
@@ -435,6 +460,8 @@ function Console({
   screenHref: string;
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
+  const setShow = useMutation(api.game.setShow);
+  const playPerformanceScene = useMutation(api.game.playPerformanceScene);
   const reset = useMutation(api.game.reset);
   const bellBonus = useMutation(api.game.bellBonus);
 
@@ -443,30 +470,79 @@ function Console({
     typeof window !== "undefined"
       ? `${window.location.origin}${screenHref}`
       : "";
+  const boundShowId = view.showId ?? view.show?._id;
+  const liveIndex =
+    view.show?.status === "live" ? view.show.currentSceneIndex : -1;
+
+  const cueScene = (sceneId: Id<"scenes">) =>
+    playPerformanceScene({ performanceId, sceneId });
 
   if (tab === "shows") {
     return (
       <div className="flex-1 overflow-y-auto p-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Background shows
+          Designed show
         </p>
-        {shows.map((s) => (
-          <button
-            key={s._id}
-            onClick={() => setOverlay({ performanceId, overlay: s.title })}
-            className={
-              "mb-2 block w-full rounded-lg border px-3 py-3 text-left text-sm font-semibold " +
-              (view.activeOverlay === s.title
-                ? "border-brand bg-brand-light text-brand-dark"
-                : "border-gray-200 bg-white hover:bg-gray-50")
-            }
-          >
-            {s.title}
-            {s.status === "live" && (
-              <span className="ml-2 text-xs font-bold text-red-500">LIVE</span>
-            )}
-          </button>
-        ))}
+        <select
+          className="mb-3 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium"
+          value={boundShowId ?? ""}
+          onChange={(e) =>
+            void setShow({
+              performanceId,
+              showId: e.target.value
+                ? (e.target.value as Id<"shows">)
+                : undefined,
+            })
+          }
+        >
+          <option value="">None — overlays stay text-only</option>
+          {shows.map((s) => (
+            <option key={s._id} value={s._id}>
+              {s.title}
+              {s.status === "live" ? " — LIVE" : ""}
+            </option>
+          ))}
+        </select>
+        {view.show && (
+          <p className="mb-2 text-xs text-gray-500">
+            Game buttons play scenes from{" "}
+            <span className="font-semibold text-gray-700">{view.show.title}</span>{" "}
+            whose names match the cue (Game Instructions, Vote, Winner…).
+          </p>
+        )}
+        {(view.scenes ?? []).length === 0 ? (
+          <p className="mb-3 text-xs text-gray-400">
+            {boundShowId
+              ? "This show has no scenes yet — add them in the Designer."
+              : "Bind a show to load its designed scenes onto this board."}
+          </p>
+        ) : (
+          <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            {(view.scenes ?? []).map((s) => {
+              const live = s.index === liveIndex;
+              const active = view.activeSceneId === s._id;
+              return (
+                <button
+                  key={s._id}
+                  onClick={() => void cueScene(s._id)}
+                  className={
+                    "flex w-full items-center gap-2 border-b border-gray-100 px-3 py-2.5 text-left text-sm last:border-b-0 " +
+                    (live || active
+                      ? "bg-red-50 font-semibold text-red-700"
+                      : "hover:bg-gray-50")
+                  }
+                >
+                  <span className="w-5 text-gray-400">{s.index + 1}</span>
+                  <span className="flex-1 truncate">{s.title}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                    {s.bucket}
+                  </span>
+                  {live && <span className="text-xs">● LIVE</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
@@ -478,8 +554,30 @@ function Console({
   }
 
   if (tab === "intros") {
+    const introScenes = view.sceneBuckets?.intro ?? [];
     return (
       <div className="flex-1 overflow-y-auto p-3">
+        {introScenes.length > 0 && (
+          <>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Intro scenes
+            </p>
+            {introScenes.map((s) => (
+              <button
+                key={s._id}
+                onClick={() => void cueScene(s._id)}
+                className={
+                  "mb-2 block w-full rounded-lg border px-3 py-3 text-left text-sm font-semibold " +
+                  (view.activeSceneId === s._id
+                    ? "border-brand bg-brand-light text-brand-dark"
+                    : "border-gray-200 bg-white hover:bg-gray-50")
+                }
+              >
+                {s.title}
+              </button>
+            ))}
+          </>
+        )}
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
           Performer intros
         </p>
@@ -515,7 +613,7 @@ function Console({
   if (tab === "scenes") {
     return (
       <div className="flex-1 overflow-y-auto p-3">
-        <OverlayTrackColumns view={view} performanceId={performanceId} />
+        <SceneBuckets view={view} performanceId={performanceId} />
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
@@ -573,6 +671,90 @@ function PerformerBar({
   );
 }
 
+function SceneCueRow({
+  label,
+  active,
+  live,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  live?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "block w-full truncate border-b border-gray-100 px-2 py-2 text-left text-xs " +
+        (active || live
+          ? "bg-brand-light font-semibold text-brand-dark"
+          : "hover:bg-gray-50")
+      }
+    >
+      {live ? "● " : ""}
+      {label}
+    </button>
+  );
+}
+
+function SceneBuckets({
+  view,
+  performanceId,
+}: {
+  view: PerformanceView;
+  performanceId: Id<"performances">;
+}) {
+  const buckets = view.sceneBuckets;
+  const hasDesigned =
+    buckets &&
+    (buckets.overlay.length ||
+      buckets.background.length ||
+      buckets.music.length ||
+      buckets.sound.length);
+  if (!hasDesigned) {
+    return <OverlayTrackColumns view={view} performanceId={performanceId} />;
+  }
+  const liveIndex =
+    view.show?.status === "live" ? view.show.currentSceneIndex : -1;
+  const playScene = useMutation(api.game.playPerformanceScene);
+  const cue = (sceneId: Id<"scenes">) =>
+    playScene({ performanceId, sceneId });
+  const cols: { title: string; rows: typeof buckets.overlay }[] = [
+    { title: "Backgrounds", rows: buckets.background },
+    { title: "Overlays", rows: buckets.overlay },
+    { title: "Music", rows: buckets.music },
+    { title: "Sounds", rows: buckets.sound },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-0 overflow-hidden rounded-lg border border-gray-200">
+      {cols.map((col) => (
+        <div
+          key={col.title}
+          className="border-b border-r border-gray-200 bg-white last:border-r-0"
+        >
+          <div className="bg-gray-900 px-2 py-1.5 text-xs font-semibold uppercase text-white">
+            {col.title}
+          </div>
+          {col.rows.length === 0 ? (
+            <p className="px-2 py-3 text-[11px] text-gray-400">None designed</p>
+          ) : (
+            col.rows.map((s) => (
+              <SceneCueRow
+                key={s._id}
+                label={s.title}
+                active={view.activeSceneId === s._id}
+                live={s.index === liveIndex}
+                onClick={() => void cue(s._id)}
+              />
+            ))
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function OverlayTrackColumns({
   view,
   performanceId,
@@ -582,6 +764,52 @@ function OverlayTrackColumns({
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
   const setTrack = useMutation(api.game.setTrack);
+  const playScene = useMutation(api.game.playPerformanceScene);
+  const overlayScenes = view.sceneBuckets?.overlay ?? [];
+  const musicScenes = view.sceneBuckets?.music ?? [];
+  const liveIndex =
+    view.show?.status === "live" ? view.show.currentSceneIndex : -1;
+
+  const overlayRows =
+    overlayScenes.length > 0
+      ? overlayScenes.map((s) => ({
+          key: s._id,
+          name: s.title,
+          active:
+            view.activeSceneId === s._id || view.activeOverlay === s.title,
+          live: s.index === liveIndex,
+          onClick: () => void playScene({ performanceId, sceneId: s._id }),
+        }))
+      : view.overlays.map((o) => ({
+          key: o._id,
+          name: o.name,
+          active: view.activeOverlay === o.name,
+          live: false,
+          onClick: () =>
+            setOverlay({
+              performanceId,
+              overlay: view.activeOverlay === o.name ? undefined : o.name,
+            }),
+        }));
+
+  const trackRows =
+    musicScenes.length > 0
+      ? musicScenes.map((s) => ({
+          key: s._id,
+          name: s.title,
+          active: view.activeTrack === s.title,
+          onClick: () => void playScene({ performanceId, sceneId: s._id }),
+        }))
+      : view.tracks.map((t) => ({
+          key: t._id,
+          name: t.name,
+          active: view.activeTrack === t.name,
+          onClick: () =>
+            setTrack({
+              performanceId,
+              track: view.activeTrack === t.name ? undefined : t.name,
+            }),
+        }));
 
   return (
     <div className="grid grid-cols-2 gap-0 border-b border-gray-200">
@@ -589,46 +817,28 @@ function OverlayTrackColumns({
         <div className="bg-gray-900 px-2 py-1.5 text-xs font-semibold uppercase text-white">
           Overlay
         </div>
-        {view.overlays.map((o) => {
-          const active = view.activeOverlay === o.name;
-          return (
-            <button
-              key={o._id}
-              onClick={() =>
-                setOverlay({ performanceId, overlay: active ? undefined : o.name })
-              }
-              className={
-                "block w-full truncate border-b border-gray-100 px-2 py-2 text-left text-xs " +
-                (active ? "bg-brand-light font-semibold text-brand-dark" : "hover:bg-gray-50")
-              }
-            >
-              {o.name}
-            </button>
-          );
-        })}
+        {overlayRows.map((row) => (
+          <SceneCueRow
+            key={row.key}
+            label={row.name}
+            active={row.active}
+            live={row.live}
+            onClick={row.onClick}
+          />
+        ))}
       </div>
       <div className="bg-white">
         <div className="bg-gray-900 px-2 py-1.5 text-xs font-semibold uppercase text-white">
           Track
         </div>
-        {view.tracks.map((t) => {
-          const active = view.activeTrack === t.name;
-          return (
-            <button
-              key={t._id}
-              onClick={() =>
-                setTrack({ performanceId, track: active ? undefined : t.name })
-              }
-              className={
-                "block w-full truncate border-b border-gray-100 px-2 py-2 text-left text-xs " +
-                (active ? "bg-brand-light font-semibold text-brand-dark" : "hover:bg-gray-50")
-              }
-            >
-              {active ? "♪ " : ""}
-              {t.name}
-            </button>
-          );
-        })}
+        {trackRows.map((row) => (
+          <SceneCueRow
+            key={row.key}
+            label={(row.active ? "♪ " : "") + row.name}
+            active={row.active}
+            onClick={row.onClick}
+          />
+        ))}
       </div>
     </div>
   );
@@ -1040,7 +1250,7 @@ function ControlStrip({
 
 // -------------------------------------------------------------- screen page
 
-/** Fullscreen venue display driven entirely by the console's overlay state. */
+/** Fullscreen venue display: designed live scene, else the overlay HUD. */
 export function PerformanceScreen({
   performanceId,
 }: {
@@ -1057,9 +1267,33 @@ export function PerformanceScreen({
       </div>
     );
 
+  const liveScene =
+    view.show?.status === "live" && view.scenes
+      ? (view.scenes[view.show.currentSceneIndex] ?? null)
+      : null;
+  const designed =
+    liveScene && view.show
+      ? liveScene.kind === "panels" ||
+        liveScene.kind === "image" ||
+        liveScene.kind === "text" ||
+        liveScene.kind === "title" ||
+        liveScene.kind === "score"
+      : false;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-gray-950 to-gray-900 text-white">
-      <OverlayView view={view} />
+      {designed && liveScene && view.show ? (
+        <>
+          <div className="absolute inset-0">
+            <DesignedSceneStage show={view.show} scene={liveScene} />
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-6 pb-8 pt-16">
+            <OverlayView view={view} compact />
+          </div>
+        </>
+      ) : (
+        <OverlayView view={view} />
+      )}
       {view.activeTrack && (
         <div className="absolute bottom-4 right-6 text-sm text-white/40">
           ♪ {view.activeTrack}
@@ -1069,8 +1303,18 @@ export function PerformanceScreen({
   );
 }
 
-function OverlayView({ view }: { view: PerformanceView }) {
+function OverlayView({
+  view,
+  compact = false,
+}: {
+  view: PerformanceView;
+  compact?: boolean;
+}) {
   const overlay = (view.activeOverlay ?? "").toLowerCase();
+  const titleCls = compact ? "text-4xl font-black" : "text-7xl font-black";
+  const subCls = compact
+    ? "text-lg font-semibold uppercase tracking-widest text-white/60"
+    : "text-3xl font-semibold uppercase tracking-widest text-white/50";
   const current = view.current;
   const game1 = current ? view.games.find((g) => g._id === current.game1Id) : null;
   const game2 = current ? view.games.find((g) => g._id === current.game2Id) : null;
@@ -1079,10 +1323,8 @@ function OverlayView({ view }: { view: PerformanceView }) {
   if (overlay.startsWith("introduction:"))
     return (
       <div className="px-8 text-center">
-        <p className="text-3xl font-semibold uppercase tracking-widest text-white/50">
-          Introducing
-        </p>
-        <h1 className="mt-6 text-7xl font-black text-amber-400">
+        <p className={subCls}>Introducing</p>
+        <h1 className={"mt-4 text-amber-400 " + titleCls}>
           {view.activeOverlay!.replace(/^introduction:\s*/i, "")}
         </h1>
       </div>
@@ -1091,10 +1333,10 @@ function OverlayView({ view }: { view: PerformanceView }) {
   if (overlay === "game instructions" && game1)
     return (
       <div className="px-8 text-center">
-        <p className="text-2xl font-semibold uppercase tracking-widest text-white/50">
+        <p className={subCls}>
           Round {game1.round} · {game1.roundType}
         </p>
-        <h1 className="mt-4 text-7xl font-black">
+        <h1 className={"mt-4 " + titleCls}>
           {(playing ?? game1).gameName}
         </h1>
         {playing && (
@@ -1108,7 +1350,9 @@ function OverlayView({ view }: { view: PerformanceView }) {
   if (overlay === "vote" && view.mode !== "setlist")
     return (
       <div className="px-8 text-center">
-        <h1 className="text-8xl font-black text-amber-400">VOTE!</h1>
+        <h1 className={"text-amber-400 " + (compact ? "text-5xl font-black" : "text-8xl font-black")}>
+          VOTE!
+        </h1>
         <div className="mt-10 flex items-center justify-center gap-12 text-5xl font-black">
           <span className="text-yellow-300">{view.team1}</span>
           <span className="text-2xl text-white/40">vs</span>
@@ -1124,7 +1368,12 @@ function OverlayView({ view }: { view: PerformanceView }) {
         <p className="text-3xl font-semibold uppercase tracking-widest text-white/50">
           Round winner
         </p>
-        <h1 className="mt-4 animate-bounce text-8xl font-black text-lime-400">
+        <h1
+          className={
+            "mt-4 animate-bounce text-lime-400 " +
+            (compact ? "text-5xl font-black" : "text-8xl font-black")
+          }
+        >
           {view.activeOverlay!.replace(/^winner\s*/i, "")}
         </h1>
         <Scoreboard view={view} className="mt-12" />
@@ -1173,10 +1422,11 @@ function OverlayView({ view }: { view: PerformanceView }) {
       </div>
     );
 
-  // Default: title card.
+  // Default: title card (hidden when a designed scene is already filling the screen).
+  if (compact) return null;
   return (
     <div className="px-8 text-center">
-      <h1 className="text-7xl font-black">{view.title}</h1>
+      <h1 className={titleCls}>{view.title}</h1>
       {view.mode === "setlist" ? (
         <p className="mt-10 text-3xl font-semibold uppercase tracking-widest text-white/50">
           Set list

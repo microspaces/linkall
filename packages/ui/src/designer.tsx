@@ -1466,14 +1466,30 @@ function SceneModal({
   const updateScene = useMutation(api.designer.updateScene);
   const [title, setTitle] = useState(scene?.title ?? "");
   const [duration, setDuration] = useState(String(scene?.durationSec ?? 60));
+  const [isOverlay, setIsOverlay] = useState(scene?.isOverlay ?? false);
+  const [isSoundEffect, setIsSoundEffect] = useState(
+    scene?.isSoundEffect ?? false,
+  );
 
   const save = async () => {
     if (!title.trim()) return;
     const durationSec = Math.max(1, Number(duration) || 60);
     if (scene) {
-      await updateScene({ sceneId: scene._id, title, durationSec });
+      await updateScene({
+        sceneId: scene._id,
+        title,
+        durationSec,
+        isOverlay,
+        isSoundEffect,
+      });
     } else {
-      await createScene({ showId, title, durationSec });
+      await createScene({
+        showId,
+        title,
+        durationSec,
+        isOverlay,
+        isSoundEffect,
+      });
     }
     onClose();
   };
@@ -1486,9 +1502,17 @@ function SceneModal({
             className={inputCls}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="Game Instructions"
             autoFocus
           />
         </Field>
+        <p className="text-[11px] text-gray-500">
+          Performance cues this scene by name — use{" "}
+          <span className="font-semibold">Game Instructions</span>,{" "}
+          <span className="font-semibold">Vote</span>,{" "}
+          <span className="font-semibold">Winner …</span>,{" "}
+          <span className="font-semibold">Introduction</span>.
+        </p>
         <Field label="Duration (seconds)">
           <input
             className={inputCls}
@@ -1498,6 +1522,22 @@ function SceneModal({
             onChange={(e) => setDuration(e.target.value)}
           />
         </Field>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={isOverlay}
+            onChange={(e) => setIsOverlay(e.target.checked)}
+          />
+          Overlay (performance Overlay bucket)
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={isSoundEffect}
+            onChange={(e) => setIsSoundEffect(e.target.checked)}
+          />
+          Sound / music (does not replace the visual)
+        </label>
         <button
           onClick={save}
           className="w-full rounded-md bg-brand py-2 text-sm font-semibold text-white hover:opacity-90"

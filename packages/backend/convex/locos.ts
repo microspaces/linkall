@@ -68,6 +68,8 @@ export type LocoConfig = {
   catalog: CatalogGameSpec[];
 };
 
+/** Fallback overlay names when a performance has no designed show bound.
+ *  Scene titles in the Designer should match these so game buttons cue them. */
 const SHARED_OVERLAYS = [
   "Game Instructions",
   "Vote",

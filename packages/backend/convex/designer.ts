@@ -673,8 +673,10 @@ export const createScene = mutation({
     showId: v.id("shows"),
     title: v.string(),
     durationSec: v.number(),
+    isOverlay: v.optional(v.boolean()),
+    isSoundEffect: v.optional(v.boolean()),
   },
-  handler: async (ctx, { showId, title, durationSec }) => {
+  handler: async (ctx, { showId, title, durationSec, isOverlay, isSoundEffect }) => {
     const scenes = await ctx.db
       .query("scenes")
       .withIndex("by_show", (q) => q.eq("showId", showId))
@@ -686,6 +688,8 @@ export const createScene = mutation({
       content: "",
       durationSec,
       order: scenes.length,
+      isOverlay,
+      isSoundEffect,
     });
   },
 });
@@ -696,6 +700,8 @@ export const updateScene = mutation({
     title: v.optional(v.string()),
     durationSec: v.optional(v.number()),
     order: v.optional(v.number()),
+    isOverlay: v.optional(v.boolean()),
+    isSoundEffect: v.optional(v.boolean()),
   },
   handler: async (ctx, { sceneId, ...fields }) => {
     await ctx.db.patch(sceneId, fields);

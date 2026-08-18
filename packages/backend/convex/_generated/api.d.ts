@@ -24,6 +24,7 @@ import type * as notifications from "../notifications.js";
 import type * as posts from "../posts.js";
 import type * as products from "../products.js";
 import type * as resources from "../resources.js";
+import type * as sceneCues from "../sceneCues.js";
 import type * as seed from "../seed.js";
 import type * as shows from "../shows.js";
 import type * as users from "../users.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   posts: typeof posts;
   products: typeof products;
   resources: typeof resources;
+  sceneCues: typeof sceneCues;
   seed: typeof seed;
   shows: typeof shows;
   users: typeof users;

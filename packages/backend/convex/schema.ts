@@ -138,6 +138,10 @@ export default defineSchema({
     content: v.string(),
     /** Scene length in seconds (legacy Scene.Duration), drives the timeline. */
     durationSec: v.optional(v.number()),
+    /** Legacy Scene.IsOverlay — performance console Overlay bucket + cue. */
+    isOverlay: v.optional(v.boolean()),
+    /** Legacy Scene.IsSoundEffect — Music / Sounds buckets, no visual steal. */
+    isSoundEffect: v.optional(v.boolean()),
   }).index("by_show", ["showId"]),
 
   // ---- designer: physical screens (legacy: Layout → Screen → Panel) ----
@@ -270,6 +274,10 @@ export default defineSchema({
     activeOverlay: v.optional(v.string()),
     /** Music track currently cued (legacy SceneLayoutMusic click). */
     activeTrack: v.optional(v.string()),
+    /** Designed show this performance cues (legacy Show click on the board). */
+    showId: v.optional(v.id("shows")),
+    /** Last visual scene cued from that show. */
+    activeSceneId: v.optional(v.id("scenes")),
     ownerId: v.id("users"),
     /** Loco format (competition: comedyloco / battleloco / wrestleloco / thisgameshow; setlist: headcase / laffup / weddingloco / barloco). Untagged = comedyloco. */
     tag: v.optional(v.string()),

@@ -3,6 +3,7 @@ import { MutationCtx } from "./_generated/server";
 import { Id, TableNames } from "./_generated/dataModel";
 import { christmasMikeScenes } from "./christmasMikeData";
 import { requireLoco, type LocoConfig } from "./locos";
+import { winnerCue } from "./sceneCues";
 
 /**
  * Mock data per brand, for testing until real data (groups etc.) is imported.
@@ -197,6 +198,7 @@ async function insertLocoDemo(
   rounds: [number, string, string, string, boolean][],
   performers: [string, 1 | 2][],
   catalogIds: Record<string, Id<"comedyGames">>,
+  showId?: Id<"shows">,
 ) {
   const performanceId = await ctx.db.insert("performances", {
     title,
@@ -205,6 +207,7 @@ async function insertLocoDemo(
     status: "draft",
     ownerId,
     tag: loco.tag,
+    showId,
   });
   let order = 0;
   for (const [round, roundType, game1, game2, isScored] of rounds) {
@@ -282,6 +285,275 @@ const BATTLE_LOCO_BOOM_VIDEOS = {
   center: "https://www.youtube.com/watch?v=C2ozn70nM9Y",
   right: "https://www.youtube.com/watch?v=LRF9SHSvOOc",
 } as const;
+
+const WRESTLE_LOCO_IMAGES = {
+  hero: "/wrestle-loco/images/hero.jpg",
+  ring: "/wrestle-loco/images/ring.jpg",
+  crowd: "/wrestle-loco/images/crowd.jpg",
+} as const;
+
+type CueSceneSpec = {
+  title: string;
+  durationSec: number;
+  isOverlay?: boolean;
+  isSoundEffect?: boolean;
+  accent: string;
+  centerText: string;
+  leftImage?: string;
+  centerImage?: string;
+  rightImage?: string;
+};
+
+function performanceCuesFor(
+  loco: LocoConfig,
+  images: { hero: string; side: string; crowd: string },
+): CueSceneSpec[] {
+  const cues: CueSceneSpec[] = [
+    {
+      title: "Introduction",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#1e3a8a",
+      centerText: "INTRODUCING",
+      centerImage: images.hero,
+    },
+    {
+      title: "Game Instructions",
+      durationSec: 30,
+      isOverlay: true,
+      accent: "#7c2d12",
+      centerText: "PLAY THIS",
+      centerImage: images.hero,
+    },
+    {
+      title: "Vote",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#b45309",
+      centerText: "VOTE!",
+    },
+    {
+      title: winnerCue(loco.team1),
+      durationSec: 15,
+      isOverlay: true,
+      accent: "#ca8a04",
+      centerText: `${loco.team1.toUpperCase()} WIN`,
+      leftImage: images.side,
+    },
+    {
+      title: winnerCue(loco.team2),
+      durationSec: 15,
+      isOverlay: true,
+      accent: "#0e7490",
+      centerText: `${loco.team2.toUpperCase()} WIN`,
+      rightImage: images.crowd,
+    },
+    {
+      title: "Score Rotation",
+      durationSec: 15,
+      isOverlay: true,
+      accent: "#0369a1",
+      centerText: "ROTATION",
+    },
+    {
+      title: "Score",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#0f766e",
+      centerText: "SCORE",
+    },
+    {
+      title: "Games",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#334155",
+      centerText: "TONIGHT",
+    },
+    {
+      title: "Crowd",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#7c3aed",
+      centerText: "CROWD",
+      centerImage: images.crowd,
+      rightImage: images.crowd,
+    },
+    {
+      title: "BringTheFun",
+      durationSec: 180,
+      isSoundEffect: true,
+      accent: "#14532d",
+      centerText: "♪",
+    },
+    {
+      title: "BackNForth",
+      durationSec: 180,
+      isSoundEffect: true,
+      accent: "#1e3a8a",
+      centerText: "♪",
+    },
+  ];
+  if (loco.tag === "battleloco") {
+    cues.push({
+      title: "Punishment",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#7f1d1d",
+      centerText: "PUNISHMENT",
+    });
+  }
+  if (loco.tag === "wrestleloco") {
+    cues.push({
+      title: "Ring",
+      durationSec: 20,
+      isOverlay: true,
+      accent: "#1d4ed8",
+      centerText: "RING",
+      centerImage: images.hero,
+    });
+  }
+  return cues;
+}
+
+async function insertCueScenesOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+  panelByLogical: Record<string, Id<"panels">>,
+  specs: CueSceneSpec[],
+  scoreLine: string,
+) {
+  const existing = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  const have = new Set(existing.map((s) => s.title.toLowerCase()));
+  let order = existing.reduce((m, s) => Math.max(m, s.order), -1) + 1;
+  let added = 0;
+
+  const put = async (
+    sceneId: Id<"scenes">,
+    logical: string,
+    kind: "image" | "color" | "text",
+    content: string,
+    startTime = 0,
+    durationSec?: number,
+  ) => {
+    const panelId = panelByLogical[logical];
+    if (!panelId) return;
+    await ctx.db.insert("effects", {
+      sceneId,
+      panelId,
+      logicalPanelName: logical,
+      kind,
+      content,
+      startTime,
+      isEnabled: true,
+      ...(durationSec !== undefined ? { durationSec } : {}),
+    });
+  };
+
+  for (const spec of specs) {
+    if (have.has(spec.title.toLowerCase())) continue;
+    const sceneId = await ctx.db.insert("scenes", {
+      showId,
+      order: order++,
+      title: spec.title,
+      kind: "panels",
+      content: "",
+      durationSec: spec.durationSec,
+      isOverlay: spec.isOverlay,
+      isSoundEffect: spec.isSoundEffect,
+    });
+    added++;
+
+    if (panelByLogical.Background) {
+      await put(sceneId, "Background", "color", "#0f172a");
+    }
+    if (panelByLogical.LeftSidebar) {
+      if (spec.leftImage) {
+        await put(sceneId, "LeftSidebar", "image", spec.leftImage);
+      } else {
+        await put(sceneId, "LeftSidebar", "color", spec.accent);
+      }
+    }
+    if (panelByLogical.RightSidebar) {
+      if (spec.rightImage) {
+        await put(sceneId, "RightSidebar", "image", spec.rightImage);
+      } else {
+        await put(sceneId, "RightSidebar", "color", spec.accent);
+      }
+    }
+    if (panelByLogical.Scoreboard) {
+      await put(sceneId, "Scoreboard", "text", scoreLine);
+    }
+    if (panelByLogical.MainContent) {
+      if (spec.centerImage) {
+        await put(sceneId, "MainContent", "image", spec.centerImage);
+        await put(sceneId, "MainContent", "text", spec.centerText, 0, 30);
+      } else {
+        await put(sceneId, "MainContent", "color", spec.accent);
+        await put(sceneId, "MainContent", "text", spec.centerText, 0, 30);
+        await put(sceneId, "MainContent", "color", "#fbbf24", 30, 15);
+      }
+    }
+  }
+  return added;
+}
+
+async function panelLogicalsForShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+): Promise<Record<string, Id<"panels">>> {
+  const profiles = await ctx.db
+    .query("displayProfiles")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  const profile = profiles.find((p) => p.isDefault) ?? profiles[0];
+  const map: Record<string, Id<"panels">> = {};
+  if (profile) {
+    const mappings = await ctx.db
+      .query("panelMappings")
+      .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+      .collect();
+    for (const m of mappings) map[m.logicalPanelName] = m.panelId;
+  }
+  if (Object.keys(map).length > 0) return map;
+
+  const show = await ctx.db.get(showId);
+  if (!show?.layoutId) return map;
+  const screens = await ctx.db
+    .query("screens")
+    .withIndex("by_layout", (q) => q.eq("layoutId", show.layoutId!))
+    .collect();
+  screens.sort((a, b) => a.order - b.order);
+  const fallbackLogicals = ["LeftSidebar", "MainContent", "RightSidebar"];
+  for (let i = 0; i < screens.length; i++) {
+    const panels = await ctx.db
+      .query("panels")
+      .withIndex("by_screen", (q) => q.eq("screenId", screens[i]._id))
+      .collect();
+    panels.sort((a, b) => a.zIndex - b.zIndex);
+    const panel = panels[0];
+    if (panel) map[fallbackLogicals[i] ?? `Panel${i}`] = panel._id;
+  }
+  return map;
+}
+
+async function bindPerformancesToShow(
+  ctx: MutationCtx,
+  tag: string,
+  showId: Id<"shows">,
+) {
+  const performances = await ctx.db.query("performances").collect();
+  let bound = 0;
+  for (const p of performances) {
+    if (p.tag !== tag) continue;
+    if (p.showId === showId) continue;
+    await ctx.db.patch(p._id, { showId });
+    bound++;
+  }
+  return bound;
+}
 
 /**
  * HyperX Arena three-LED setup for Battle Loco.
@@ -475,6 +747,168 @@ async function insertBattleLoco(
       panelId: panelByLogical[spec.logical],
     });
   }
+
+  await insertCueScenesOnShow(
+    ctx,
+    showId,
+    panelByLogical,
+    performanceCuesFor(requireLoco("battleloco"), {
+      hero: BATTLE_LOCO_IMAGES.hero,
+      side: BATTLE_LOCO_IMAGES.competitors,
+      crowd: BATTLE_LOCO_IMAGES.crowd,
+    }),
+    "Heat 0 – 0 Ice",
+  );
+
+  return { showId, layoutId, screenIds };
+}
+
+/**
+ * Wrestle Loco ring show — three outputs (left/center/right) plus the
+ * performance cue scenes the console plays by name.
+ */
+async function insertWrestleLoco(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+): Promise<{
+  showId: Id<"shows">;
+  layoutId: Id<"layouts">;
+  screenIds: {
+    left: Id<"screens">;
+    center: Id<"screens">;
+    right: Id<"screens">;
+  };
+}> {
+  const layoutId = await ctx.db.insert("layouts", {
+    name: "Wrestle Ring",
+    ownerId,
+  });
+
+  const screenSpecs: {
+    key: "left" | "center" | "right";
+    name: string;
+    order: number;
+    width: number;
+    height: number;
+    logical: string;
+    image: string;
+  }[] = [
+    {
+      key: "left",
+      name: "Wrestle Stage Left",
+      order: 0,
+      width: 1152,
+      height: 1920,
+      logical: "LeftSidebar",
+      image: WRESTLE_LOCO_IMAGES.hero,
+    },
+    {
+      key: "center",
+      name: "Wrestle Stage Center",
+      order: 1,
+      width: 1920,
+      height: 1080,
+      logical: "MainContent",
+      image: WRESTLE_LOCO_IMAGES.ring,
+    },
+    {
+      key: "right",
+      name: "Wrestle Stage Right",
+      order: 2,
+      width: 1152,
+      height: 1920,
+      logical: "RightSidebar",
+      image: WRESTLE_LOCO_IMAGES.crowd,
+    },
+  ];
+
+  const screenIds = {} as {
+    left: Id<"screens">;
+    center: Id<"screens">;
+    right: Id<"screens">;
+  };
+  const panelByLogical: Record<string, Id<"panels">> = {};
+
+  for (const spec of screenSpecs) {
+    const screenId = await ctx.db.insert("screens", {
+      layoutId,
+      name: spec.name,
+      order: spec.order,
+      width: spec.width,
+      height: spec.height,
+    });
+    screenIds[spec.key] = screenId;
+    panelByLogical[spec.logical] = await ctx.db.insert("panels", {
+      screenId,
+      name: spec.name,
+      zIndex: 0,
+      points: [
+        { x: 0, y: 0 },
+        { x: spec.width, y: 0 },
+        { x: spec.width, y: spec.height },
+        { x: 0, y: spec.height },
+      ],
+    });
+  }
+
+  const showId = await ctx.db.insert("shows", {
+    title: "Wrestle Loco",
+    description:
+      "Ring walk, live match cues, and Faces vs Heels overlays for the house screens.",
+    tag: "wrestleloco",
+    status: "draft",
+    currentSceneIndex: 0,
+    layoutId,
+    ownerId,
+  });
+
+  const walkId = await ctx.db.insert("scenes", {
+    showId,
+    order: 0,
+    title: "Opening Bell",
+    kind: "panels",
+    content: "",
+    durationSec: 90,
+  });
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("effects", {
+      sceneId: walkId,
+      panelId: panelByLogical[spec.logical],
+      logicalPanelName: spec.logical,
+      kind: "image",
+      content: spec.image,
+      startTime: 0,
+      isEnabled: true,
+    });
+  }
+
+  const profileId = await ctx.db.insert("displayProfiles", {
+    name: "Wrestle Ring",
+    description: "Stage Left / Center / Right at the Wrestle Loco house.",
+    showId,
+    layoutId,
+    isDefault: true,
+    ownerId,
+  });
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("panelMappings", {
+      displayProfileId: profileId,
+      logicalPanelName: spec.logical,
+      panelId: panelByLogical[spec.logical],
+    });
+  }
+
+  await insertCueScenesOnShow(
+    ctx,
+    showId,
+    panelByLogical,
+    performanceCuesFor(requireLoco("wrestleloco"), {
+      hero: WRESTLE_LOCO_IMAGES.ring,
+      side: WRESTLE_LOCO_IMAGES.hero,
+      crowd: WRESTLE_LOCO_IMAGES.crowd,
+    }),
+    "Faces 0 – 0 Heels",
+  );
 
   return { showId, layoutId, screenIds };
 }
@@ -870,15 +1304,32 @@ export const funfirst = mutation({
       layoutId,
       ownerId: users[0],
     });
-    const stageScenes: [string, number, string, string][] = [
+    const stageScenes: [
+      string,
+      number,
+      string,
+      string,
+      boolean?,
+      boolean?,
+    ][] = [
       ["Warmup", 60, "#14532d", "WARMUP"],
+      ["Introduction", 20, "#1e3a8a", "INTRODUCING", true],
       ["Team Intros", 90, "#1e3a8a", "BANANAS vs BERRIES"],
+      ["Game Instructions", 30, "#7c2d12", "PLAY THIS", true],
       ["Round 1", 120, "#7c2d12", "ROUND 1"],
+      ["Vote", 20, "#b45309", "VOTE!", true],
+      ["Winner Bananas", 15, "#ca8a04", "BANANAS WIN", true],
+      ["Winner Berries", 15, "#db2777", "BERRIES WIN", true],
+      ["Score Rotation", 15, "#0369a1", "ROTATION", true],
+      ["Score", 20, "#0f766e", "SCORE", true],
       ["Halftime", 45, "#4c1d95", "HALFTIME"],
       ["Finale", 90, "#831843", "CHAMPIONS"],
+      ["BringTheFun", 180, "#14532d", "♪", false, true],
+      ["BackNForth", 180, "#1e3a8a", "♪", false, true],
     ];
     for (let s = 0; s < stageScenes.length; s++) {
-      const [title, durationSec, wingColor, centerText] = stageScenes[s];
+      const [title, durationSec, wingColor, centerText, isOverlay, isSoundEffect] =
+        stageScenes[s];
       const sceneId = await ctx.db.insert("scenes", {
         showId: stageShowId,
         order: s,
@@ -886,6 +1337,8 @@ export const funfirst = mutation({
         kind: "panels",
         content: "",
         durationSec,
+        isOverlay,
+        isSoundEffect,
       });
       const ffLogical: Record<string, string> = {
         Background: "Backdrop",
@@ -961,10 +1414,12 @@ export const funfirst = mutation({
         ["Deadpan Dana", 2],
       ],
       comedyIds,
+      stageShowId,
     );
 
     const battle = requireLoco("battleloco");
     const battleIds = await insertLocoCatalog(ctx, battle);
+    const battleShow = await insertBattleLoco(ctx, users[0]);
     await insertLocoDemo(
       ctx,
       users[0],
@@ -984,10 +1439,12 @@ export const funfirst = mutation({
         ["Glacier", 2],
       ],
       battleIds,
+      battleShow.showId,
     );
 
     const wrestle = requireLoco("wrestleloco");
     const wrestleIds = await insertLocoCatalog(ctx, wrestle);
+    const wrestleShow = await insertWrestleLoco(ctx, users[2]);
     await insertLocoDemo(
       ctx,
       users[2],
@@ -998,7 +1455,7 @@ export const funfirst = mutation({
         [2, "Match", "Singles Match", "Tag Team", true],
         [3, "Crowd", "Crowd Scream", "Crowd Scream", false],
         [4, "Weapons", "Chair Shot", "Chair Shot", true],
-        [5, "Finale", "Multi-pin", "Multi-pin", true],
+        [5, "Finale", "Finale Gauntlet", "Finale Gauntlet", true],
       ],
       [
         ["The Smile", 1],
@@ -1007,6 +1464,7 @@ export const funfirst = mutation({
         ["The Heel Turn", 2],
       ],
       wrestleIds,
+      wrestleShow.showId,
     );
 
     const headcase = requireLoco("headcase");
@@ -1070,7 +1528,7 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 7 groups, 4 shows (1 designer), 1 layout, 1 display profile, 5 loco performances, Battle Loco HyperX, 7 events";
+    return "Seeded FunFirst: 6 users, 7 groups, 6 shows (3 designer), 3 layouts, 3 display profiles, 5 loco performances bound to cue shows, 7 events";
   },
 });
 
@@ -1225,11 +1683,30 @@ export const battleLoco = mutation({
         : [];
       const byName = (name: string) =>
         screens.find((s) => s.name === name)?._id;
+      const panels = await panelLogicalsForShow(ctx, existingShow._id);
+      const added = await insertCueScenesOnShow(
+        ctx,
+        existingShow._id,
+        panels,
+        performanceCuesFor(requireLoco("battleloco"), {
+          hero: BATTLE_LOCO_IMAGES.hero,
+          side: BATTLE_LOCO_IMAGES.competitors,
+          crowd: BATTLE_LOCO_IMAGES.crowd,
+        }),
+        "Heat 0 – 0 Ice",
+      );
+      const bound = await bindPerformancesToShow(
+        ctx,
+        "battleloco",
+        existingShow._id,
+      );
       return {
         message:
-          "Battle Loco already exists — left existing show/screen IDs unchanged",
+          "Battle Loco already exists — added missing cue scenes and bound performances",
         showId: existingShow._id,
         layoutId: layout?._id,
+        addedScenes: added,
+        boundPerformances: bound,
         screenIds: {
           left: byName("HyperX Stage Left"),
           center: byName("HyperX Stage Center"),
@@ -1239,9 +1716,146 @@ export const battleLoco = mutation({
     }
 
     const created = await insertBattleLoco(ctx, ownerId);
+    const bound = await bindPerformancesToShow(ctx, "battleloco", created.showId);
     return {
       message:
         "Seeded Battle Loco · HyperX Arena (Left/Right 1152×1920 portrait, Center 1920×1080)",
+      boundPerformances: bound,
+      ...created,
+    };
+  },
+});
+
+/**
+ * Create / upgrade Battle Loco + Wrestle Loco designed shows with
+ * performance cue scenes, and bind every existing performance of those
+ * locos. Does not wipe data.
+ *
+ *   pnpm --filter @linkall/backend seed:locoCueShows
+ */
+export const locoCueShows = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const ownerId =
+      users.find((u) => u.tier === "admin")?._id ?? users[0]?._id;
+    if (!ownerId) {
+      throw new Error("No users in deployment — run seed:funfirst first.");
+    }
+
+    const shows = await ctx.db.query("shows").collect();
+
+    let battleShow = shows.find(
+      (s) => s.tag === "battleloco" || s.title === "Battle Loco",
+    );
+    let battleCreated = false;
+    let battleAdded = 0;
+    if (!battleShow) {
+      const created = await insertBattleLoco(ctx, ownerId);
+      battleShow = (await ctx.db.get(created.showId)) ?? undefined;
+      battleCreated = true;
+    } else {
+      const panels = await panelLogicalsForShow(ctx, battleShow._id);
+      battleAdded = await insertCueScenesOnShow(
+        ctx,
+        battleShow._id,
+        panels,
+        performanceCuesFor(requireLoco("battleloco"), {
+          hero: BATTLE_LOCO_IMAGES.hero,
+          side: BATTLE_LOCO_IMAGES.competitors,
+          crowd: BATTLE_LOCO_IMAGES.crowd,
+        }),
+        "Heat 0 – 0 Ice",
+      );
+    }
+    const battleBound = battleShow
+      ? await bindPerformancesToShow(ctx, "battleloco", battleShow._id)
+      : 0;
+
+    let wrestleShow = shows.find(
+      (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
+    );
+    let wrestleCreated = false;
+    let wrestleAdded = 0;
+    if (!wrestleShow) {
+      const created = await insertWrestleLoco(ctx, ownerId);
+      wrestleShow = (await ctx.db.get(created.showId)) ?? undefined;
+      wrestleCreated = true;
+    } else {
+      const panels = await panelLogicalsForShow(ctx, wrestleShow._id);
+      wrestleAdded = await insertCueScenesOnShow(
+        ctx,
+        wrestleShow._id,
+        panels,
+        performanceCuesFor(requireLoco("wrestleloco"), {
+          hero: WRESTLE_LOCO_IMAGES.ring,
+          side: WRESTLE_LOCO_IMAGES.hero,
+          crowd: WRESTLE_LOCO_IMAGES.crowd,
+        }),
+        "Faces 0 – 0 Heels",
+      );
+    }
+    const wrestleBound = wrestleShow
+      ? await bindPerformancesToShow(ctx, "wrestleloco", wrestleShow._id)
+      : 0;
+
+    return {
+      battle: {
+        showId: battleShow?._id,
+        created: battleCreated,
+        addedScenes: battleAdded,
+        boundPerformances: battleBound,
+      },
+      wrestle: {
+        showId: wrestleShow?._id,
+        created: wrestleCreated,
+        addedScenes: wrestleAdded,
+        boundPerformances: wrestleBound,
+      },
+    };
+  },
+});
+
+/** Same as locoCueShows but only the Wrestle Loco show + bind. */
+export const wrestleLoco = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const ownerId =
+      users.find((u) => u.tier === "admin")?._id ?? users[0]?._id;
+    if (!ownerId) {
+      throw new Error("No users in deployment — run seed:funfirst first.");
+    }
+    const shows = await ctx.db.query("shows").collect();
+    const existing = shows.find(
+      (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
+    );
+    if (existing) {
+      const panels = await panelLogicalsForShow(ctx, existing._id);
+      const added = await insertCueScenesOnShow(
+        ctx,
+        existing._id,
+        panels,
+        performanceCuesFor(requireLoco("wrestleloco"), {
+          hero: WRESTLE_LOCO_IMAGES.ring,
+          side: WRESTLE_LOCO_IMAGES.hero,
+          crowd: WRESTLE_LOCO_IMAGES.crowd,
+        }),
+        "Faces 0 – 0 Heels",
+      );
+      const bound = await bindPerformancesToShow(ctx, "wrestleloco", existing._id);
+      return {
+        message: "Wrestle Loco already exists — added missing cue scenes and bound performances",
+        showId: existing._id,
+        addedScenes: added,
+        boundPerformances: bound,
+      };
+    }
+    const created = await insertWrestleLoco(ctx, ownerId);
+    const bound = await bindPerformancesToShow(ctx, "wrestleloco", created.showId);
+    return {
+      message: "Seeded Wrestle Loco · Wrestle Ring (Left/Center/Right)",
+      boundPerformances: bound,
       ...created,
     };
   },

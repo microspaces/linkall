@@ -3,6 +3,15 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireLoco, rowTag, type LocoConfig } from "./locos";
+import {
+  bucketScenes,
+  GAME_INSTRUCTION_CUE,
+  matchSceneIndex,
+  sceneBucket,
+  SCORE_ROTATION_CUE,
+  VOTE_CUE,
+  winnerCue,
+} from "./sceneCues";
 
 /**
  * Loco game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
@@ -70,21 +79,89 @@ async function writeScore(
   });
 }
 
+async function scenesForShow(
+  ctx: { db: QueryCtx["db"] },
+  showId: Id<"shows">,
+) {
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  scenes.sort((a, b) => a.order - b.order);
+  return scenes;
+}
+
+async function cycleMusicTrack(
+  ctx: MutationCtx,
+  performance: Doc<"performances">,
+  round: number,
+): Promise<string | undefined> {
+  if (performance.showId) {
+    const designed = (await scenesForShow(ctx, performance.showId)).filter(
+      (s) =>
+        sceneBucket(s, {
+          team1: performance.team1,
+          team2: performance.team2,
+        }) === "music",
+    );
+    if (designed.length) {
+      return designed[round % designed.length].title;
+    }
+  }
+  const tracks = await ctx.db
+    .query("performanceTracks")
+    .withIndex("by_performance", (q) => q.eq("performanceId", performance._id))
+    .collect();
+  tracks.sort((a, b) => a.order - b.order);
+  return tracks.length ? tracks[round % tracks.length].name : undefined;
+}
+
+/**
+ * Play the designed scene whose title matches `cue` (legacy row click).
+ * Overlay / intro / background scenes go live on the bound show so every
+ * /screens page follows. Music / sound scenes only set activeTrack so they
+ * don't steal the visual.
+ */
+async function playMatchingScene(
+  ctx: MutationCtx,
+  performance: Doc<"performances">,
+  cue: string,
+): Promise<Id<"scenes"> | undefined> {
+  if (!performance.showId) return undefined;
+  const scenes = await scenesForShow(ctx, performance.showId);
+  const index = matchSceneIndex(scenes, cue);
+  if (index < 0) return undefined;
+  const scene = scenes[index];
+  const bucket = sceneBucket(scene, {
+    team1: performance.team1,
+    team2: performance.team2,
+  });
+  if (bucket === "music" || bucket === "sound") {
+    return undefined;
+  }
+  await ctx.db.patch(performance.showId, {
+    status: "live",
+    currentSceneIndex: index,
+    sceneStartedAt: Date.now(),
+  });
+  return scene._id;
+}
+
+/** Cue an overlay (and optional music) the way LinkAll8 clicked scene rows. */
 async function cueTrack(
   ctx: MutationCtx,
   performanceId: Id<"performances">,
   round: number,
   overlay: string,
 ) {
-  const tracks = await ctx.db
-    .query("performanceTracks")
-    .withIndex("by_performance", (q) => q.eq("performanceId", performanceId))
-    .collect();
-  tracks.sort((a, b) => a.order - b.order);
-  const track = tracks.length ? tracks[round % tracks.length] : undefined;
+  const performance = await ctx.db.get(performanceId);
+  if (!performance) return;
+  const track = await cycleMusicTrack(ctx, performance, round);
+  const activeSceneId = await playMatchingScene(ctx, performance, overlay);
   await ctx.db.patch(performanceId, {
     activeOverlay: overlay,
-    ...(track ? { activeTrack: track.name } : {}),
+    ...(track ? { activeTrack: track } : {}),
+    ...(activeSceneId ? { activeSceneId } : {}),
   });
 }
 
@@ -238,9 +315,14 @@ async function beginPair(
       isPlaying: true,
     });
   }
+  const performance = await ctx.db.get(performanceId);
+  const activeSceneId = performance
+    ? await playMatchingScene(ctx, performance, GAME_INSTRUCTION_CUE)
+    : undefined;
   await ctx.db.patch(performanceId, {
     status: "live",
-    activeOverlay: "Game Instructions",
+    activeOverlay: GAME_INSTRUCTION_CUE,
+    ...(activeSceneId ? { activeSceneId } : {}),
   });
 }
 
@@ -324,8 +406,22 @@ export const get = query({
           : pair.game1;
     const catalog = playing?.gameId ? catalogById[playing.gameId] : undefined;
 
+    const show = performance.showId
+      ? await ctx.db.get(performance.showId)
+      : null;
+    const designed = show ? await scenesForShow(ctx, show._id) : [];
+    const teams = { team1: performance.team1, team2: performance.team2 };
+    const sceneBuckets = bucketScenes(designed, teams);
+
     return {
       ...performance,
+      show,
+      scenes: designed.map((s, index) => ({
+        ...s,
+        index,
+        bucket: sceneBucket(s, teams),
+      })),
+      sceneBuckets,
       games: games.map((g) => ({
         ...g,
         volunteers: g.volunteers ?? 0,
@@ -368,8 +464,9 @@ export const create = mutation({
     team2: v.string(),
     ownerId: v.id("users"),
     tag: v.optional(v.string()),
+    showId: v.optional(v.id("shows")),
   },
-  handler: async (ctx, { title, team1, team2, ownerId, tag }) => {
+  handler: async (ctx, { title, team1, team2, ownerId, tag, showId }) => {
     const loco = requireLoco(tag);
     const performanceId = await ctx.db.insert("performances", {
       title: title.trim(),
@@ -378,6 +475,7 @@ export const create = mutation({
       status: "draft",
       ownerId,
       tag: loco.tag,
+      showId,
     });
 
     let order = 0;
@@ -431,7 +529,20 @@ export const setOverlay = mutation({
     overlay: v.optional(v.string()),
   },
   handler: async (ctx, { performanceId, overlay }) => {
-    await ctx.db.patch(performanceId, { activeOverlay: overlay });
+    const performance = await ctx.db.get(performanceId);
+    if (!performance) return;
+    const activeSceneId =
+      overlay !== undefined
+        ? await playMatchingScene(ctx, performance, overlay)
+        : undefined;
+    await ctx.db.patch(performanceId, {
+      activeOverlay: overlay,
+      ...(overlay === undefined
+        ? { activeSceneId: undefined }
+        : activeSceneId
+          ? { activeSceneId }
+          : {}),
+    });
   },
 });
 
@@ -442,6 +553,58 @@ export const setTrack = mutation({
   },
   handler: async (ctx, { performanceId, track }) => {
     await ctx.db.patch(performanceId, { activeTrack: track });
+  },
+});
+
+/** Bind a designed show. Subsequent game cues play matching scenes on it. */
+export const setShow = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    showId: v.optional(v.id("shows")),
+  },
+  handler: async (ctx, { performanceId, showId }) => {
+    await ctx.db.patch(performanceId, {
+      showId,
+      activeSceneId: undefined,
+    });
+  },
+});
+
+/**
+ * Operator tapped a designed scene (legacy Scene row click). Overlay /
+ * background / intro scenes go live; music / sound only set the track.
+ */
+export const playPerformanceScene = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    sceneId: v.id("scenes"),
+  },
+  handler: async (ctx, { performanceId, sceneId }) => {
+    const performance = await ctx.db.get(performanceId);
+    const scene = await ctx.db.get(sceneId);
+    if (!performance || !scene) return;
+    if (performance.showId && scene.showId !== performance.showId) return;
+    const bucket = sceneBucket(scene, {
+      team1: performance.team1,
+      team2: performance.team2,
+    });
+    if (bucket === "music" || bucket === "sound") {
+      await ctx.db.patch(performanceId, { activeTrack: scene.title });
+      return;
+    }
+    const scenes = await scenesForShow(ctx, scene.showId);
+    const index = scenes.findIndex((s) => s._id === sceneId);
+    if (index < 0) return;
+    await ctx.db.patch(scene.showId, {
+      status: "live",
+      currentSceneIndex: index,
+      sceneStartedAt: Date.now(),
+    });
+    await ctx.db.patch(performanceId, {
+      showId: scene.showId,
+      activeOverlay: scene.title,
+      activeSceneId: scene._id,
+    });
   },
 });
 
@@ -472,7 +635,7 @@ export const nextGame = mutation({
     if (!pair || pair.single || pair.phase !== "team1") return;
     await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
     await ctx.db.patch(pair.game2._id, { isCued: false, isPlaying: true });
-    await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
+    await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
   },
 });
 
@@ -492,7 +655,7 @@ export const endRound = mutation({
     if (pair.single) {
       if (pair.phase !== "team1") return;
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
-      await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
+      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
       return;
     }
     if (pair.phase !== "team2" && pair.phase !== "both") return;
@@ -504,7 +667,12 @@ export const endRound = mutation({
       isPlaying: false,
       isPlayed: true,
     });
-    await cueTrack(ctx, performanceId, pair.game1.round, pair.game1.isScored ? "Vote" : "Game Instructions");
+    await cueTrack(
+      ctx,
+      performanceId,
+      pair.game1.round,
+      pair.game1.isScored ? VOTE_CUE : GAME_INSTRUCTION_CUE,
+    );
     if (pair.game1.isScored) {
       await ctx.db.patch(pair.game1._id, { isVoting: true });
       await ctx.db.patch(pair.game2._id, { isVoting: true });
@@ -535,13 +703,13 @@ export const next = mutation({
     }
     if (pair.single) {
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
-      await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
+      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
       return;
     }
     if (pair.phase === "team1") {
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
       await ctx.db.patch(pair.game2._id, { isCued: false, isPlaying: true });
-      await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
+      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
       return;
     }
     await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
@@ -549,9 +717,9 @@ export const next = mutation({
     if (pair.game1.isScored) {
       await ctx.db.patch(pair.game1._id, { isVoting: true });
       await ctx.db.patch(pair.game2._id, { isVoting: true });
-      await cueTrack(ctx, performanceId, pair.game1.round, "Vote");
+      await cueTrack(ctx, performanceId, pair.game1.round, VOTE_CUE);
     } else {
-      await cueTrack(ctx, performanceId, pair.game1.round, "Game Instructions");
+      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
     }
   },
 });
@@ -580,8 +748,11 @@ export const winGame = mutation({
     await writeScore(ctx, winner, { isWinner: true, isVoting: false });
     await ctx.db.patch(loser._id, { isVoting: false });
     const teamName = teamIndex === 1 ? performance.team1 : performance.team2;
+    const overlay = winnerCue(teamName);
+    const activeSceneId = await playMatchingScene(ctx, performance, overlay);
     await ctx.db.patch(performanceId, {
-      activeOverlay: `Winner ${teamName}`,
+      activeOverlay: overlay,
+      ...(activeSceneId ? { activeSceneId } : {}),
     });
   },
 });
@@ -600,7 +771,15 @@ export const winRotation = mutation({
     if (!pair) return;
     const game = teamIndex === 1 ? pair.game1 : pair.game2;
     await writeScore(ctx, game, { rotation: true });
-    await ctx.db.patch(performanceId, { activeOverlay: "Score Rotation" });
+    const activeSceneId = await playMatchingScene(
+      ctx,
+      performance,
+      SCORE_ROTATION_CUE,
+    );
+    await ctx.db.patch(performanceId, {
+      activeOverlay: SCORE_ROTATION_CUE,
+      ...(activeSceneId ? { activeSceneId } : {}),
+    });
   },
 });
 
@@ -846,6 +1025,7 @@ export const reset = mutation({
       status: "draft",
       activeOverlay: undefined,
       activeTrack: undefined,
+      activeSceneId: undefined,
     });
   },
 });

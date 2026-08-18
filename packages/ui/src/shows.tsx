@@ -96,11 +96,29 @@ export function ShowList({ tag }: { tag?: string }) {
  * scene's effects appearing at their start times, measured from the moment
  * the operator switched to this scene (show.sceneStartedAt).
  */
+/** Full-bleed playback of a designed scene (used by ShowPlayer + performance screen). */
+export function DesignedSceneStage({
+  show,
+  scene,
+}: {
+  show: Pick<Doc<"shows">, "_id" | "layoutId" | "sceneStartedAt">;
+  scene: Doc<"scenes">;
+}) {
+  if (scene.kind === "panels") {
+    return <PanelSceneView show={show} scene={scene} />;
+  }
+  return (
+    <div className="flex h-full min-h-[240px] items-center justify-center">
+      <SceneView scene={scene} />
+    </div>
+  );
+}
+
 function PanelSceneView({
   show,
   scene,
 }: {
-  show: Doc<"shows">;
+  show: Pick<Doc<"shows">, "layoutId" | "sceneStartedAt">;
   scene: Doc<"scenes">;
 }) {
   const layout = useQuery(
@@ -223,11 +241,7 @@ export function ShowPlayer({ showId }: { showId: Id<"shows"> }) {
 
       <div className="mt-6 overflow-hidden rounded-2xl bg-gray-950 shadow-lg">
         {show.status === "live" && scene ? (
-          scene.kind === "panels" ? (
-            <PanelSceneView show={show} scene={scene} />
-          ) : (
-            <SceneView scene={scene} />
-          )
+          <DesignedSceneStage show={show} scene={scene} />
         ) : (
           <div className="flex items-center justify-center py-24 text-gray-500">
             {show.status === "ended"

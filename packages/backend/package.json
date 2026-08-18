@@ -11,6 +11,8 @@
     "seed:funfirst": "convex run seed:funfirst --env-file .env.funfirst",
     "seed:redwave": "convex run seed:redwave --env-file .env.redwave",
     "seed:battleLoco": "convex run seed:battleLoco --env-file .env.funfirst",
+    "seed:wrestleLoco": "convex run seed:wrestleLoco --env-file .env.funfirst",
+    "seed:locoCueShows": "convex run seed:locoCueShows --env-file .env.funfirst",
     "import:mike": "node migrations/import-mike.mjs",
     "import:linkall8": "node migrations/import-linkall8.mjs",
     "codegen": "convex codegen",
