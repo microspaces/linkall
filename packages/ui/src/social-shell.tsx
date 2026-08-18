@@ -24,6 +24,7 @@ type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
 const CHROMELESS_PREFIXES = [
   "/signin",
   "/player",
+  "/preview",
   "/screens",
   "/performance/screens",
   "/battle-loco",
@@ -41,6 +42,7 @@ function isChromeless(pathname: string, host?: string) {
   if (host && CHROMELESS_HOSTS.includes(host)) return true;
   if (pathname.includes("/performance/screens")) return true;
   if (pathname.includes("/performance/overlay")) return true;
+  if (pathname.includes("/performance/preview")) return true;
   return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
 }
 

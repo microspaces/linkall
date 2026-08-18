@@ -842,6 +842,12 @@ export function ShowRemote() {
     <div className="mx-auto max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Player</h1>
+        <a
+          href="/preview"
+          className="text-sm font-semibold text-brand hover:underline"
+        >
+          Preview all screens
+        </a>
       </div>
       <div className="mt-4 flex gap-1 border-b border-gray-200">
         {(["shows", "screens"] as const).map((t) => (

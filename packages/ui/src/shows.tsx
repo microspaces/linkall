@@ -235,6 +235,12 @@ export function ShowPlayer({ showId }: { showId: Id<"shows"> }) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{show.title}</h1>
           <p className="text-sm text-gray-500">{show.description}</p>
+          <a
+            href={`/preview?show=${showId}`}
+            className="mt-1 inline-block text-sm font-semibold text-brand hover:underline"
+          >
+            Preview all screens
+          </a>
         </div>
         <span
           className={

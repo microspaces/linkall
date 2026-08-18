@@ -417,6 +417,7 @@ export function PerformanceConsole({
           tag={loco.tag}
           setlist={loco.mode === "setlist"}
           screenHref={paths.screen(view._id)}
+          previewHref={paths.preview(view._id)}
         />
       )}
 
@@ -451,6 +452,7 @@ function Console({
   tag,
   setlist,
   screenHref,
+  previewHref,
 }: {
   view: PerformanceView;
   tab: TabId;
@@ -458,6 +460,7 @@ function Console({
   tag: string;
   setlist: boolean;
   screenHref: string;
+  previewHref: string;
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
   const setShow = useMutation(api.game.setShow);
@@ -546,6 +549,7 @@ function Console({
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
+          previewHref={previewHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -603,6 +607,7 @@ function Console({
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
+          previewHref={previewHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -617,6 +622,7 @@ function Console({
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
+          previewHref={previewHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -635,6 +641,7 @@ function Console({
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
+          previewHref={previewHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -847,11 +854,13 @@ function OverlayTrackColumns({
 function ScreenLinks({
   screenUrl,
   screenHref,
+  previewHref,
   performanceId,
   reset,
 }: {
   screenUrl: string;
   screenHref: string;
+  previewHref: string;
   performanceId: Id<"performances">;
   reset: ReturnType<typeof useMutation<typeof api.game.reset>>;
 }) {
@@ -863,6 +872,13 @@ function ScreenLinks({
       >
         Copy screen URL
       </button>
+      <a
+        href={previewHref}
+        target="_blank"
+        className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-center text-xs font-semibold hover:bg-gray-50"
+      >
+        Preview all screens
+      </a>
       <a
         href={screenHref}
         target="_blank"
