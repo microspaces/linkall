@@ -380,7 +380,7 @@ export function PerformanceConsole({
     );
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col pb-56">
+    <div className="mx-auto flex max-w-lg flex-col pb-64">
       {/* Header + performance picker */}
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -423,26 +423,35 @@ export function PerformanceConsole({
         )}
       </div>
 
-      {/* Bottom tab bar (legacy nav-tabs-container) */}
-      <nav className="fixed bottom-16 left-0 right-0 z-40 border-t border-gray-200 bg-gray-50 shadow-[0_-2px_5px_rgba(0,0,0,0.05)]">
-        <ul className="mx-auto flex max-w-lg">
-          {TABS.map((t) => (
-            <li key={t.id} className="flex-1">
-              <button
-                onClick={() => setTab(t.id)}
-                className={
-                  "block w-full border-t-[3px] py-3 text-center text-sm font-bold transition " +
-                  (tab === t.id
-                    ? "border-brand bg-white text-brand"
-                    : "border-transparent text-gray-500 hover:bg-gray-100")
-                }
-              >
-                {t.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <div className="fixed bottom-0 left-16 right-0 z-40 md:left-52 min-[790px]:right-52">
+        <div className="mx-auto max-w-lg overflow-hidden border-t border-gray-200 bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.18)]">
+          {tab === "game" && view ? (
+            <ControlStrip
+              view={view}
+              setlist={loco.mode === "setlist"}
+            />
+          ) : null}
+          <nav className="border-t border-gray-200 bg-gray-50">
+            <ul className="flex">
+              {TABS.map((t) => (
+                <li key={t.id} className="flex-1">
+                  <button
+                    onClick={() => setTab(t.id)}
+                    className={
+                      "block w-full border-t-[3px] py-3 text-center text-sm font-bold transition " +
+                      (tab === t.id
+                        ? "border-brand bg-white text-brand"
+                        : "border-transparent text-gray-500 hover:bg-gray-100")
+                    }
+                  >
+                    {t.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      </div>
     </div>
   );
 }
@@ -632,7 +641,6 @@ function Console({
     );
   }
 
-  // Game tab — Begin/Next/Win stay pinned above the Shows/Scenes/Game tabs
   return (
     <div className="min-h-0 flex-1">
       <GameGrid view={view} tag={tag} setlist={setlist} />
@@ -646,11 +654,6 @@ function Console({
           performanceId={performanceId}
           reset={reset}
         />
-      </div>
-      <div className="fixed bottom-[7.25rem] left-16 right-0 z-40 md:left-52 min-[790px]:right-52">
-        <div className="mx-auto max-w-lg border-t border-gray-200 bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
-          <ControlStrip view={view} setlist={setlist} />
-        </div>
       </div>
     </div>
   );
