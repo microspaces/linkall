@@ -19,6 +19,7 @@ import {
   markerLabel,
   type DualCalibRole,
 } from "@linkall/backend/dual-calib";
+import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PANEL_FILLS, PanelStage } from "./designer";
 import { Loading } from "./empty-state";
 import { useCurrentUser } from "./current-user";
@@ -581,6 +582,7 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
     if (
       !show ||
       show.status !== "live" ||
+      showIsHostCued(show) ||
       !scene?.durationSec ||
       clockSec < scene.durationSec
     ) {
@@ -938,6 +940,7 @@ function PlayTab() {
     if (
       !show ||
       show.status !== "live" ||
+      showIsHostCued(show) ||
       !liveScene?.durationSec ||
       clockSec < liveScene.durationSec
     ) {

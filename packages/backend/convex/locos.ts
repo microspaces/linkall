@@ -560,6 +560,15 @@ export function getLocoByTag(tag: string): LocoConfig | undefined {
   return LOCOS.find((l) => l.tag === tag);
 }
 
+/** Host-cued locos (Battle / Wrestle / Comedy / …) do not auto-advance. */
+export function showIsHostCued(show: {
+  tag?: string | null;
+  cuedByPerformanceId?: string;
+}) {
+  if (show.cuedByPerformanceId) return true;
+  return !!getLocoByTag(show.tag ?? "");
+}
+
 /** Untagged legacy rows belong to Comedy Loco. */
 export function rowTag(tag?: string | null): string {
   return tag || "comedyloco";

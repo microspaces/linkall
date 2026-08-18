@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { showIsHostCued } from "./locos";
 
 /**
  * Live show engine. In the legacy app this was the Show → Scene → Effect SQL
@@ -99,6 +100,11 @@ export const advanceIfDue = mutation({
   handler: async (ctx, { showId }) => {
     const show = await ctx.db.get(showId);
     if (!show || show.status !== "live" || show.sceneStartedAt === undefined) {
+      return { advanced: false as const };
+    }
+    // Battle / Wrestle / Comedy (and any show a performance is driving)
+    // stay on the cued scene until the host taps Next / Win / a scene row.
+    if (showIsHostCued(show)) {
       return { advanced: false as const };
     }
     const scenes = await ctx.db

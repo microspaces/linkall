@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
+import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PanelStage } from "./designer";
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;
@@ -123,6 +124,7 @@ export function DisplayPreview({
     if (
       !show ||
       show.status !== "live" ||
+      showIsHostCued(show) ||
       !liveScene?.durationSec ||
       clockSec < liveScene.durationSec
     ) {
