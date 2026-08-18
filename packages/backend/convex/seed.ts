@@ -294,8 +294,25 @@ const BATTLE_LOCO_BOOM_VIDEOS = {
 const WRESTLE_LOCO_IMAGES = {
   hero: "/wrestle-loco/images/hero.jpg",
   ring: "/wrestle-loco/images/ring.jpg",
-  crowd: "/wrestle-loco/images/crowd.jpg",
+  crowd: "/wrestle-loco/images/crowd-portrait.jpg",
+  faces: "/wrestle-loco/images/faces.jpg",
+  heels: "/wrestle-loco/images/heels.jpg",
 } as const;
+
+const WRESTLE_LOCO_OUTRO_IMAGES = {
+  left: "/wrestle-loco/images/outro-left.jpg",
+  center: "/wrestle-loco/images/outro-center.jpg",
+  right: "/wrestle-loco/images/outro-right.jpg",
+} as const;
+
+/** Match-celebration cue for Wrestle Stage Left / Center / Right. */
+const WRESTLE_LOCO_BELL_VIDEOS = {
+  left: "/wrestle-loco/videos/bell-left.mp4",
+  center: "/wrestle-loco/videos/bell-center.mp4",
+  right: "/wrestle-loco/videos/bell-right.mp4",
+} as const;
+
+const WRESTLE_CELEBRATION_CUE = "Hit the Bell";
 
 type CueSceneSpec = {
   title: string;
@@ -775,6 +792,219 @@ async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
   return { dressed };
 }
 
+/**
+ * Fill Wrestle Ring left / center / right for every cue:
+ * Faces | arena | crowd during the night, Hit the Bell videos on wins.
+ */
+async function dressWrestleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
+  const panels = await panelLogicalsForShow(ctx, showId);
+  const left = panels.LeftSidebar;
+  const center = panels.MainContent;
+  const right = panels.RightSidebar;
+  if (!left || !center || !right) return { dressed: 0 };
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+
+  const keepNamed = new Set(["opening bell", "intro", "outro"]);
+  const bellNamed = new Set([
+    WRESTLE_CELEBRATION_CUE.toLowerCase(),
+    "winner faces",
+    "winner heels",
+  ]);
+
+  const put = async (
+    sceneId: Id<"scenes">,
+    logical: string,
+    panelId: Id<"panels">,
+    kind: "image" | "video",
+    content: string,
+  ) => {
+    await ctx.db.insert("effects", {
+      sceneId,
+      panelId,
+      logicalPanelName: logical,
+      kind,
+      content,
+      startTime: 0,
+      isEnabled: true,
+    });
+  };
+
+  let dressed = 0;
+  for (const scene of scenes) {
+    const title = scene.title.toLowerCase();
+    if (keepNamed.has(title)) continue;
+
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+
+    if (bellNamed.has(title)) {
+      for (const e of effects) {
+        if (e.kind !== "video") await ctx.db.delete(e._id);
+      }
+      const leftHas = effects.some(
+        (e) => e.kind === "video" && e.logicalPanelName === "LeftSidebar",
+      );
+      const centerHas = effects.some(
+        (e) => e.kind === "video" && e.logicalPanelName === "MainContent",
+      );
+      const rightHas = effects.some(
+        (e) => e.kind === "video" && e.logicalPanelName === "RightSidebar",
+      );
+      if (!leftHas)
+        await put(scene._id, "LeftSidebar", left, "video", WRESTLE_LOCO_BELL_VIDEOS.left);
+      if (!centerHas)
+        await put(scene._id, "MainContent", center, "video", WRESTLE_LOCO_BELL_VIDEOS.center);
+      if (!rightHas)
+        await put(scene._id, "RightSidebar", right, "video", WRESTLE_LOCO_BELL_VIDEOS.right);
+      dressed++;
+      continue;
+    }
+
+    const sideScores = wantsSideScores(scene.title);
+    for (const e of effects) {
+      if (e.kind === "color" || e.kind === "text") await ctx.db.delete(e._id);
+      if (
+        sideScores &&
+        e.kind === "image" &&
+        (e.logicalPanelName === "LeftSidebar" ||
+          e.logicalPanelName === "RightSidebar")
+      ) {
+        await ctx.db.delete(e._id);
+      }
+    }
+    const after = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    const hasLeftImg = after.some(
+      (e) => e.kind === "image" && e.logicalPanelName === "LeftSidebar",
+    );
+    const hasRightImg = after.some(
+      (e) => e.kind === "image" && e.logicalPanelName === "RightSidebar",
+    );
+    const hasCenterImg = after.some(
+      (e) => e.kind === "image" && e.logicalPanelName === "MainContent",
+    );
+    if (!sideScores && !hasLeftImg)
+      await put(scene._id, "LeftSidebar", left, "image", WRESTLE_LOCO_IMAGES.faces);
+    if (!sideScores && !hasRightImg)
+      await put(scene._id, "RightSidebar", right, "image", WRESTLE_LOCO_IMAGES.crowd);
+    if (!hasCenterImg)
+      await put(scene._id, "MainContent", center, "image", WRESTLE_LOCO_IMAGES.hero);
+    dressed++;
+  }
+  return { dressed };
+}
+
+/** Intro photos, Hit the Bell videos, and Outro lockups on an existing show. */
+async function ensureWrestleLockupScenes(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+) {
+  const panels = await panelLogicalsForShow(ctx, showId);
+  const left = panels.LeftSidebar;
+  const center = panels.MainContent;
+  const right = panels.RightSidebar;
+  if (!left || !center || !right) return { lockups: 0 };
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  const byTitle = new Map(scenes.map((s) => [s.title.toLowerCase(), s]));
+  let order = scenes.reduce((m, s) => Math.max(m, s.order), -1) + 1;
+  let lockups = 0;
+
+  const putWalls = async (
+    sceneId: Id<"scenes">,
+    kind: "image" | "video",
+    byLogical: Record<string, string>,
+  ) => {
+    const existing = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
+      .collect();
+    for (const e of existing) await ctx.db.delete(e._id);
+    const walls: Array<[string, Id<"panels">]> = [
+      ["LeftSidebar", left],
+      ["MainContent", center],
+      ["RightSidebar", right],
+    ];
+    for (const [logical, panelId] of walls) {
+      await ctx.db.insert("effects", {
+        sceneId,
+        panelId,
+        logicalPanelName: logical,
+        kind,
+        content: byLogical[logical],
+        startTime: 0,
+        isEnabled: true,
+      });
+    }
+  };
+
+  const intro = byTitle.get("opening bell") ?? byTitle.get("intro");
+  if (intro) {
+    await putWalls(intro._id, "image", {
+      LeftSidebar: WRESTLE_LOCO_IMAGES.faces,
+      MainContent: WRESTLE_LOCO_IMAGES.hero,
+      RightSidebar: WRESTLE_LOCO_IMAGES.crowd,
+    });
+    lockups++;
+  }
+
+  let bell = byTitle.get(WRESTLE_CELEBRATION_CUE.toLowerCase());
+  if (!bell) {
+    const sceneId = await ctx.db.insert("scenes", {
+      showId,
+      order: order++,
+      title: WRESTLE_CELEBRATION_CUE,
+      kind: "panels",
+      content: "",
+      durationSec: 60,
+    });
+    bell = (await ctx.db.get(sceneId)) ?? undefined;
+  }
+  if (bell) {
+    await putWalls(bell._id, "video", {
+      LeftSidebar: WRESTLE_LOCO_BELL_VIDEOS.left,
+      MainContent: WRESTLE_LOCO_BELL_VIDEOS.center,
+      RightSidebar: WRESTLE_LOCO_BELL_VIDEOS.right,
+    });
+    lockups++;
+  }
+
+  let outro = byTitle.get("outro");
+  if (!outro) {
+    const sceneId = await ctx.db.insert("scenes", {
+      showId,
+      order: order++,
+      title: "Outro",
+      kind: "panels",
+      content: "",
+      durationSec: 90,
+    });
+    outro = (await ctx.db.get(sceneId)) ?? undefined;
+  }
+  if (outro) {
+    await putWalls(outro._id, "image", {
+      LeftSidebar: WRESTLE_LOCO_OUTRO_IMAGES.left,
+      MainContent: WRESTLE_LOCO_OUTRO_IMAGES.center,
+      RightSidebar: WRESTLE_LOCO_OUTRO_IMAGES.right,
+    });
+    lockups++;
+  }
+
+  await ctx.db.patch(showId, { status: "live" });
+  return { lockups };
+}
+
 async function panelLogicalsForShow(
   ctx: MutationCtx,
   showId: Id<"shows">,
@@ -1080,7 +1310,7 @@ async function insertWrestleLoco(
       width: 1152,
       height: 1920,
       logical: "LeftSidebar",
-      image: WRESTLE_LOCO_IMAGES.hero,
+      image: WRESTLE_LOCO_IMAGES.faces,
     },
     {
       key: "center",
@@ -1089,7 +1319,7 @@ async function insertWrestleLoco(
       width: 1920,
       height: 1080,
       logical: "MainContent",
-      image: WRESTLE_LOCO_IMAGES.ring,
+      image: WRESTLE_LOCO_IMAGES.hero,
     },
     {
       key: "right",
@@ -1134,9 +1364,9 @@ async function insertWrestleLoco(
   const showId = await ctx.db.insert("shows", {
     title: "Wrestle Loco",
     description:
-      "Ring walk, live match cues, and Faces vs Heels overlays for the house screens.",
+      "Wrestle Ring — Opening Bell, Hit the Bell, and branded Outro lockups.",
     tag: "wrestleloco",
-    status: "draft",
+    status: "live",
     currentSceneIndex: 0,
     layoutId,
     ownerId,
@@ -1162,6 +1392,56 @@ async function insertWrestleLoco(
     });
   }
 
+  const bellId = await ctx.db.insert("scenes", {
+    showId,
+    order: 1,
+    title: WRESTLE_CELEBRATION_CUE,
+    kind: "panels",
+    content: "",
+    durationSec: 60,
+  });
+  const bellByLogical: Record<string, string> = {
+    LeftSidebar: WRESTLE_LOCO_BELL_VIDEOS.left,
+    MainContent: WRESTLE_LOCO_BELL_VIDEOS.center,
+    RightSidebar: WRESTLE_LOCO_BELL_VIDEOS.right,
+  };
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("effects", {
+      sceneId: bellId,
+      panelId: panelByLogical[spec.logical],
+      logicalPanelName: spec.logical,
+      kind: "video",
+      content: bellByLogical[spec.logical],
+      startTime: 0,
+      isEnabled: true,
+    });
+  }
+
+  const outroId = await ctx.db.insert("scenes", {
+    showId,
+    order: 2,
+    title: "Outro",
+    kind: "panels",
+    content: "",
+    durationSec: 90,
+  });
+  const outroByLogical: Record<string, string> = {
+    LeftSidebar: WRESTLE_LOCO_OUTRO_IMAGES.left,
+    MainContent: WRESTLE_LOCO_OUTRO_IMAGES.center,
+    RightSidebar: WRESTLE_LOCO_OUTRO_IMAGES.right,
+  };
+  for (const spec of screenSpecs) {
+    await ctx.db.insert("effects", {
+      sceneId: outroId,
+      panelId: panelByLogical[spec.logical],
+      logicalPanelName: spec.logical,
+      kind: "image",
+      content: outroByLogical[spec.logical],
+      startTime: 0,
+      isEnabled: true,
+    });
+  }
+
   const profileId = await ctx.db.insert("displayProfiles", {
     name: "Wrestle Ring",
     description: "Stage Left / Center / Right at the Wrestle Loco house.",
@@ -1182,11 +1462,15 @@ async function insertWrestleLoco(
     ctx,
     showId,
     panelByLogical,
-    performanceCuesFor(requireLoco("wrestleloco"), {
-      hero: WRESTLE_LOCO_IMAGES.ring,
-      side: WRESTLE_LOCO_IMAGES.hero,
-      crowd: WRESTLE_LOCO_IMAGES.crowd,
-    }),
+    performanceCuesFor(
+      requireLoco("wrestleloco"),
+      {
+        hero: WRESTLE_LOCO_IMAGES.hero,
+        side: WRESTLE_LOCO_IMAGES.faces,
+        crowd: WRESTLE_LOCO_IMAGES.crowd,
+      },
+      WRESTLE_LOCO_BELL_VIDEOS.center,
+    ),
     "Faces 0 – 0 Heels",
     "wrestle-loco",
   );
@@ -2107,11 +2391,15 @@ export const locoCueShows = mutation({
         ctx,
         wrestleShow._id,
         panels,
-        performanceCuesFor(requireLoco("wrestleloco"), {
-          hero: WRESTLE_LOCO_IMAGES.ring,
-          side: WRESTLE_LOCO_IMAGES.hero,
-          crowd: WRESTLE_LOCO_IMAGES.crowd,
-        }),
+        performanceCuesFor(
+          requireLoco("wrestleloco"),
+          {
+            hero: WRESTLE_LOCO_IMAGES.hero,
+            side: WRESTLE_LOCO_IMAGES.faces,
+            crowd: WRESTLE_LOCO_IMAGES.crowd,
+          },
+          WRESTLE_LOCO_BELL_VIDEOS.center,
+        ),
         "Faces 0 – 0 Heels",
         "wrestle-loco",
       );
@@ -2122,6 +2410,12 @@ export const locoCueShows = mutation({
     const wrestleFx = wrestleShow
       ? await ensureOverlayEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
       : { urls: 0, videos: 0 };
+    const wrestleLockups = wrestleShow
+      ? await ensureWrestleLockupScenes(ctx, wrestleShow._id)
+      : { lockups: 0 };
+    const wrestleDress = wrestleShow
+      ? await dressWrestleLocoLook(ctx, wrestleShow._id)
+      : { dressed: 0 };
     const wrestleSides = wrestleShow
       ? await ensureSideScoreEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
       : { sides: 0 };
@@ -2172,6 +2466,8 @@ export const locoCueShows = mutation({
         addedScenes: wrestleAdded,
         boundPerformances: wrestleBound,
         ...wrestleFx,
+        ...wrestleLockups,
+        ...wrestleDress,
         ...wrestleSides,
       },
       comedy: {
@@ -2205,16 +2501,22 @@ export const wrestleLoco = mutation({
         ctx,
         existing._id,
         panels,
-        performanceCuesFor(requireLoco("wrestleloco"), {
-          hero: WRESTLE_LOCO_IMAGES.ring,
-          side: WRESTLE_LOCO_IMAGES.hero,
-          crowd: WRESTLE_LOCO_IMAGES.crowd,
-        }),
+        performanceCuesFor(
+          requireLoco("wrestleloco"),
+          {
+            hero: WRESTLE_LOCO_IMAGES.hero,
+            side: WRESTLE_LOCO_IMAGES.faces,
+            crowd: WRESTLE_LOCO_IMAGES.crowd,
+          },
+          WRESTLE_LOCO_BELL_VIDEOS.center,
+        ),
         "Faces 0 – 0 Heels",
         "wrestle-loco",
       );
       const bound = await bindPerformancesToShow(ctx, "wrestleloco", existing._id);
       const fx = await ensureOverlayEffectsOnShow(ctx, existing._id, "wrestle-loco");
+      const lockups = await ensureWrestleLockupScenes(ctx, existing._id);
+      const dress = await dressWrestleLocoLook(ctx, existing._id);
       const sides = await ensureSideScoreEffectsOnShow(
         ctx,
         existing._id,
@@ -2226,6 +2528,8 @@ export const wrestleLoco = mutation({
         addedScenes: added,
         boundPerformances: bound,
         ...fx,
+        ...lockups,
+        ...dress,
         ...sides,
       };
     }

@@ -174,11 +174,9 @@ function celebrationOrInstructions(
   performance: Doc<"performances">,
   roundType: string,
 ) {
-  if (
-    performance.tag === "battleloco" &&
-    roundType.toLowerCase().includes("celebration")
-  ) {
-    return "Bring the Boom";
+  if (roundType.toLowerCase().includes("celebration")) {
+    if (performance.tag === "battleloco") return "Bring the Boom";
+    if (performance.tag === "wrestleloco") return "Hit the Bell";
   }
   return GAME_INSTRUCTION_CUE;
 }
@@ -782,7 +780,11 @@ export const winGame = mutation({
     const teamName = teamIndex === 1 ? performance.team1 : performance.team2;
     const overlay = winnerCue(teamName);
     const visual =
-      performance.tag === "battleloco" ? "Bring the Boom" : overlay;
+      performance.tag === "battleloco"
+        ? "Bring the Boom"
+        : performance.tag === "wrestleloco"
+          ? "Hit the Bell"
+          : overlay;
     const activeSceneId =
       (await playMatchingScene(ctx, performance, visual)) ??
       (await playMatchingScene(ctx, performance, overlay));
