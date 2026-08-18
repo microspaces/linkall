@@ -571,6 +571,120 @@ async function ensureOverlayEffectsOnShow(
   return { urls, videos };
 }
 
+/**
+ * Fill HyperX left / center / right for every Battle Loco cue:
+ * photo wings during the night, Boom videos on all three for celebrations.
+ */
+async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
+  const panels = await panelLogicalsForShow(ctx, showId);
+  const left = panels.LeftSidebar;
+  const center = panels.MainContent;
+  const right = panels.RightSidebar;
+  if (!left || !center || !right) return { dressed: 0 };
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+
+  const keepNamed = new Set(["intro", "outro"]);
+  const boomNamed = new Set([
+    "bring the boom",
+    "winner heat",
+    "winner ice",
+  ]);
+
+  const put = async (
+    sceneId: Id<"scenes">,
+    logical: string,
+    panelId: Id<"panels">,
+    kind: "image" | "video",
+    content: string,
+  ) => {
+    await ctx.db.insert("effects", {
+      sceneId,
+      panelId,
+      logicalPanelName: logical,
+      kind,
+      content,
+      startTime: 0,
+      isEnabled: true,
+    });
+  };
+
+  let dressed = 0;
+  for (const scene of scenes) {
+    const title = scene.title.toLowerCase();
+    if (keepNamed.has(title)) continue;
+
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+
+    if (boomNamed.has(title)) {
+      for (const e of effects) {
+        if (e.kind !== "video") await ctx.db.delete(e._id);
+      }
+      const leftHas = effects.some(
+        (e) => e.kind === "video" && e.logicalPanelName === "LeftSidebar",
+      );
+      const centerHas = effects.some(
+        (e) => e.kind === "video" && e.logicalPanelName === "MainContent",
+      );
+      const rightHas = effects.some(
+        (e) => e.kind === "video" && e.logicalPanelName === "RightSidebar",
+      );
+      if (!leftHas)
+        await put(scene._id, "LeftSidebar", left, "video", BATTLE_LOCO_BOOM_VIDEOS.left);
+      if (!centerHas)
+        await put(scene._id, "MainContent", center, "video", BATTLE_LOCO_BOOM_VIDEOS.center);
+      if (!rightHas)
+        await put(scene._id, "RightSidebar", right, "video", BATTLE_LOCO_BOOM_VIDEOS.right);
+      dressed++;
+      continue;
+    }
+
+    // Photo fill: competitors | hero | crowd. Keep URL overlay on center.
+    for (const e of effects) {
+      if (e.kind === "color" || e.kind === "text") await ctx.db.delete(e._id);
+    }
+    const after = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    const hasLeftImg = after.some(
+      (e) => e.kind === "image" && e.logicalPanelName === "LeftSidebar",
+    );
+    const hasRightImg = after.some(
+      (e) => e.kind === "image" && e.logicalPanelName === "RightSidebar",
+    );
+    const hasCenterImg = after.some(
+      (e) => e.kind === "image" && e.logicalPanelName === "MainContent",
+    );
+    if (!hasLeftImg)
+      await put(
+        scene._id,
+        "LeftSidebar",
+        left,
+        "image",
+        BATTLE_LOCO_IMAGES.competitors,
+      );
+    if (!hasRightImg)
+      await put(
+        scene._id,
+        "RightSidebar",
+        right,
+        "image",
+        BATTLE_LOCO_IMAGES.crowd,
+      );
+    if (!hasCenterImg)
+      await put(scene._id, "MainContent", center, "image", BATTLE_LOCO_IMAGES.hero);
+    dressed++;
+  }
+  return { dressed };
+}
+
 async function panelLogicalsForShow(
   ctx: MutationCtx,
   showId: Id<"shows">,
@@ -1866,6 +1980,9 @@ export const locoCueShows = mutation({
           BATTLE_LOCO_BOOM_VIDEOS.center,
         )
       : { urls: 0, videos: 0 };
+    const battleDress = battleShow
+      ? await dressBattleLocoLook(ctx, battleShow._id)
+      : { dressed: 0 };
 
     let wrestleShow = shows.find(
       (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
@@ -1932,6 +2049,7 @@ export const locoCueShows = mutation({
         addedScenes: battleAdded,
         boundPerformances: battleBound,
         ...battleFx,
+        ...battleDress,
       },
       wrestle: {
         showId: wrestleShow?._id,

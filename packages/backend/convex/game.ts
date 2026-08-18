@@ -170,6 +170,19 @@ function isSetlist(tag?: string | null) {
   return requireLoco(tag).mode === "setlist";
 }
 
+function celebrationOrInstructions(
+  performance: Doc<"performances">,
+  roundType: string,
+) {
+  if (
+    performance.tag === "battleloco" &&
+    roundType.toLowerCase().includes("celebration")
+  ) {
+    return "Bring the Boom";
+  }
+  return GAME_INSTRUCTION_CUE;
+}
+
 /**
  * The current round is the first unfinished group.
  *
@@ -657,7 +670,12 @@ export const endRound = mutation({
     if (pair.single) {
       if (pair.phase !== "team1") return;
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
-      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
+      await cueTrack(
+        ctx,
+        performanceId,
+        pair.game1.round,
+        celebrationOrInstructions(performance, pair.game1.roundType),
+      );
       return;
     }
     if (pair.phase !== "team2" && pair.phase !== "both") return;
@@ -673,7 +691,9 @@ export const endRound = mutation({
       ctx,
       performanceId,
       pair.game1.round,
-      pair.game1.isScored ? VOTE_CUE : GAME_INSTRUCTION_CUE,
+      pair.game1.isScored
+        ? VOTE_CUE
+        : celebrationOrInstructions(performance, pair.game1.roundType),
     );
     if (pair.game1.isScored) {
       await ctx.db.patch(pair.game1._id, { isVoting: true });
@@ -705,7 +725,12 @@ export const next = mutation({
     }
     if (pair.single) {
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
-      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
+      await cueTrack(
+        ctx,
+        performanceId,
+        pair.game1.round,
+        celebrationOrInstructions(performance, pair.game1.roundType),
+      );
       return;
     }
     if (pair.phase === "team1") {
@@ -721,7 +746,12 @@ export const next = mutation({
       await ctx.db.patch(pair.game2._id, { isVoting: true });
       await cueTrack(ctx, performanceId, pair.game1.round, VOTE_CUE);
     } else {
-      await cueTrack(ctx, performanceId, pair.game1.round, GAME_INSTRUCTION_CUE);
+      await cueTrack(
+        ctx,
+        performanceId,
+        pair.game1.round,
+        celebrationOrInstructions(performance, pair.game1.roundType),
+      );
     }
   },
 });
@@ -751,7 +781,11 @@ export const winGame = mutation({
     await ctx.db.patch(loser._id, { isVoting: false });
     const teamName = teamIndex === 1 ? performance.team1 : performance.team2;
     const overlay = winnerCue(teamName);
-    const activeSceneId = await playMatchingScene(ctx, performance, overlay);
+    const visual =
+      performance.tag === "battleloco" ? "Bring the Boom" : overlay;
+    const activeSceneId =
+      (await playMatchingScene(ctx, performance, visual)) ??
+      (await playMatchingScene(ctx, performance, overlay));
     await ctx.db.patch(performanceId, {
       activeOverlay: overlay,
       ...(activeSceneId ? { activeSceneId } : {}),

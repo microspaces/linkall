@@ -380,7 +380,7 @@ export function PerformanceConsole({
     );
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col pb-28">
+    <div className="mx-auto flex max-w-lg flex-col pb-56">
       {/* Header + performance picker */}
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -407,19 +407,21 @@ export function PerformanceConsole({
         </select>
       </div>
 
-      {view === undefined || view === null ? (
-        <Loading />
-      ) : (
-        <Console
-          view={view}
-          tab={tab}
-          shows={shows ?? []}
-          tag={loco.tag}
-          setlist={loco.mode === "setlist"}
-          screenHref={paths.screen(view._id)}
-          previewHref={paths.preview(view._id)}
-        />
-      )}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {view === undefined || view === null ? (
+          <Loading />
+        ) : (
+          <Console
+            view={view}
+            tab={tab}
+            shows={shows ?? []}
+            tag={loco.tag}
+            setlist={loco.mode === "setlist"}
+            screenHref={paths.screen(view._id)}
+            previewHref={paths.preview(view._id)}
+          />
+        )}
+      </div>
 
       {/* Bottom tab bar (legacy nav-tabs-container) */}
       <nav className="fixed bottom-16 left-0 right-0 z-40 border-t border-gray-200 bg-gray-50 shadow-[0_-2px_5px_rgba(0,0,0,0.05)]">
@@ -482,7 +484,7 @@ function Console({
 
   if (tab === "shows") {
     return (
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
           Designed show
         </p>
@@ -560,7 +562,7 @@ function Console({
   if (tab === "intros") {
     const introScenes = view.sceneBuckets?.intro ?? [];
     return (
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {introScenes.length > 0 && (
           <>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
@@ -617,7 +619,7 @@ function Console({
 
   if (tab === "scenes") {
     return (
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <SceneBuckets view={view} performanceId={performanceId} />
         <ScreenLinks
           screenUrl={screenUrl}
@@ -630,14 +632,13 @@ function Console({
     );
   }
 
-  // Game tab — matches legacy tabGame layout
+  // Game tab — Begin/Next/Win stay pinned above the Shows/Scenes/Game tabs
   return (
-    <div className="flex-1 space-y-0 overflow-y-auto">
+    <div className="min-h-0 flex-1">
       <GameGrid view={view} tag={tag} setlist={setlist} />
       <PerformerBar view={view} bellBonus={bellBonus} />
       <OverlayTrackColumns view={view} performanceId={performanceId} />
-      <ControlStrip view={view} setlist={setlist} />
-      <div className="p-3">
+      <div className="p-3 pb-4">
         <ScreenLinks
           screenUrl={screenUrl}
           screenHref={screenHref}
@@ -645,6 +646,11 @@ function Console({
           performanceId={performanceId}
           reset={reset}
         />
+      </div>
+      <div className="fixed bottom-[7.25rem] left-16 right-0 z-40 md:left-52 min-[790px]:right-52">
+        <div className="mx-auto max-w-lg border-t border-gray-200 bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
+          <ControlStrip view={view} setlist={setlist} />
+        </div>
       </div>
     </div>
   );
@@ -1107,7 +1113,7 @@ function ControlStrip({
   const current = view.current;
 
   const btn =
-    "flex-1 rounded-md px-3 py-3 text-sm font-bold shadow-sm transition active:scale-95";
+    "flex-1 rounded-md px-3 py-2.5 text-sm font-bold shadow-sm transition active:scale-95";
 
   if (!current)
     return (
@@ -1270,9 +1276,11 @@ function ControlStrip({
 export function PerformanceOverlay({
   performanceId,
   kind,
+  backdropUrl,
 }: {
   performanceId: Id<"performances">;
   kind: string;
+  backdropUrl?: string;
 }) {
   const view = useQuery(api.game.get, { performanceId });
   if (view === undefined) return <div className="fixed inset-0 bg-black" />;
@@ -1283,8 +1291,19 @@ export function PerformanceOverlay({
       </div>
     );
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-gray-950 to-gray-900 text-white">
-      <OverlayView view={view} forceKind={kind} />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-black text-white">
+      {backdropUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={backdropUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-45"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
+      <div className="relative z-10">
+        <OverlayView view={view} forceKind={kind} />
+      </div>
     </div>
   );
 }

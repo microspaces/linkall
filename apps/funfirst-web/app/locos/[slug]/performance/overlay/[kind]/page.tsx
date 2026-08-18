@@ -4,8 +4,14 @@ import { useParams, useSearchParams } from "next/navigation";
 import { PerformanceOverlay } from "@linkall/ui";
 import type { Id } from "@linkall/backend/convex/_generated/dataModel";
 
+const OVERLAY_ART: Record<string, string> = {
+  "battle-loco": "https://battleloco.com/battle-loco/images/hero.jpg",
+  "wrestle-loco": "/wrestle-loco/images/ring.jpg",
+  "comedy-loco": "https://battleloco.com/battle-loco/images/hero.jpg",
+};
+
 export default function LocoPerformanceOverlayPage() {
-  const { kind } = useParams<{ slug: string; kind: string }>();
+  const { slug, kind } = useParams<{ slug: string; kind: string }>();
   const params = useSearchParams();
   const id = params.get("id");
   if (!id) {
@@ -19,6 +25,7 @@ export default function LocoPerformanceOverlayPage() {
     <PerformanceOverlay
       performanceId={id as Id<"performances">}
       kind={kind}
+      backdropUrl={OVERLAY_ART[slug]}
     />
   );
 }

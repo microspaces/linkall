@@ -354,9 +354,13 @@ function EffectMedia({
   if (kind === "video") {
     const ytId = youtubeVideoId(content);
     if (ytId) {
-      // Scale the 16:9 embed so it covers the panel (YouTube letterboxes otherwise).
+      // Cover the panel: 16:9 letterboxes on tall HyperX side LEDs
+      // unless we scale up (1.35 is only enough for landscape).
+      const boxAr = box.w / Math.max(box.h, 1);
+      const videoAr = 16 / 9;
+      const coverScale = Math.max(videoAr / boxAr, boxAr / videoAr);
       return (
-        <div style={frame} className="bg-black">
+        <div style={{ ...frame, position: "absolute" }} className="bg-black">
           {muted ? (
             <iframe
               key={youtubeEmbedSrc(content, videoStartSec, true) ?? ytId}
@@ -368,7 +372,7 @@ function EffectMedia({
                 height: "100%",
                 minWidth: "100%",
                 minHeight: "100%",
-                transform: "translate(-50%, -50%) scale(1.35)",
+                transform: `translate(-50%, -50%) scale(${coverScale})`,
               }}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
