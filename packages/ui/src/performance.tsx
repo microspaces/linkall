@@ -575,8 +575,8 @@ function Console({
                 className={
                   "mb-2 block w-full rounded-lg border px-3 py-3 text-left text-sm font-semibold " +
                   (view.activeSceneId === s._id
-                    ? "border-brand bg-brand-light text-brand-dark"
-                    : "border-gray-200 bg-white hover:bg-gray-50")
+                    ? "border-brand bg-brand font-semibold text-white"
+                    : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50")
                 }
               >
                 {s.title}
@@ -597,8 +597,8 @@ function Console({
               className={
                 "mb-2 flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left text-sm " +
                 (active
-                  ? "border-brand bg-brand-light font-semibold"
-                  : "border-gray-200 bg-white hover:bg-gray-50")
+                  ? "border-brand bg-brand font-semibold text-white"
+                  : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50")
               }
             >
               <span className="flex-1 font-semibold">{p.name}</span>
@@ -701,8 +701,8 @@ function SceneCueRow({
       className={
         "block w-full truncate border-b border-gray-100 px-2 py-2 text-left text-xs " +
         (active || live
-          ? "bg-brand-light font-semibold text-brand-dark"
-          : "hover:bg-gray-50")
+          ? "bg-brand font-semibold text-white"
+          : "text-gray-900 hover:bg-gray-50")
       }
     >
       {live ? "● " : ""}
@@ -1134,7 +1134,11 @@ function ControlStrip({
   const showWin = !setlist && phase === "voting";
   const showRotation =
     !setlist && current.sameGame && (phase === "both" || phase === "team2");
-  const showNext = !showWin;
+  // LinkAll8 GetCurrentGameRow: only one required action is shown. The
+  // unified Next is a skip — hide it when Begin / Next Game / End Round / Win
+  // is the button the host must press.
+  const showNext =
+    !showBegin && !showNextGame && !showEndRound && !showWin;
 
   return (
     <div className="border-t border-gray-200 bg-white p-2">
@@ -1366,6 +1370,10 @@ const OVERLAY_KIND_TO_CUE: Record<string, string> = {
   "game-instructions": "game instructions",
   vote: "vote",
   score: "score",
+  "score-1": "score-1",
+  "score-2": "score-2",
+  "score-team1": "score-1",
+  "score-team2": "score-2",
   "box-score": "box score",
   rotation: "score rotation",
   "score-rotation": "score rotation",
@@ -1400,6 +1408,15 @@ function OverlayView({
   const game1 = current ? view.games.find((g) => g._id === current.game1Id) : null;
   const game2 = current ? view.games.find((g) => g._id === current.game2Id) : null;
   const playing = game2?.isPlaying ? game2 : game1?.isPlaying ? game1 : null;
+
+  if (overlay === "score-1" || overlay === "score-2")
+    return (
+      <TeamSideScore
+        view={view}
+        team={overlay === "score-1" ? 1 : 2}
+        compact={compact}
+      />
+    );
 
   if (overlay.startsWith("introduction:"))
     return (
@@ -1551,6 +1568,42 @@ function OverlayView({
           <span className="text-pink-400">{view.team2}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Portrait left/right LED: one team name + live score (legacy ScoreBananas / ScoreBerries). */
+function TeamSideScore({
+  view,
+  team,
+  compact = false,
+}: {
+  view: PerformanceView;
+  team: 1 | 2;
+  compact?: boolean;
+}) {
+  const name = teamName(view, team);
+  const score = team === 1 ? view.scores.team1 : view.scores.team2;
+  const accent = team === 1 ? "text-yellow-300" : "text-pink-400";
+  return (
+    <div className="flex min-h-[70dvh] flex-col items-center justify-center px-6 text-center">
+      <p
+        className={
+          "font-black uppercase tracking-widest " +
+          accent +
+          (compact ? " text-2xl" : " text-4xl sm:text-5xl")
+        }
+      >
+        {name}
+      </p>
+      <p
+        className={
+          "mt-4 font-black leading-none tabular-nums " +
+          (compact ? "text-7xl" : "text-[clamp(6rem,28vw,14rem)]")
+        }
+      >
+        {score}
+      </p>
     </div>
   );
 }

@@ -9,7 +9,9 @@
 }
 
 .social-shell:not(.light) {
-  --color-brand-light: color-mix(in srgb, var(--color-brand) 22%, #09090b);
+  color: #e4e4e7;
+  --color-brand-light: color-mix(in srgb, var(--color-brand) 28%, #18181b);
+  --color-brand-dark: #f4f4f5;
   --color-emerald-100: color-mix(in srgb, #34d399 18%, #09090b);
   --color-emerald-800: #6ee7b7;
   --color-amber-100: color-mix(in srgb, #f59e0b 18%, #09090b);

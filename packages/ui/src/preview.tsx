@@ -381,7 +381,9 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
   const showWin = !setlist && phase === "voting";
   const showRotation =
     !setlist && current.sameGame && (phase === "both" || phase === "team2");
-  const showNext = !showWin;
+  // LinkAll8: hide unified Next when Begin / Next Game / End Round / Win is required.
+  const showNext =
+    !showBegin && !showNextGame && !showEndRound && !showWin;
 
   return (
     <div className="shrink-0 border-t border-white/10 bg-gray-900 px-3 py-2">

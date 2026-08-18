@@ -6,6 +6,7 @@ import { requireLoco, rowTag, type LocoConfig } from "./locos";
 import {
   overlayKindForTitle,
   overlayPath,
+  wantsSideScores,
   winnerCue,
 } from "./sceneCues";
 
@@ -479,14 +480,18 @@ async function insertCueScenesOnShow(
       await put(sceneId, "Background", "color", "#0f172a");
     }
     if (panelByLogical.LeftSidebar) {
-      if (spec.leftImage) {
+      if (wantsSideScores(spec.title)) {
+        await put(sceneId, "LeftSidebar", "url", overlayPath(slug, "score-1"));
+      } else if (spec.leftImage) {
         await put(sceneId, "LeftSidebar", "image", spec.leftImage);
       } else {
         await put(sceneId, "LeftSidebar", "color", spec.accent);
       }
     }
     if (panelByLogical.RightSidebar) {
-      if (spec.rightImage) {
+      if (wantsSideScores(spec.title)) {
+        await put(sceneId, "RightSidebar", "url", overlayPath(slug, "score-2"));
+      } else if (spec.rightImage) {
         await put(sceneId, "RightSidebar", "image", spec.rightImage);
       } else {
         await put(sceneId, "RightSidebar", "color", spec.accent);
@@ -572,6 +577,81 @@ async function ensureOverlayEffectsOnShow(
 }
 
 /**
+ * LinkAll8 left/right Score URLs: live team score on the wing screens
+ * for Score / Vote / Game Instructions / Rotation / Winner (not Boom videos).
+ */
+async function ensureSideScoreEffectsOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+  slug: string,
+) {
+  const panels = await panelLogicalsForShow(ctx, showId);
+  const left = panels.LeftSidebar;
+  const right = panels.RightSidebar;
+  if (!left && !right) return { sides: 0 };
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+
+  const putUrl = async (
+    sceneId: Id<"scenes">,
+    logical: string,
+    panelId: Id<"panels">,
+    kind: string,
+  ) => {
+    await ctx.db.insert("effects", {
+      sceneId,
+      panelId,
+      logicalPanelName: logical,
+      kind: "url",
+      content: overlayPath(slug, kind),
+      startTime: 0,
+      isEnabled: true,
+    });
+  };
+
+  let sides = 0;
+  for (const scene of scenes) {
+    if (!wantsSideScores(scene.title)) continue;
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    const hasSideVideo = effects.some(
+      (e) =>
+        e.kind === "video" &&
+        (e.logicalPanelName === "LeftSidebar" ||
+          e.logicalPanelName === "RightSidebar"),
+    );
+    if (hasSideVideo) continue;
+
+    const want = [
+      { logical: "LeftSidebar", panelId: left, kind: "score-1" },
+      { logical: "RightSidebar", panelId: right, kind: "score-2" },
+    ] as const;
+
+    for (const side of want) {
+      if (!side.panelId) continue;
+      const existing = effects.filter((e) => e.logicalPanelName === side.logical);
+      const already = existing.some(
+        (e) => e.kind === "url" && e.content.includes(`/overlay/${side.kind}`),
+      );
+      if (already) continue;
+      for (const e of existing) {
+        if (e.kind === "image" || e.kind === "color" || e.kind === "text" || e.kind === "url") {
+          await ctx.db.delete(e._id);
+        }
+      }
+      await putUrl(scene._id, side.logical, side.panelId, side.kind);
+      sides++;
+    }
+  }
+  return { sides };
+}
+
+/**
  * Fill HyperX left / center / right for every Battle Loco cue:
  * photo wings during the night, Boom videos on all three for celebrations.
  */
@@ -646,8 +726,18 @@ async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
     }
 
     // Photo fill: competitors | hero | crowd. Keep URL overlay on center.
+    // Score / Vote / Instructions / Winner get live scores on the wings instead.
+    const sideScores = wantsSideScores(scene.title);
     for (const e of effects) {
       if (e.kind === "color" || e.kind === "text") await ctx.db.delete(e._id);
+      if (
+        sideScores &&
+        e.kind === "image" &&
+        (e.logicalPanelName === "LeftSidebar" ||
+          e.logicalPanelName === "RightSidebar")
+      ) {
+        await ctx.db.delete(e._id);
+      }
     }
     const after = await ctx.db
       .query("effects")
@@ -662,7 +752,7 @@ async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
     const hasCenterImg = after.some(
       (e) => e.kind === "image" && e.logicalPanelName === "MainContent",
     );
-    if (!hasLeftImg)
+    if (!sideScores && !hasLeftImg)
       await put(
         scene._id,
         "LeftSidebar",
@@ -670,7 +760,7 @@ async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
         "image",
         BATTLE_LOCO_IMAGES.competitors,
       );
-    if (!hasRightImg)
+    if (!sideScores && !hasRightImg)
       await put(
         scene._id,
         "RightSidebar",
@@ -1896,6 +1986,18 @@ export const battleLoco = mutation({
         "battleloco",
         existingShow._id,
       );
+      const fx = await ensureOverlayEffectsOnShow(
+        ctx,
+        existingShow._id,
+        "battle-loco",
+        BATTLE_LOCO_BOOM_VIDEOS.center,
+      );
+      const dress = await dressBattleLocoLook(ctx, existingShow._id);
+      const sides = await ensureSideScoreEffectsOnShow(
+        ctx,
+        existingShow._id,
+        "battle-loco",
+      );
       return {
         message:
           "Battle Loco already exists — added missing cue scenes and bound performances",
@@ -1903,6 +2005,9 @@ export const battleLoco = mutation({
         layoutId: layout?._id,
         addedScenes: added,
         boundPerformances: bound,
+        ...fx,
+        ...dress,
+        ...sides,
         screenIds: {
           left: byName("HyperX Stage Left"),
           center: byName("HyperX Stage Center"),
@@ -1983,6 +2088,9 @@ export const locoCueShows = mutation({
     const battleDress = battleShow
       ? await dressBattleLocoLook(ctx, battleShow._id)
       : { dressed: 0 };
+    const battleSides = battleShow
+      ? await ensureSideScoreEffectsOnShow(ctx, battleShow._id, "battle-loco")
+      : { sides: 0 };
 
     let wrestleShow = shows.find(
       (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
@@ -2014,6 +2122,9 @@ export const locoCueShows = mutation({
     const wrestleFx = wrestleShow
       ? await ensureOverlayEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
       : { urls: 0, videos: 0 };
+    const wrestleSides = wrestleShow
+      ? await ensureSideScoreEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
+      : { sides: 0 };
 
     const comedyShow =
       shows.find((s) => s.title.toLowerCase().includes("stage cues")) ??
@@ -2038,6 +2149,9 @@ export const locoCueShows = mutation({
     const comedyFx = comedyShow
       ? await ensureOverlayEffectsOnShow(ctx, comedyShow._id, "comedy-loco")
       : { urls: 0, videos: 0 };
+    const comedySides = comedyShow
+      ? await ensureSideScoreEffectsOnShow(ctx, comedyShow._id, "comedy-loco")
+      : { sides: 0 };
     const comedyBound = comedyShow
       ? await bindPerformancesToShow(ctx, "comedyloco", comedyShow._id)
       : 0;
@@ -2050,6 +2164,7 @@ export const locoCueShows = mutation({
         boundPerformances: battleBound,
         ...battleFx,
         ...battleDress,
+        ...battleSides,
       },
       wrestle: {
         showId: wrestleShow?._id,
@@ -2057,12 +2172,14 @@ export const locoCueShows = mutation({
         addedScenes: wrestleAdded,
         boundPerformances: wrestleBound,
         ...wrestleFx,
+        ...wrestleSides,
       },
       comedy: {
         showId: comedyShow?._id,
         addedScenes: comedyAdded,
         boundPerformances: comedyBound,
         ...comedyFx,
+        ...comedySides,
       },
     };
   },
@@ -2097,11 +2214,19 @@ export const wrestleLoco = mutation({
         "wrestle-loco",
       );
       const bound = await bindPerformancesToShow(ctx, "wrestleloco", existing._id);
+      const fx = await ensureOverlayEffectsOnShow(ctx, existing._id, "wrestle-loco");
+      const sides = await ensureSideScoreEffectsOnShow(
+        ctx,
+        existing._id,
+        "wrestle-loco",
+      );
       return {
         message: "Wrestle Loco already exists — added missing cue scenes and bound performances",
         showId: existing._id,
         addedScenes: added,
         boundPerformances: bound,
+        ...fx,
+        ...sides,
       };
     }
     const created = await insertWrestleLoco(ctx, ownerId);

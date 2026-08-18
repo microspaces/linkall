@@ -91,6 +91,20 @@ export function overlayPath(slug: string, kind: string) {
   return `/locos/${slug}/performance/overlay/${kind}?id={performanceId}`;
 }
 
+/** Scenes that put a live team score on the left / right screens (legacy Score/Vote URLs). */
+export function wantsSideScores(title: string) {
+  const t = normalizeCue(title);
+  if (t.startsWith("winner")) return true;
+  return (
+    t === "score" ||
+    t === "vote" ||
+    t === "score rotation" ||
+    t === "box score" ||
+    t === "game instructions" ||
+    t === "instructions"
+  );
+}
+
 /** Expand LinkAll8-style tokens in a URL effect. */
 export function expandEffectUrl(
   raw: string,
@@ -252,6 +266,15 @@ export function selfCheck(): string | null {
   }
   if (matchSceneIndex(scenes, winnerCue("Bananas")) < 0) {
     return "Winner Bananas cue should match";
+  }
+  if (!wantsSideScores("Score") || !wantsSideScores("Vote")) {
+    return "Score and Vote should show side scores";
+  }
+  if (!wantsSideScores("Game Instructions") || !wantsSideScores("Winner Bananas")) {
+    return "Instructions and Winner should show side scores";
+  }
+  if (wantsSideScores("Crowd") || wantsSideScores("BringTheFun")) {
+    return "Crowd / music should not show side scores";
   }
   return null;
 }
