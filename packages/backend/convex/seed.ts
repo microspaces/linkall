@@ -1406,9 +1406,127 @@ async function insertBattleLoco(
   return { showId, layoutId, screenIds };
 }
 
+/** Shared HyperX Arena walls (Battle Loco + Wrestle Loco). */
+async function hyperXArenaFor(ctx: MutationCtx): Promise<{
+  layoutId: Id<"layouts">;
+  panelByLogical: Record<string, Id<"panels">>;
+  screenIds: {
+    left: Id<"screens">;
+    center: Id<"screens">;
+    right: Id<"screens">;
+    phone?: Id<"screens">;
+  };
+} | null> {
+  const layouts = await ctx.db.query("layouts").collect();
+  const layout = layouts.find((l) => l.name === "HyperX Arena");
+  if (!layout) return null;
+  const screens = await ctx.db
+    .query("screens")
+    .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+    .collect();
+  const byName = (name: string) => screens.find((s) => s.name === name);
+  const panelOf = async (screen: { _id: Id<"screens"> } | undefined) => {
+    if (!screen) return undefined;
+    const panels = await ctx.db
+      .query("panels")
+      .withIndex("by_screen", (q) => q.eq("screenId", screen._id))
+      .collect();
+    panels.sort((a, b) => a.zIndex - b.zIndex);
+    return panels[0]?._id;
+  };
+  const left = byName("HyperX Stage Left");
+  const center = byName("HyperX Stage Center");
+  const right = byName("HyperX Stage Right");
+  const phone = screens.find((s) => s.name.toLowerCase() === "phone");
+  const lp = await panelOf(left);
+  const cp = await panelOf(center);
+  const rp = await panelOf(right);
+  const pp = await panelOf(phone);
+  if (!left || !center || !right || !lp || !cp || !rp) return null;
+  const panelByLogical: Record<string, Id<"panels">> = {
+    LeftSidebar: lp,
+    MainContent: cp,
+    RightSidebar: rp,
+  };
+  if (pp) panelByLogical.Phone = pp;
+  return {
+    layoutId: layout._id,
+    panelByLogical,
+    screenIds: {
+      left: left._id,
+      center: center._id,
+      right: right._id,
+      ...(phone ? { phone: phone._id } : {}),
+    },
+  };
+}
+
+/** Point an existing show at HyperX Left / Center / Right / Phone. */
+async function bindShowToHyperX(ctx: MutationCtx, showId: Id<"shows">) {
+  const hyperx = await hyperXArenaFor(ctx);
+  if (!hyperx) return { bound: false as const };
+  const show = await ctx.db.get(showId);
+  if (!show) return { bound: false as const };
+
+  await ctx.db.patch(showId, { layoutId: hyperx.layoutId });
+
+  const profiles = await ctx.db
+    .query("displayProfiles")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  for (const profile of profiles) {
+    await ctx.db.patch(profile._id, {
+      layoutId: hyperx.layoutId,
+      name: "HyperX Arena",
+      description:
+        "HyperX Stage Left / Center / Right + Phone — shared with Battle Loco.",
+    });
+    const mappings = await ctx.db
+      .query("panelMappings")
+      .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+      .collect();
+    for (const m of mappings) await ctx.db.delete(m._id);
+    for (const [logical, panelId] of Object.entries(hyperx.panelByLogical)) {
+      await ctx.db.insert("panelMappings", {
+        displayProfileId: profile._id,
+        logicalPanelName: logical,
+        panelId,
+      });
+    }
+  }
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  let retargeted = 0;
+  for (const scene of scenes) {
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    for (const e of effects) {
+      const next = e.logicalPanelName
+        ? hyperx.panelByLogical[e.logicalPanelName]
+        : undefined;
+      if (next && next !== e.panelId) {
+        await ctx.db.patch(e._id, { panelId: next });
+        retargeted++;
+      }
+    }
+  }
+
+  return {
+    bound: true as const,
+    layoutId: hyperx.layoutId,
+    retargeted,
+    ...hyperx.screenIds,
+  };
+}
+
 /**
- * Wrestle Loco ring show — three outputs (left/center/right) plus the
- * performance cue scenes the console plays by name.
+ * Wrestle Loco on the HyperX Arena walls (same screens as Battle Loco)
+ * when that layout exists; otherwise a standalone Wrestle Ring.
  */
 async function insertWrestleLoco(
   ctx: MutationCtx,
@@ -1422,11 +1540,6 @@ async function insertWrestleLoco(
     right: Id<"screens">;
   };
 }> {
-  const layoutId = await ctx.db.insert("layouts", {
-    name: "Wrestle Ring",
-    ownerId,
-  });
-
   const screenSpecs: {
     key: "left" | "center" | "right";
     name: string;
@@ -1438,7 +1551,7 @@ async function insertWrestleLoco(
   }[] = [
     {
       key: "left",
-      name: "Wrestle Stage Left",
+      name: "HyperX Stage Left",
       order: 0,
       width: 1152,
       height: 1920,
@@ -1447,7 +1560,7 @@ async function insertWrestleLoco(
     },
     {
       key: "center",
-      name: "Wrestle Stage Center",
+      name: "HyperX Stage Center",
       order: 1,
       width: 1920,
       height: 1080,
@@ -1456,7 +1569,7 @@ async function insertWrestleLoco(
     },
     {
       key: "right",
-      name: "Wrestle Stage Right",
+      name: "HyperX Stage Right",
       order: 2,
       width: 1152,
       height: 1920,
@@ -1465,39 +1578,61 @@ async function insertWrestleLoco(
     },
   ];
 
-  const screenIds = {} as {
+  const existingHyperX = await hyperXArenaFor(ctx);
+  let layoutId: Id<"layouts">;
+  let panelByLogical: Record<string, Id<"panels">>;
+  let screenIds: {
     left: Id<"screens">;
     center: Id<"screens">;
     right: Id<"screens">;
   };
-  const panelByLogical: Record<string, Id<"panels">> = {};
 
-  for (const spec of screenSpecs) {
-    const screenId = await ctx.db.insert("screens", {
-      layoutId,
-      name: spec.name,
-      order: spec.order,
-      width: spec.width,
-      height: spec.height,
+  if (existingHyperX) {
+    layoutId = existingHyperX.layoutId;
+    panelByLogical = existingHyperX.panelByLogical;
+    screenIds = {
+      left: existingHyperX.screenIds.left,
+      center: existingHyperX.screenIds.center,
+      right: existingHyperX.screenIds.right,
+    };
+  } else {
+    layoutId = await ctx.db.insert("layouts", {
+      name: "HyperX Arena",
+      ownerId,
     });
-    screenIds[spec.key] = screenId;
-    panelByLogical[spec.logical] = await ctx.db.insert("panels", {
-      screenId,
-      name: spec.name,
-      zIndex: 0,
-      points: [
-        { x: 0, y: 0 },
-        { x: spec.width, y: 0 },
-        { x: spec.width, y: spec.height },
-        { x: 0, y: spec.height },
-      ],
-    });
+    screenIds = {} as {
+      left: Id<"screens">;
+      center: Id<"screens">;
+      right: Id<"screens">;
+    };
+    panelByLogical = {};
+    for (const spec of screenSpecs) {
+      const screenId = await ctx.db.insert("screens", {
+        layoutId,
+        name: spec.name,
+        order: spec.order,
+        width: spec.width,
+        height: spec.height,
+      });
+      screenIds[spec.key] = screenId;
+      panelByLogical[spec.logical] = await ctx.db.insert("panels", {
+        screenId,
+        name: spec.name,
+        zIndex: 0,
+        points: [
+          { x: 0, y: 0 },
+          { x: spec.width, y: 0 },
+          { x: spec.width, y: spec.height },
+          { x: 0, y: spec.height },
+        ],
+      });
+    }
   }
 
   const showId = await ctx.db.insert("shows", {
     title: "Wrestle Loco",
     description:
-      "Wrestle Ring — Opening Bell, Hit the Bell, and branded Outro lockups.",
+      "HyperX Arena — Opening Bell, Hit the Bell, and branded Outro lockups.",
     tag: "wrestleloco",
     status: "live",
     currentSceneIndex: 0,
@@ -1576,8 +1711,9 @@ async function insertWrestleLoco(
   }
 
   const profileId = await ctx.db.insert("displayProfiles", {
-    name: "Wrestle Ring",
-    description: "Stage Left / Center / Right at the Wrestle Loco house.",
+    name: "HyperX Arena",
+    description:
+      "HyperX Stage Left / Center / Right + Phone — shared with Battle Loco.",
     showId,
     layoutId,
     isDefault: true,
@@ -1588,6 +1724,13 @@ async function insertWrestleLoco(
       displayProfileId: profileId,
       logicalPanelName: spec.logical,
       panelId: panelByLogical[spec.logical],
+    });
+  }
+  if (panelByLogical.Phone) {
+    await ctx.db.insert("panelMappings", {
+      displayProfileId: profileId,
+      logicalPanelName: "Phone",
+      panelId: panelByLogical.Phone,
     });
   }
 
@@ -2559,6 +2702,9 @@ export const locoCueShows = mutation({
     const wrestleSides = wrestleShow
       ? await ensureSideScoreEffectsOnShow(ctx, wrestleShow._id, "wrestle-loco")
       : { sides: 0 };
+    const wrestleHyperX = wrestleShow
+      ? await bindShowToHyperX(ctx, wrestleShow._id)
+      : { bound: false as const };
     const wrestlePhone = wrestleShow
       ? await ensurePhoneScreenOnShow(ctx, wrestleShow._id)
       : { phone: 0, mapped: 0, urls: 0 };
@@ -2617,6 +2763,7 @@ export const locoCueShows = mutation({
         ...wrestleDress,
         ...wrestleSides,
         phone: wrestlePhone,
+        hyperx: wrestleHyperX,
       },
       comedy: {
         showId: comedyShow?._id,
@@ -2671,6 +2818,7 @@ export const wrestleLoco = mutation({
         existing._id,
         "wrestle-loco",
       );
+      const hyperx = await bindShowToHyperX(ctx, existing._id);
       const phone = await ensurePhoneScreenOnShow(ctx, existing._id);
       return {
         message: "Wrestle Loco already exists — added missing cue scenes and bound performances",
@@ -2682,12 +2830,13 @@ export const wrestleLoco = mutation({
         ...dress,
         ...sides,
         phone,
+        hyperx,
       };
     }
     const created = await insertWrestleLoco(ctx, ownerId);
     const bound = await bindPerformancesToShow(ctx, "wrestleloco", created.showId);
     return {
-      message: "Seeded Wrestle Loco · Wrestle Ring (Left/Center/Right)",
+      message: "Seeded Wrestle Loco · HyperX Arena (shared with Battle Loco)",
       boundPerformances: bound,
       ...created,
     };

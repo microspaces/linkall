@@ -275,29 +275,29 @@ async function resolveScreenBinding(
     .withIndex("by_status", (q) => q.eq("status", "live"))
     .collect();
 
+  const matches: Doc<"shows">[] = [];
   for (const candidate of liveShows) {
     const pid = await defaultProfileIdForShow(ctx, candidate._id);
     if (pid) {
       const profile = await ctx.db.get(pid);
       if (profile?.layoutId === screen.layoutId) {
-        return {
-          show: candidate,
-          profileId: pid,
-          boundExplicitly: false,
-        };
+        matches.push(candidate);
+        continue;
       }
     }
+    if (candidate.layoutId === screen.layoutId) matches.push(candidate);
   }
-  const fallback =
-    liveShows.find((s) => s.layoutId === screen.layoutId) ?? null;
-  if (fallback) {
-    return {
-      show: fallback,
-      profileId: await defaultProfileIdForShow(ctx, fallback._id),
-      boundExplicitly: false,
-    };
+  if (matches.length === 0) {
+    return { show: null, profileId: null, boundExplicitly: false };
   }
-  return { show: null, profileId: null, boundExplicitly: false };
+  // Shared hardware (Battle + Wrestle on HyperX): follow the last cued show.
+  matches.sort((a, b) => (b.sceneStartedAt ?? 0) - (a.sceneStartedAt ?? 0));
+  const pick = matches[0]!;
+  return {
+    show: pick,
+    profileId: await defaultProfileIdForShow(ctx, pick._id),
+    boundExplicitly: false,
+  };
 }
 
 /**
