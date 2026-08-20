@@ -9,6 +9,16 @@ import {
   wantsSideScores,
   winnerCue,
 } from "./sceneCues";
+import {
+  KEY_FILL_LOGICALS,
+  KEY_FILL_FULL_OVERLAY,
+  KEY_FILL_LOWER_THIRD,
+  KEY_FILL_TOP_CORNERS,
+  type KeyFillLogical,
+  ROSS_KEY_FILLS_SCREEN,
+  buildCommands,
+  rigCueForScene,
+} from "./rossRig";
 
 /**
  * Mock data per brand, for testing until real data (groups etc.) is imported.
@@ -215,11 +225,11 @@ async function insertLocoDemo(
     showId,
   });
   let order = 0;
+  const teamIndexes =
+    loco.mode === "setlist" ? ([1] as const) : ([1, 2] as const);
   for (const [round, roundType, game1, game2, isScored] of rounds) {
-    for (const [teamIndex, gameName] of [
-      [1, game1],
-      [2, game2],
-    ] as const) {
+    for (const teamIndex of teamIndexes) {
+      const gameName = teamIndex === 1 ? game1 : game2;
       await ctx.db.insert("performanceGames", {
         performanceId,
         order: order++,
@@ -237,7 +247,7 @@ async function insertLocoDemo(
         rotation: false,
         isCued: false,
         volunteers: 0,
-        isScored,
+        isScored: loco.mode === "setlist" ? false : isScored,
       });
     }
   }
@@ -313,6 +323,42 @@ const WRESTLE_LOCO_BELL_VIDEOS = {
 } as const;
 
 const WRESTLE_CELEBRATION_CUE = "Hit the Bell";
+
+const KEY_FILL_LOGICAL_SET = new Set<string>(KEY_FILL_LOGICALS);
+
+function keyFillOverlayKind(
+  title: string,
+  logical: KeyFillLogical,
+  opts?: { isSoundEffect?: boolean },
+): string | null {
+  const cue = rigCueForScene(title, opts);
+  if (!cue) return null;
+  if (logical === KEY_FILL_FULL_OVERLAY) {
+    if (!cue.keys.fullOverlay) return null;
+    return overlayKindForTitle(title) ?? "live";
+  }
+  if (logical === KEY_FILL_LOWER_THIRD) {
+    if (!cue.keys.lowerThird) return null;
+    const kind = overlayKindForTitle(title);
+    if (kind === "introduction" || kind === "crowd") return kind;
+    return "live";
+  }
+  if (logical === KEY_FILL_TOP_CORNERS) {
+    if (!cue.keys.topCorners) return null;
+    return "score";
+  }
+  return null;
+}
+
+/** Command effects and non-LED slots must survive dress / lockup rewrites. */
+function isProtectedSeedEffect(e: {
+  kind: string;
+  logicalPanelName?: string;
+}) {
+  if (e.kind === "command" || e.kind === "hotkey") return true;
+  const logical = e.logicalPanelName ?? "";
+  return logical === "Phone" || KEY_FILL_LOGICAL_SET.has(logical);
+}
 
 type CueSceneSpec = {
   title: string;
@@ -724,7 +770,7 @@ async function dressBattleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
 
     if (boomNamed.has(title)) {
       for (const e of effects) {
-        if (e.logicalPanelName === "Phone") continue;
+        if (isProtectedSeedEffect(e)) continue;
         if (e.kind !== "video") await ctx.db.delete(e._id);
       }
       const leftHas = effects.some(
@@ -849,7 +895,7 @@ async function dressWrestleLocoLook(ctx: MutationCtx, showId: Id<"shows">) {
 
     if (bellNamed.has(title)) {
       for (const e of effects) {
-        if (e.logicalPanelName === "Phone") continue;
+        if (isProtectedSeedEffect(e)) continue;
         if (e.kind !== "video") await ctx.db.delete(e._id);
       }
       const leftHas = effects.some(
@@ -936,7 +982,7 @@ async function ensureWrestleLockupScenes(
       .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
       .collect();
     for (const e of existing) {
-      if (e.logicalPanelName === "Phone") continue;
+      if (isProtectedSeedEffect(e)) continue;
       await ctx.db.delete(e._id);
     }
     const walls: Array<[string, Id<"panels">]> = [
@@ -1129,6 +1175,241 @@ async function ensurePhoneScreenOnShow(
     urls++;
   }
   return { phone: 1, mapped, urls };
+}
+
+const ROSS_KEY_FILL_CANVAS = { width: 1920, height: 1080 } as const;
+
+const ROSS_KEY_FILL_TILES: Array<{
+  logical: (typeof KEY_FILL_LOGICALS)[number];
+  zIndex: number;
+  points: { x: number; y: number }[];
+}> = [
+  {
+    logical: KEY_FILL_FULL_OVERLAY,
+    zIndex: 0,
+    points: [
+      { x: 0, y: 0 },
+      { x: 1920, y: 0 },
+      { x: 1920, y: 360 },
+      { x: 0, y: 360 },
+    ],
+  },
+  {
+    logical: KEY_FILL_LOWER_THIRD,
+    zIndex: 1,
+    points: [
+      { x: 0, y: 360 },
+      { x: 1920, y: 360 },
+      { x: 1920, y: 720 },
+      { x: 0, y: 720 },
+    ],
+  },
+  {
+    logical: KEY_FILL_TOP_CORNERS,
+    zIndex: 2,
+    points: [
+      { x: 0, y: 720 },
+      { x: 1920, y: 720 },
+      { x: 1920, y: 1080 },
+      { x: 0, y: 1080 },
+    ],
+  },
+];
+
+async function upsertLogicalMapping(
+  ctx: MutationCtx,
+  displayProfileId: Id<"displayProfiles">,
+  logicalPanelName: string,
+  panelId: Id<"panels">,
+) {
+  const existing = await ctx.db
+    .query("panelMappings")
+    .withIndex("by_profile_logical", (q) =>
+      q
+        .eq("displayProfileId", displayProfileId)
+        .eq("logicalPanelName", logicalPanelName),
+    )
+    .unique();
+  if (existing) {
+    if (existing.panelId !== panelId) {
+      await ctx.db.patch(existing._id, { panelId });
+    }
+    return;
+  }
+  await ctx.db.insert("panelMappings", {
+    displayProfileId,
+    logicalPanelName,
+    panelId,
+  });
+}
+
+/**
+ * Ross key-fill observables on HyperX: one off-wall screen with three
+ * logical panels (full overlay / lower third / top corners). Shared by
+ * Battle Loco + Wrestle Loco.
+ */
+async function ensureRossKeyFillsOnHyperX(
+  ctx: MutationCtx,
+): Promise<Record<string, Id<"panels">>> {
+  const layouts = await ctx.db.query("layouts").collect();
+  const layout = layouts.find((l) => l.name === "HyperX Arena");
+  if (!layout) return {};
+
+  const screens = await ctx.db
+    .query("screens")
+    .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+    .collect();
+  let screen = screens.find((s) => s.name === ROSS_KEY_FILLS_SCREEN);
+  if (!screen) {
+    const order = screens.reduce((m, s) => Math.max(m, s.order), -1) + 1;
+    const screenId = await ctx.db.insert("screens", {
+      layoutId: layout._id,
+      name: ROSS_KEY_FILLS_SCREEN,
+      order,
+      width: ROSS_KEY_FILL_CANVAS.width,
+      height: ROSS_KEY_FILL_CANVAS.height,
+    });
+    const created = await ctx.db.get(screenId);
+    if (!created) return {};
+    screen = created;
+  }
+
+  const panels = await ctx.db
+    .query("panels")
+    .withIndex("by_screen", (q) => q.eq("screenId", screen!._id))
+    .collect();
+  const byName = new Map(panels.map((p) => [p.name, p]));
+  const result: Record<string, Id<"panels">> = {};
+  for (const tile of ROSS_KEY_FILL_TILES) {
+    const existing = byName.get(tile.logical);
+    if (existing) {
+      result[tile.logical] = existing._id;
+      continue;
+    }
+    result[tile.logical] = await ctx.db.insert("panels", {
+      screenId: screen._id,
+      name: tile.logical,
+      zIndex: tile.zIndex,
+      points: tile.points,
+    });
+  }
+
+  const profiles = await ctx.db.query("displayProfiles").collect();
+  for (const profile of profiles) {
+    if (profile.layoutId !== layout._id) continue;
+    for (const [logical, panelId] of Object.entries(result)) {
+      await upsertLogicalMapping(ctx, profile._id, logical, panelId);
+    }
+  }
+
+  return result;
+}
+
+/** RossTalk command effects for every visual cue on a HyperX show. */
+async function ensureSceneCommandsOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+) {
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  let scenesTouched = 0;
+  let commands = 0;
+  for (const scene of scenes) {
+    const cue = rigCueForScene(scene.title, {
+      isSoundEffect: scene.isSoundEffect,
+    });
+    const wanted = cue ? buildCommands(cue) : [];
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    const existing = effects.filter((e) => e.kind === "command");
+    const have = existing.map((e) => e.content.trim());
+    const same =
+      have.length === wanted.length &&
+      wanted.every((cmd, i) => have[i] === cmd);
+    if (same) continue;
+    for (const e of existing) await ctx.db.delete(e._id);
+    for (const content of wanted) {
+      await ctx.db.insert("effects", {
+        sceneId: scene._id,
+        kind: "command",
+        content,
+        startTime: 0,
+        isEnabled: true,
+      });
+      commands++;
+    }
+    scenesTouched++;
+  }
+  return { commandScenes: scenesTouched, commands };
+}
+
+/** URL effects on key-fill logicals so Ross observables have overlay pages. */
+async function ensureKeyFillUrlEffectsOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+  slug: string,
+) {
+  const panels = await panelLogicalsForShow(ctx, showId);
+  const have = KEY_FILL_LOGICALS.filter((logical) => panels[logical]);
+  if (have.length === 0) return { keyFills: 0 };
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", showId))
+    .collect();
+  let keyFills = 0;
+  for (const scene of scenes) {
+    const effects = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+    for (const logical of have) {
+      const kind = keyFillOverlayKind(scene.title, logical, {
+        isSoundEffect: scene.isSoundEffect,
+      });
+      const existing = effects.filter((e) => e.logicalPanelName === logical);
+      if (!kind) {
+        for (const e of existing) await ctx.db.delete(e._id);
+        continue;
+      }
+      const content = overlayPath(slug, kind);
+      const already = existing.find(
+        (e) => e.kind === "url" && e.content === content,
+      );
+      if (already) continue;
+      for (const e of existing) await ctx.db.delete(e._id);
+      await ctx.db.insert("effects", {
+        sceneId: scene._id,
+        panelId: panels[logical],
+        logicalPanelName: logical,
+        kind: "url",
+        content,
+        startTime: 0,
+        isEnabled: true,
+      });
+      keyFills++;
+    }
+  }
+  return { keyFills };
+}
+
+async function applyHyperXSwitcherOnShow(
+  ctx: MutationCtx,
+  showId: Id<"shows">,
+  slug: string,
+) {
+  const fills = await ensureRossKeyFillsOnHyperX(ctx);
+  const commands = await ensureSceneCommandsOnShow(ctx, showId);
+  const urls = await ensureKeyFillUrlEffectsOnShow(ctx, showId, slug);
+  return {
+    keyFillPanels: Object.keys(fills).length,
+    ...commands,
+    ...urls,
+  };
 }
 
 async function panelLogicalsForShow(
@@ -1376,12 +1657,20 @@ async function insertBattleLoco(
     isDefault: true,
     ownerId,
   });
+  const keyFills = await ensureRossKeyFillsOnHyperX(ctx);
+  Object.assign(panelByLogical, keyFills);
+
   for (const spec of screenSpecs) {
     await ctx.db.insert("panelMappings", {
       displayProfileId: profileId,
       logicalPanelName: spec.logical,
       panelId: panelByLogical[spec.logical],
     });
+  }
+  for (const logical of KEY_FILL_LOGICALS) {
+    const panelId = panelByLogical[logical];
+    if (!panelId) continue;
+    await upsertLogicalMapping(ctx, profileId, logical, panelId);
   }
 
   await insertCueScenesOnShow(
@@ -1402,6 +1691,7 @@ async function insertBattleLoco(
   );
 
   await ensurePhoneScreenOnShow(ctx, showId);
+  await applyHyperXSwitcherOnShow(ctx, showId, "battle-loco");
 
   return { showId, layoutId, screenIds };
 }
@@ -1449,6 +1739,18 @@ async function hyperXArenaFor(ctx: MutationCtx): Promise<{
     RightSidebar: rp,
   };
   if (pp) panelByLogical.Phone = pp;
+  const keyFills = screens.find((s) => s.name === ROSS_KEY_FILLS_SCREEN);
+  if (keyFills) {
+    const fillPanels = await ctx.db
+      .query("panels")
+      .withIndex("by_screen", (q) => q.eq("screenId", keyFills._id))
+      .collect();
+    for (const panel of fillPanels) {
+      if (KEY_FILL_LOGICAL_SET.has(panel.name)) {
+        panelByLogical[panel.name] = panel._id;
+      }
+    }
+  }
   return {
     layoutId: layout._id,
     panelByLogical,
@@ -1524,6 +1826,413 @@ async function bindShowToHyperX(ctx: MutationCtx, showId: Id<"shows">) {
   };
 }
 
+function bitKindForRoundType(roundType: string): "bit" | "sketch" {
+  return roundType.toLowerCase().includes("sketch") ? "sketch" : "bit";
+}
+
+const HEAD_CANVAS = { width: 1080, height: 1920 } as const;
+
+/** Dedicated HeadCase output — one screen named Head, not HyperX. */
+async function ensureHeadLayout(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+): Promise<{
+  layoutId: Id<"layouts">;
+  panelId: Id<"panels">;
+  screenId: Id<"screens">;
+}> {
+  const layouts = await ctx.db.query("layouts").collect();
+  let layout = layouts.find(
+    (l) => l.name === "Head" || l.name === "HeadCase",
+  );
+  if (!layout) {
+    const layoutId = await ctx.db.insert("layouts", {
+      name: "Head",
+      ownerId,
+    });
+    layout = (await ctx.db.get(layoutId))!;
+  }
+  const screens = await ctx.db
+    .query("screens")
+    .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+    .collect();
+  let screen = screens.find((s) => s.name.toLowerCase() === "head");
+  if (!screen) {
+    const order = screens.reduce((m, s) => Math.max(m, s.order), -1) + 1;
+    const screenId = await ctx.db.insert("screens", {
+      layoutId: layout._id,
+      name: "Head",
+      order,
+      width: HEAD_CANVAS.width,
+      height: HEAD_CANVAS.height,
+    });
+    screen = (await ctx.db.get(screenId))!;
+  }
+  const panels = await ctx.db
+    .query("panels")
+    .withIndex("by_screen", (q) => q.eq("screenId", screen._id))
+    .collect();
+  let panelId = panels[0]?._id;
+  if (!panelId) {
+    panelId = await ctx.db.insert("panels", {
+      screenId: screen._id,
+      name: "Head",
+      zIndex: 0,
+      points: [
+        { x: 0, y: 0 },
+        { x: HEAD_CANVAS.width, y: 0 },
+        { x: HEAD_CANVAS.width, y: HEAD_CANVAS.height },
+        { x: 0, y: HEAD_CANVAS.height },
+      ],
+    });
+  }
+  return { layoutId: layout._id, panelId, screenId: screen._id };
+}
+
+async function bindHeadCaseShowsToHead(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+) {
+  const head = await ensureHeadLayout(ctx, ownerId);
+  const shows = (await ctx.db.query("shows").collect()).filter(
+    (s) =>
+      s.tag === "headcase" && (s.kind === "bit" || s.kind === "sketch"),
+  );
+  let bound = 0;
+  for (const show of shows) {
+    await ctx.db.patch(show._id, { layoutId: head.layoutId });
+    const profiles = await ctx.db
+      .query("displayProfiles")
+      .withIndex("by_show", (q) => q.eq("showId", show._id))
+      .collect();
+    if (profiles.length === 0) {
+      const profileId = await ctx.db.insert("displayProfiles", {
+        name: "Head",
+        description: "HeadCase output — screen Head.",
+        showId: show._id,
+        layoutId: head.layoutId,
+        isDefault: true,
+        ownerId,
+      });
+      await ctx.db.insert("panelMappings", {
+        displayProfileId: profileId,
+        logicalPanelName: "MainContent",
+        panelId: head.panelId,
+      });
+    } else {
+      for (const profile of profiles) {
+        await ctx.db.patch(profile._id, {
+          layoutId: head.layoutId,
+          name: "Head",
+          description: "HeadCase output — screen Head.",
+        });
+        const mappings = await ctx.db
+          .query("panelMappings")
+          .withIndex("by_profile", (q) =>
+            q.eq("displayProfileId", profile._id),
+          )
+          .collect();
+        for (const m of mappings) await ctx.db.delete(m._id);
+        await ctx.db.insert("panelMappings", {
+          displayProfileId: profile._id,
+          logicalPanelName: "MainContent",
+          panelId: head.panelId,
+        });
+      }
+    }
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", show._id))
+      .collect();
+    for (const scene of scenes) {
+      const effects = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      for (const e of effects) {
+        if (
+          e.logicalPanelName === "LeftSidebar" ||
+          e.logicalPanelName === "RightSidebar" ||
+          e.logicalPanelName === "Phone"
+        ) {
+          await ctx.db.delete(e._id);
+          continue;
+        }
+        if (e.panelId !== head.panelId) {
+          await ctx.db.patch(e._id, {
+            panelId: head.panelId,
+            logicalPanelName: "MainContent",
+          });
+        }
+      }
+    }
+    bound++;
+  }
+  let cameras = 0;
+  for (const show of shows) {
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", show._id))
+      .collect();
+    scenes.sort((a, b) => a.order - b.order);
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i]!;
+      const effects = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      if (!effects.some((e) => e.kind === "camera")) {
+        await ctx.db.insert("effects", {
+          sceneId: scene._id,
+          panelId: head.panelId,
+          logicalPanelName: "MainContent",
+          kind: "camera",
+          content: "live",
+          startTime: 0,
+          isEnabled: true,
+        });
+        cameras++;
+      }
+      for (const e of effects) {
+        if (
+          e.kind === "command" &&
+          e.content.toLowerCase().startsWith("key:")
+        ) {
+          await ctx.db.patch(e._id, {
+            kind: "hotkey",
+            content: e.content.replace(/^key:\s*/i, ""),
+          });
+        }
+      }
+      const after = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      if (!after.some((e) => e.kind === "hotkey")) {
+        await ctx.db.insert("effects", {
+          sceneId: scene._id,
+          kind: "hotkey",
+          content: `ctrl+${(i % 9) + 1}`,
+          startTime: 0,
+          isEnabled: true,
+        });
+      }
+    }
+  }
+  return { bound, cameras, screenId: head.screenId, layoutId: head.layoutId };
+}
+
+/** One Show per catalog bit/sketch (jokes = scenes, gags = effects). */
+async function insertBitLibrary(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+  loco: LocoConfig,
+) {
+  const head =
+    loco.tag === "headcase" ? await ensureHeadLayout(ctx, ownerId) : null;
+  const hyperx = loco.tag === "headcase" ? null : await hyperXArenaFor(ctx);
+  const existing = (await ctx.db.query("shows").collect()).filter(
+    (s) =>
+      s.tag === loco.tag && (s.kind === "bit" || s.kind === "sketch"),
+  );
+  const have = new Set(existing.map((s) => s.title.toLowerCase()));
+  const ids: Record<string, Id<"shows">> = {};
+  for (const s of existing) ids[s.title] = s._id;
+
+  let added = 0;
+  for (const spec of loco.catalog) {
+    if (have.has(spec.name.toLowerCase())) continue;
+    const kind = bitKindForRoundType(spec.roundType);
+    const layoutId = head?.layoutId ?? hyperx?.layoutId;
+    const showId = await ctx.db.insert("shows", {
+      title: spec.name,
+      description: spec.description,
+      tag: loco.tag,
+      kind,
+      roundType: spec.roundType,
+      status: "draft",
+      currentSceneIndex: 0,
+      layoutId,
+      ownerId,
+    });
+    if (head) {
+      const profileId = await ctx.db.insert("displayProfiles", {
+        name: "Head",
+        description: "HeadCase output — screen Head.",
+        showId,
+        layoutId: head.layoutId,
+        isDefault: true,
+        ownerId,
+      });
+      await ctx.db.insert("panelMappings", {
+        displayProfileId: profileId,
+        logicalPanelName: "MainContent",
+        panelId: head.panelId,
+      });
+    } else if (hyperx) {
+      const profileId = await ctx.db.insert("displayProfiles", {
+        name: "HyperX Arena",
+        description:
+          "HyperX Stage Left / Center / Right + Phone — shared with Battle Loco.",
+        showId,
+        layoutId: hyperx.layoutId,
+        isDefault: true,
+        ownerId,
+      });
+      for (const [logical, panelId] of Object.entries(hyperx.panelByLogical)) {
+        await ctx.db.insert("panelMappings", {
+          displayProfileId: profileId,
+          logicalPanelName: logical,
+          panelId,
+        });
+      }
+    }
+    const jokes = [
+      { title: "Setup", text: spec.description },
+      { title: "Turn", text: spec.suggestions || spec.shortDescription },
+      { title: "Button", text: spec.shortDescription },
+    ];
+    const mainPanel = head?.panelId ?? hyperx?.panelByLogical.MainContent;
+    for (let i = 0; i < jokes.length; i++) {
+      const sceneId = await ctx.db.insert("scenes", {
+        showId,
+        order: i,
+        title: jokes[i].title,
+        kind: "panels",
+        content: "",
+        durationSec: 60,
+      });
+      if (mainPanel) {
+        await ctx.db.insert("effects", {
+          sceneId,
+          panelId: mainPanel,
+          logicalPanelName: "MainContent",
+          kind: "text",
+          content: jokes[i].text,
+          startTime: 0,
+          isEnabled: true,
+        });
+        if (head) {
+          await ctx.db.insert("effects", {
+            sceneId,
+            panelId: mainPanel,
+            logicalPanelName: "MainContent",
+            kind: "camera",
+            content: "live",
+            startTime: 0,
+            isEnabled: true,
+          });
+          await ctx.db.insert("effects", {
+            sceneId,
+            kind: "hotkey",
+            content: `ctrl+${i + 1}`,
+            startTime: 0,
+            isEnabled: true,
+          });
+        }
+      }
+      if (!head && hyperx) {
+        const putColor = async (logical: string) => {
+          const panelId = hyperx.panelByLogical[logical];
+          if (!panelId) return;
+          await ctx.db.insert("effects", {
+            sceneId,
+            panelId,
+            logicalPanelName: logical,
+            kind: "color",
+            content: "#1e1b4b",
+            startTime: 0,
+            isEnabled: true,
+          });
+        };
+        await putColor("LeftSidebar");
+        await putColor("RightSidebar");
+      }
+    }
+    if (!head) await ensurePhoneScreenOnShow(ctx, showId);
+    ids[spec.name] = showId;
+    added++;
+  }
+  return { added, ids };
+}
+
+async function bindSetlistRowsToBits(
+  ctx: MutationCtx,
+  tag: string,
+  ids: Record<string, Id<"shows">>,
+) {
+  const performances = await ctx.db.query("performances").collect();
+  let bound = 0;
+  for (const p of performances) {
+    if (rowTag(p.tag) !== tag) continue;
+    const rows = await ctx.db
+      .query("performanceGames")
+      .withIndex("by_performance", (q) => q.eq("performanceId", p._id))
+      .collect();
+    const byName = new Map(
+      Object.entries(ids).map(([name, id]) => [name.toLowerCase(), id]),
+    );
+    const shows = await ctx.db.query("shows").collect();
+    const library = shows.filter(
+      (s) =>
+        s.tag === tag &&
+        (s.kind === "bit" || s.kind === "sketch") &&
+        ids[s.title],
+    );
+    const used = new Set(
+      rows.map((r) => r.bitShowId).filter(Boolean) as Id<"shows">[],
+    );
+    for (const row of rows) {
+      if (row.bitShowId) continue;
+      let showId = row.gameName
+        ? byName.get(row.gameName.toLowerCase())
+        : undefined;
+      if (!showId && row.gameId) {
+        const catalog = await ctx.db.get(row.gameId);
+        if (catalog) showId = byName.get(catalog.name.toLowerCase());
+      }
+      if (!showId) {
+        const match = library.find(
+          (s) =>
+            !used.has(s._id) &&
+            (!s.roundType ||
+              s.roundType.toLowerCase() === row.roundType.toLowerCase()),
+        );
+        showId = match?._id;
+      }
+      if (!showId) continue;
+      used.add(showId);
+      const title =
+        Object.entries(ids).find(([, id]) => id === showId)?.[0] ??
+        row.gameName;
+      await ctx.db.patch(row._id, {
+        bitShowId: showId,
+        ...(title ? { gameName: title } : {}),
+      });
+      bound++;
+    }
+  }
+  return bound;
+}
+
+/** Tag leftover imported HeadCase/LaffUp shows as sketches (one show, many jokes). */
+async function tagImportedSketchShows(ctx: MutationCtx) {
+  const night = /night|performance|mic|championship/i;
+  const shows = await ctx.db.query("shows").collect();
+  let tagged = 0;
+  for (const show of shows) {
+    if (show.kind) continue;
+    if (show.tag !== "headcase" && show.tag !== "laffup") continue;
+    if (night.test(show.title)) continue;
+    await ctx.db.patch(show._id, {
+      kind: "sketch",
+      roundType: show.tag === "laffup" ? "Set" : "Sketch",
+    });
+    tagged++;
+  }
+  return tagged;
+}
+
 /**
  * Wrestle Loco on the HyperX Arena walls (same screens as Battle Loco)
  * when that layout exists; otherwise a standalone Wrestle Ring.
@@ -1578,6 +2287,7 @@ async function insertWrestleLoco(
     },
   ];
 
+  await ensureRossKeyFillsOnHyperX(ctx);
   const existingHyperX = await hyperXArenaFor(ctx);
   let layoutId: Id<"layouts">;
   let panelByLogical: Record<string, Id<"panels">>;
@@ -1710,6 +2420,9 @@ async function insertWrestleLoco(
     });
   }
 
+  const keyFills = await ensureRossKeyFillsOnHyperX(ctx);
+  Object.assign(panelByLogical, keyFills);
+
   const profileId = await ctx.db.insert("displayProfiles", {
     name: "HyperX Arena",
     description:
@@ -1733,6 +2446,11 @@ async function insertWrestleLoco(
       panelId: panelByLogical.Phone,
     });
   }
+  for (const logical of KEY_FILL_LOGICALS) {
+    const panelId = panelByLogical[logical];
+    if (!panelId) continue;
+    await upsertLogicalMapping(ctx, profileId, logical, panelId);
+  }
 
   await insertCueScenesOnShow(
     ctx,
@@ -1752,6 +2470,7 @@ async function insertWrestleLoco(
   );
 
   await ensurePhoneScreenOnShow(ctx, showId);
+  await applyHyperXSwitcherOnShow(ctx, showId, "wrestle-loco");
 
   return { showId, layoutId, screenIds };
 }
@@ -2312,6 +3031,7 @@ export const funfirst = mutation({
 
     const headcase = requireLoco("headcase");
     const headcaseIds = await insertLocoCatalog(ctx, headcase);
+    const headcaseBits = await insertBitLibrary(ctx, users[1], headcase);
     await insertLocoDemo(
       ctx,
       users[1],
@@ -2332,9 +3052,11 @@ export const funfirst = mutation({
       ],
       headcaseIds,
     );
+    await bindSetlistRowsToBits(ctx, "headcase", headcaseBits.ids);
 
     const laffup = requireLoco("laffup");
     const laffupIds = await insertLocoCatalog(ctx, laffup);
+    const laffupBits = await insertBitLibrary(ctx, users[3], laffup);
     await insertLocoDemo(
       ctx,
       users[3],
@@ -2355,6 +3077,7 @@ export const funfirst = mutation({
       ],
       laffupIds,
     );
+    await bindSetlistRowsToBits(ctx, "laffup", laffupBits.ids);
 
     const now = Date.now();
     const day = 24 * 60 * 60 * 1000;
@@ -2561,6 +3284,11 @@ export const battleLoco = mutation({
         "battle-loco",
       );
       const phone = await ensurePhoneScreenOnShow(ctx, existingShow._id);
+      const switcher = await applyHyperXSwitcherOnShow(
+        ctx,
+        existingShow._id,
+        "battle-loco",
+      );
       return {
         message:
           "Battle Loco already exists — added missing cue scenes and bound performances",
@@ -2572,6 +3300,7 @@ export const battleLoco = mutation({
         ...dress,
         ...sides,
         phone,
+        switcher,
         screenIds: {
           left: byName("HyperX Stage Left"),
           center: byName("HyperX Stage Center"),
@@ -2658,6 +3387,9 @@ export const locoCueShows = mutation({
     const battlePhone = battleShow
       ? await ensurePhoneScreenOnShow(ctx, battleShow._id)
       : { phone: 0, mapped: 0, urls: 0 };
+    const battleSwitcher = battleShow
+      ? await applyHyperXSwitcherOnShow(ctx, battleShow._id, "battle-loco")
+      : { keyFillPanels: 0, commandScenes: 0, commands: 0, keyFills: 0 };
 
     let wrestleShow = shows.find(
       (s) => s.tag === "wrestleloco" || s.title === "Wrestle Loco",
@@ -2708,6 +3440,9 @@ export const locoCueShows = mutation({
     const wrestlePhone = wrestleShow
       ? await ensurePhoneScreenOnShow(ctx, wrestleShow._id)
       : { phone: 0, mapped: 0, urls: 0 };
+    const wrestleSwitcher = wrestleShow
+      ? await applyHyperXSwitcherOnShow(ctx, wrestleShow._id, "wrestle-loco")
+      : { keyFillPanels: 0, commandScenes: 0, commands: 0, keyFills: 0 };
 
     const comedyShow =
       shows.find((s) => s.title.toLowerCase().includes("stage cues")) ??
@@ -2752,6 +3487,7 @@ export const locoCueShows = mutation({
         ...battleDress,
         ...battleSides,
         phone: battlePhone,
+        switcher: battleSwitcher,
       },
       wrestle: {
         showId: wrestleShow?._id,
@@ -2764,6 +3500,7 @@ export const locoCueShows = mutation({
         ...wrestleSides,
         phone: wrestlePhone,
         hyperx: wrestleHyperX,
+        switcher: wrestleSwitcher,
       },
       comedy: {
         showId: comedyShow?._id,
@@ -2820,6 +3557,11 @@ export const wrestleLoco = mutation({
       );
       const hyperx = await bindShowToHyperX(ctx, existing._id);
       const phone = await ensurePhoneScreenOnShow(ctx, existing._id);
+      const switcher = await applyHyperXSwitcherOnShow(
+        ctx,
+        existing._id,
+        "wrestle-loco",
+      );
       return {
         message: "Wrestle Loco already exists — added missing cue scenes and bound performances",
         showId: existing._id,
@@ -2831,6 +3573,7 @@ export const wrestleLoco = mutation({
         ...sides,
         phone,
         hyperx,
+        switcher,
       };
     }
     const created = await insertWrestleLoco(ctx, ownerId);
@@ -2847,6 +3590,56 @@ export const wrestleLoco = mutation({
  * Add the portrait Phone screen to every show that has a layout.
  *   pnpm --filter @linkall/backend exec convex run seed:phoneScreens --env-file .env.funfirst
  */
+/**
+ * Create HeadCase + LaffUp bit/sketch shows (Show → Scene → Effect) and
+ * attach them to existing set-list performance rows.
+ *
+ *   pnpm --filter @linkall/backend exec convex run seed:setlistBits --env-file .env.funfirst
+ */
+export const setlistBits = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const ownerId =
+      users.find((u) => u.tier === "admin")?._id ?? users[0]?._id;
+    if (!ownerId) {
+      throw new Error("No users in deployment — run seed:funfirst first.");
+    }
+    const tagged = await tagImportedSketchShows(ctx);
+    const head = await bindHeadCaseShowsToHead(ctx, ownerId);
+    const headcase = await insertBitLibrary(
+      ctx,
+      ownerId,
+      requireLoco("headcase"),
+    );
+    const laffup = await insertBitLibrary(
+      ctx,
+      ownerId,
+      requireLoco("laffup"),
+    );
+    const headcaseBound = await bindSetlistRowsToBits(
+      ctx,
+      "headcase",
+      headcase.ids,
+    );
+    const laffupBound = await bindSetlistRowsToBits(ctx, "laffup", laffup.ids);
+    const performances = await ctx.db.query("performances").collect();
+    const setlistTags = performances
+      .filter(
+        (p) => rowTag(p.tag) === "headcase" || rowTag(p.tag) === "laffup",
+      )
+      .map((p) => ({ title: p.title, tag: p.tag }));
+    return {
+      taggedSketches: tagged,
+      head,
+      headcase,
+      laffup,
+      boundRows: { headcase: headcaseBound, laffup: laffupBound },
+      setlistPerformances: setlistTags,
+    };
+  },
+});
+
 export const phoneScreens = mutation({
   args: {},
   handler: async (ctx) => {

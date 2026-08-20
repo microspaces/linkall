@@ -383,9 +383,17 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
   const showWin = !setlist && phase === "voting";
   const showRotation =
     !setlist && current.sameGame && (phase === "both" || phase === "team2");
+  const bitCount = current.bitSceneCount ?? 0;
+  const bitIndex = current.bitSceneIndex ?? 0;
+  const showNextJoke =
+    setlist && phase === "team1" && bitCount > 0 && bitIndex < bitCount - 1;
   // LinkAll8: hide unified Next when Begin / Next Game / End Round / Win is required.
   const showNext =
-    !showBegin && !showNextGame && !showEndRound && !showWin;
+    !showBegin &&
+    !showNextGame &&
+    !showEndRound &&
+    !showWin &&
+    !showNextJoke;
 
   return (
     <div className="shrink-0 border-t border-white/10 bg-gray-900 px-3 py-2">
@@ -396,6 +404,7 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
             ? ` · ${setlist ? "Segment" : "Round"} ${game1.round} ${game1.roundType}`
             : ""}
           {playing?.gameName ? ` · ${playing.gameName}` : ""}
+          {setlist && bitCount > 0 ? ` · joke ${bitIndex + 1}/${bitCount}` : ""}
         </p>
         {!setlist && (
           <p className="text-xs text-white/50">
@@ -427,6 +436,15 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
             className={btn + " bg-orange-500 text-white"}
           >
             Next Game
+          </button>
+        )}
+        {showNextJoke && (
+          <button
+            type="button"
+            onClick={() => next({ performanceId })}
+            className={btn + " bg-orange-500 text-white"}
+          >
+            Next Joke
           </button>
         )}
         {showEndRound && (

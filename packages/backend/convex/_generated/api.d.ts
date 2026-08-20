@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as camera from "../camera.js";
 import type * as christmasMikeData from "../christmasMikeData.js";
 import type * as designer from "../designer.js";
 import type * as emailProvider from "../emailProvider.js";
@@ -24,6 +25,8 @@ import type * as notifications from "../notifications.js";
 import type * as posts from "../posts.js";
 import type * as products from "../products.js";
 import type * as resources from "../resources.js";
+import type * as rossRig from "../rossRig.js";
+import type * as sceneCommands from "../sceneCommands.js";
 import type * as sceneCues from "../sceneCues.js";
 import type * as seed from "../seed.js";
 import type * as shows from "../shows.js";
@@ -37,6 +40,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  camera: typeof camera;
   christmasMikeData: typeof christmasMikeData;
   designer: typeof designer;
   emailProvider: typeof emailProvider;
@@ -52,6 +56,8 @@ declare const fullApi: ApiFromModules<{
   posts: typeof posts;
   products: typeof products;
   resources: typeof resources;
+  rossRig: typeof rossRig;
+  sceneCommands: typeof sceneCommands;
   sceneCues: typeof sceneCues;
   seed: typeof seed;
   shows: typeof shows;

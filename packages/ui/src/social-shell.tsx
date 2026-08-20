@@ -26,6 +26,7 @@ const CHROMELESS_PREFIXES = [
   "/player",
   "/preview",
   "/screens",
+  "/camera",
   "/performance/screens",
   "/battle-loco",
   "/wrestle-loco",

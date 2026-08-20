@@ -11,6 +11,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { expandEffectUrl } from "@linkall/backend/convex/sceneCues";
+import { CameraSubscribe } from "./camera";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
 
@@ -287,10 +288,14 @@ function YouTubeScreenPlayer({
 /** When startTimes tie, keep media over solid color (legacy empty→black overlays). */
 function effectStackRank(kind: string): number {
   if (kind === "url" || kind === "html") return 4;
-  if (kind === "video") return 3;
+  if (kind === "camera" || kind === "video") return 3;
   if (kind === "image") return 2;
   if (kind === "text") return 1;
   return 0;
+}
+
+function isVisualEffect(kind: string) {
+  return kind !== "command" && kind !== "hotkey";
 }
 
 function panelBoxStyle(
@@ -332,6 +337,8 @@ function EffectMedia({
   overlay?: boolean;
   urlContext?: { performanceId?: string };
 }) {
+  if (kind === "command" || kind === "hotkey") return null;
+
   // Color fills the whole clipped panel (correct for irregular polygons).
   if (kind === "color") {
     return (
@@ -407,6 +414,13 @@ function EffectMedia({
             }
           }}
         />
+      </div>
+    );
+  }
+  if (kind === "camera") {
+    return (
+      <div style={frame} className="bg-black">
+        <CameraSubscribe screenId={screen._id} />
       </div>
     );
   }
@@ -501,6 +515,7 @@ export function PanelStage({
   // model (including solid text fills).
   const active = new Map<string, Array<(typeof effects)[number]>>();
   for (const e of effects) {
+    if (!isVisualEffect(e.kind) || !e.panelId) continue;
     if (!e.isEnabled || e.startTime > clockSec) continue;
     const endTime = e.startTime + (e.durationSec ?? Infinity);
     if (clockSec > endTime) continue;
@@ -706,6 +721,30 @@ function EffectThumb({
   content: string;
   className?: string;
 }) {
+  if (kind === "command")
+    return (
+      <div
+        className={`${className} flex shrink-0 items-center justify-center rounded border border-slate-600 bg-slate-800 px-1 text-[9px] font-semibold text-white`}
+      >
+        XPT
+      </div>
+    );
+  if (kind === "hotkey")
+    return (
+      <div
+        className={`${className} flex shrink-0 items-center justify-center rounded border border-amber-700 bg-amber-950 px-1 text-[9px] font-semibold text-amber-200`}
+      >
+        KEY
+      </div>
+    );
+  if (kind === "camera")
+    return (
+      <div
+        className={`${className} flex shrink-0 items-center justify-center rounded border border-cyan-700 bg-cyan-950 px-1 text-[9px] font-semibold text-cyan-200`}
+      >
+        CAM
+      </div>
+    );
   if (kind === "color")
     return (
       <div
@@ -835,7 +874,12 @@ function Timeline({
       </div>
       <div className="relative">
         {panels.map(({ panel, label }) => {
-          const rows = effects.filter((e) => e.panelId === panel._id);
+          const rows = effects.filter(
+            (e) =>
+              e.kind !== "command" &&
+              e.kind !== "hotkey" &&
+              e.panelId === panel._id,
+          );
           return (
             <div
               key={panel._id}
@@ -1340,16 +1384,12 @@ function ShowsTab() {
 
         <Column
           title="Effect"
-          onAdd={
-            scene && panelLanes.length > 0
-              ? () => setModal({ type: "effect" })
-              : undefined
-          }
+          onAdd={scene ? () => setModal({ type: "effect" }) : undefined}
         >
           {!scene && <p className="p-3 text-xs text-gray-400">Select a scene.</p>}
           {scene && panelLanes.length === 0 && (
             <p className="p-3 text-xs text-gray-400">
-              The show needs a layout with panels first (Screens tab).
+              No panels yet — you can still add switcher commands.
             </p>
           )}
           {effects?.map((e) => (
@@ -1362,12 +1402,18 @@ function ShowsTab() {
                 <EffectThumb kind={e.kind} content={e.content} />
                 <div className="min-w-0">
                   <p className="truncate font-medium">
-                    {e.logicalPanelName
-                      ? `${e.logicalPanelName} → ${e.panelName}`
-                      : e.panelName}
+                    {e.kind === "command" || e.kind === "hotkey"
+                      ? e.content
+                      : e.logicalPanelName
+                        ? `${e.logicalPanelName} → ${e.panelName}`
+                        : e.panelName}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {e.kind} · starts {formatClock(e.startTime)}
+                    {e.kind === "command"
+                      ? "switcher command"
+                      : e.kind === "hotkey"
+                        ? "laptop hotkey"
+                      : `${e.kind} · starts ${formatClock(e.startTime)}`}
                     {e.isEnabled ? "" : " · disabled"}
                   </p>
                 </div>
@@ -1608,9 +1654,19 @@ function EffectModal({
     effect?.logicalPanelName ?? "",
   );
   const [kind, setKind] = useState<
-    "image" | "video" | "color" | "text" | "url" | "html"
-  >(effect?.kind ?? "color");
-  const [content, setContent] = useState(effect?.content ?? "#dc2626");
+    | "image"
+    | "video"
+    | "color"
+    | "text"
+    | "url"
+    | "html"
+    | "command"
+    | "hotkey"
+    | "camera"
+  >(effect?.kind ?? (panels.length === 0 ? "command" : "color"));
+  const [content, setContent] = useState(
+    effect?.content ?? (panels.length === 0 ? "" : "#dc2626"),
+  );
   const [startTime, setStartTime] = useState(
     String(effect?.startTime ?? prefillStartTime ?? 0),
   );
@@ -1623,18 +1679,21 @@ function EffectModal({
   const [isEnabled, setIsEnabled] = useState(effect?.isEnabled ?? true);
 
   const save = async () => {
-    if (!panelId) return;
+    const cueOnly = kind === "command" || kind === "hotkey";
+    if (!cueOnly && !panelId) return;
     const durNum = durationVal.trim() ? Math.max(0.5, Number(durationVal)) : undefined;
     const videoStartNum = videoStartVal.trim()
       ? Math.max(0, Number(videoStartVal) || 0)
       : undefined;
-    const logical = logicalPanelName.trim();
+    const logical = cueOnly ? "" : logicalPanelName.trim();
     const args = {
-      panelId: panelId as Id<"panels">,
+      ...(!cueOnly && panelId
+        ? { panelId: panelId as Id<"panels"> }
+        : {}),
       kind,
       content,
       startTime: Math.max(0, Number(startTime) || 0),
-      durationSec: durNum,
+      durationSec: cueOnly ? undefined : durNum,
       videoStartSec: kind === "video" ? videoStartNum : undefined,
       logicalPanelName: logical ? logical : null,
     };
@@ -1643,11 +1702,11 @@ function EffectModal({
     } else {
       await createEffect({
         sceneId,
-        panelId: args.panelId,
         kind: args.kind,
         content: args.content,
         startTime: args.startTime,
         durationSec: args.durationSec,
+        ...(args.panelId ? { panelId: args.panelId } : {}),
         ...(args.videoStartSec !== undefined
           ? { videoStartSec: args.videoStartSec }
           : {}),
@@ -1660,37 +1719,41 @@ function EffectModal({
   return (
     <Modal title={effect ? "Edit effect" : "New effect"} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Panel (fallback)">
-          <select
-            className={inputCls}
-            value={panelId}
-            onChange={(e) => setPanelId(e.target.value)}
-          >
-            {panels.map(({ panel, label }) => (
-              <option key={panel._id} value={panel._id}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Logical panel (optional)">
-          <select
-            className={inputCls}
-            value={logicalPanelName}
-            onChange={(e) => setLogicalPanelName(e.target.value)}
-          >
-            <option value="">(none — use physical panel)</option>
-            {(logicalTypes ?? []).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            {logicalPanelName &&
-              !(logicalTypes ?? []).some((n) => n === logicalPanelName) && (
-                <option value={logicalPanelName}>{logicalPanelName}</option>
-              )}
-          </select>
-        </Field>
+        {kind !== "command" && kind !== "hotkey" && (
+          <>
+            <Field label="Panel (fallback)">
+              <select
+                className={inputCls}
+                value={panelId}
+                onChange={(e) => setPanelId(e.target.value)}
+              >
+                {panels.map(({ panel, label }) => (
+                  <option key={panel._id} value={panel._id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Logical panel (optional)">
+              <select
+                className={inputCls}
+                value={logicalPanelName}
+                onChange={(e) => setLogicalPanelName(e.target.value)}
+              >
+                <option value="">(none — use physical panel)</option>
+                {(logicalTypes ?? []).map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+                {logicalPanelName &&
+                  !(logicalTypes ?? []).some((n) => n === logicalPanelName) && (
+                    <option value={logicalPanelName}>{logicalPanelName}</option>
+                  )}
+              </select>
+            </Field>
+          </>
+        )}
         <Field label="Type">
           <select
             className={inputCls}
@@ -1699,6 +1762,7 @@ function EffectModal({
               const k = e.target.value as typeof kind;
               setKind(k);
               if (k === "color" && !content.startsWith("#")) setContent("#dc2626");
+              if (k === "command" && content.startsWith("#")) setContent("");
             }}
           >
             <option value="color">Color</option>
@@ -1707,6 +1771,9 @@ function EffectModal({
             <option value="text">Text</option>
             <option value="url">Page URL (score / vote iframe)</option>
             <option value="html">HTML</option>
+            <option value="command">Switcher command (RossTalk)</option>
+            <option value="hotkey">Laptop hotkey (Snap Camera)</option>
+            <option value="camera">Remote camera (Head subscribe)</option>
           </select>
         </Field>
         <Field
@@ -1719,7 +1786,11 @@ function EffectModal({
                   ? "HTML"
                   : kind === "url"
                     ? "Page URL ({performanceId} allowed)"
-                    : `${kind[0].toUpperCase() + kind.slice(1)} URL`
+                    : kind === "command"
+                      ? "Command"
+                      : kind === "hotkey"
+                        ? "Hotkey"
+                      : `${kind[0].toUpperCase() + kind.slice(1)} URL`
           }
         >
           {kind === "color" ? (
@@ -1741,30 +1812,52 @@ function EffectModal({
               className={inputCls}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={kind === "text" ? "Merry Christmas" : "https://…"}
+              placeholder={
+                kind === "text"
+                  ? "Merry Christmas"
+                  : kind === "command"
+                    ? "XPT AUX:2:IN:6"
+                    : kind === "hotkey"
+                      ? "ctrl+1"
+                    : "https://…"
+              }
             />
           )}
         </Field>
-        <Field label="Start time (seconds into scene)">
-          <input
-            className={inputCls}
-            type="number"
-            min={0}
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-          />
-        </Field>
-        <Field label="Duration (seconds, blank = to end of scene)">
-          <input
-            className={inputCls}
-            type="number"
-            min={0.5}
-            step={0.5}
-            value={durationVal}
-            onChange={(e) => setDurationVal(e.target.value)}
-            placeholder="blank = to end"
-          />
-        </Field>
+        {kind === "command" && (
+          <p className="text-xs text-gray-500">
+            Examples: XPT AUX:2:IN:6 · CC 1:05 · MEAUTO ME:1
+          </p>
+        )}
+        {kind === "hotkey" && (
+          <p className="text-xs text-gray-500">
+            Sent only to the laptop agent. Example: ctrl+1
+          </p>
+        )}
+        {kind !== "command" && kind !== "hotkey" && (
+          <>
+            <Field label="Start time (seconds into scene)">
+              <input
+                className={inputCls}
+                type="number"
+                min={0}
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </Field>
+            <Field label="Duration (seconds, blank = to end of scene)">
+              <input
+                className={inputCls}
+                type="number"
+                min={0.5}
+                step={0.5}
+                value={durationVal}
+                onChange={(e) => setDurationVal(e.target.value)}
+                placeholder="blank = to end"
+              />
+            </Field>
+          </>
+        )}
         {kind === "video" && (
           <Field label="Video start (seconds into media)">
             <input

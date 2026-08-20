@@ -420,6 +420,7 @@ export function PerformanceConsole({
             screenHref={paths.screen(view._id)}
             previewHref={paths.preview(view._id)}
             phoneHref={paths.phone(view._id)}
+            cameraHref="/camera"
           />
         )}
       </div>
@@ -466,6 +467,7 @@ function Console({
   screenHref,
   previewHref,
   phoneHref,
+  cameraHref,
 }: {
   view: PerformanceView;
   tab: TabId;
@@ -475,6 +477,7 @@ function Console({
   screenHref: string;
   previewHref: string;
   phoneHref: string;
+  cameraHref?: string;
 }) {
   const setOverlay = useMutation(api.game.setOverlay);
   const setShow = useMutation(api.game.setShow);
@@ -565,6 +568,7 @@ function Console({
           screenHref={screenHref}
           previewHref={previewHref}
           phoneHref={phoneHref}
+          cameraHref={cameraHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -624,6 +628,7 @@ function Console({
           screenHref={screenHref}
           previewHref={previewHref}
           phoneHref={phoneHref}
+          cameraHref={cameraHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -640,6 +645,7 @@ function Console({
           screenHref={screenHref}
           previewHref={previewHref}
           phoneHref={phoneHref}
+          cameraHref={cameraHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -658,6 +664,7 @@ function Console({
           screenHref={screenHref}
           previewHref={previewHref}
           phoneHref={phoneHref}
+          cameraHref={cameraHref}
           performanceId={performanceId}
           reset={reset}
         />
@@ -872,6 +879,7 @@ function ScreenLinks({
   screenHref,
   previewHref,
   phoneHref,
+  cameraHref,
   performanceId,
   reset,
 }: {
@@ -879,6 +887,7 @@ function ScreenLinks({
   screenHref: string;
   previewHref: string;
   phoneHref: string;
+  cameraHref?: string;
   performanceId: Id<"performances">;
   reset: ReturnType<typeof useMutation<typeof api.game.reset>>;
 }) {
@@ -916,6 +925,15 @@ function ScreenLinks({
       >
         Open phone
       </a>
+      {cameraHref ? (
+        <a
+          href={cameraHref}
+          target="_blank"
+          className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-center text-xs font-semibold hover:bg-gray-50"
+        >
+          Open camera
+        </a>
+      ) : null}
       <button
         onClick={() => reset({ performanceId })}
         className="rounded-md border border-red-200 bg-red-50 px-2 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
@@ -949,6 +967,7 @@ function GameGrid({
     (useQuery(api.game.listCatalog, {}) ?? []).filter(
       (c) => rowTag(c.tag) === tag,
     );
+  const bits = useQuery(api.game.listBits, setlist ? { tag } : "skip") ?? [];
 
   return (
     <div>
@@ -995,42 +1014,86 @@ function GameGrid({
                     {teamName(view, g.teamIndex)}
                   </td>
                   <td className="px-1.5 py-1.5">
-                    <select
-                      className="w-full min-w-[6rem] bg-transparent px-0.5 outline-none focus:bg-white/80"
-                      value={g.gameId ?? ""}
-                      onChange={(e) => {
-                        const catalogId = e.target.value
-                          ? (e.target.value as Id<"comedyGames">)
-                          : undefined;
-                        void assignGame({
-                          gameRowId: g._id,
-                          catalogId,
-                          gameName: "",
-                        });
-                      }}
-                    >
-                      <option value="">{g.gameName || "game…"}</option>
-                      {(catalog.filter(
-                        (c) =>
-                          c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
-                          g.roundType.toLowerCase().startsWith(
-                            c.roundType.toLowerCase().slice(0, 4),
-                          ),
-                      ).length
-                        ? catalog.filter(
-                            (c) =>
-                              c.roundType.toLowerCase() === g.roundType.toLowerCase() ||
-                              g.roundType.toLowerCase().startsWith(
-                                c.roundType.toLowerCase().slice(0, 4),
-                              ),
-                          )
-                        : catalog
-                      ).map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
+                    {setlist ? (
+                      <select
+                        className="w-full min-w-[6rem] bg-transparent px-0.5 outline-none focus:bg-white/80"
+                        value={g.bitShowId ?? ""}
+                        onChange={(e) => {
+                          const bitShowId = e.target.value
+                            ? (e.target.value as Id<"shows">)
+                            : undefined;
+                          void assignGame({
+                            gameRowId: g._id,
+                            bitShowId,
+                            gameName: "",
+                          });
+                        }}
+                      >
+                        <option value="">
+                          {g.gameName || "bit…"}
                         </option>
-                      ))}
-                    </select>
+                        {(bits.filter(
+                          (b) =>
+                            !b.roundType ||
+                            b.roundType.toLowerCase() ===
+                              g.roundType.toLowerCase(),
+                        ).length
+                          ? bits.filter(
+                              (b) =>
+                                !b.roundType ||
+                                b.roundType.toLowerCase() ===
+                                  g.roundType.toLowerCase(),
+                            )
+                          : bits
+                        ).map((b) => (
+                          <option key={b._id} value={b._id}>
+                            {b.title}
+                            {b.sceneCount ? ` (${b.sceneCount})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        className="w-full min-w-[6rem] bg-transparent px-0.5 outline-none focus:bg-white/80"
+                        value={g.gameId ?? ""}
+                        onChange={(e) => {
+                          const catalogId = e.target.value
+                            ? (e.target.value as Id<"comedyGames">)
+                            : undefined;
+                          void assignGame({
+                            gameRowId: g._id,
+                            catalogId,
+                            gameName: "",
+                          });
+                        }}
+                      >
+                        <option value="">{g.gameName || "game…"}</option>
+                        {(catalog.filter(
+                          (c) =>
+                            c.roundType.toLowerCase() ===
+                              g.roundType.toLowerCase() ||
+                            g.roundType
+                              .toLowerCase()
+                              .startsWith(c.roundType.toLowerCase().slice(0, 4)),
+                        ).length
+                          ? catalog.filter(
+                              (c) =>
+                                c.roundType.toLowerCase() ===
+                                  g.roundType.toLowerCase() ||
+                                g.roundType
+                                  .toLowerCase()
+                                  .startsWith(
+                                    c.roundType.toLowerCase().slice(0, 4),
+                                  ),
+                            )
+                          : catalog
+                        ).map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </td>
                   {!setlist && (
                     <>
@@ -1158,11 +1221,22 @@ function ControlStrip({
   const showWin = !setlist && phase === "voting";
   const showRotation =
     !setlist && current.sameGame && (phase === "both" || phase === "team2");
+  const bitCount = current.bitSceneCount ?? 0;
+  const bitIndex = current.bitSceneIndex ?? 0;
+  const showNextJoke =
+    setlist &&
+    phase === "team1" &&
+    bitCount > 0 &&
+    bitIndex < bitCount - 1;
   // LinkAll8 GetCurrentGameRow: only one required action is shown. The
   // unified Next is a skip — hide it when Begin / Next Game / End Round / Win
   // is the button the host must press.
   const showNext =
-    !showBegin && !showNextGame && !showEndRound && !showWin;
+    !showBegin &&
+    !showNextGame &&
+    !showEndRound &&
+    !showWin &&
+    !showNextJoke;
 
   return (
     <div className="border-t border-gray-200 bg-white p-2">
@@ -1184,6 +1258,9 @@ function ControlStrip({
         {setlist ? "Segment" : "Round"} {game1.round} · {game1.roundType}
         {playing.gameName ? ` · ${playing.gameName}` : ""}
         {current.sameGame ? " · same game" : ""}
+        {setlist && bitCount > 0
+          ? ` · joke ${bitIndex + 1}/${bitCount}`
+          : ""}
       </p>
       {catalog && (catalog.description || catalog.suggestions) && (
         <p className="mb-2 text-xs text-gray-600">
@@ -1243,6 +1320,14 @@ function ControlStrip({
             className={btn + " bg-brand text-white hover:opacity-90"}
           >
             Next Game
+          </button>
+        )}
+        {showNextJoke && (
+          <button
+            onClick={() => next({ performanceId })}
+            className={btn + " bg-brand text-white hover:opacity-90"}
+          >
+            Next Joke
           </button>
         )}
         {showEndRound && (

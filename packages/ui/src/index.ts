@@ -35,5 +35,6 @@ export {
   ShowRemote,
 } from "./player";
 export { ResourceBrowser, ResourceDetail } from "./resources";
+export { CameraCapture } from "./camera";
 export { DisplayPreview } from "./preview";
 export { DesignedSceneStage, ShowList, ShowPlayer } from "./shows";

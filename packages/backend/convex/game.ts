@@ -12,6 +12,7 @@ import {
   VOTE_CUE,
   winnerCue,
 } from "./sceneCues";
+import { enqueueSceneCommands } from "./sceneCommands";
 
 /**
  * Loco game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
@@ -144,6 +145,11 @@ async function playMatchingScene(
     currentSceneIndex: index,
     sceneStartedAt: Date.now(),
     cuedByPerformanceId: performance._id,
+  });
+  await enqueueSceneCommands(ctx, {
+    showId: performance.showId,
+    sceneId: scene._id,
+    performanceId: performance._id,
   });
   return scene._id;
 }
@@ -328,14 +334,70 @@ async function beginPair(
     });
   }
   const performance = await ctx.db.get(performanceId);
-  const activeSceneId = performance
-    ? await playMatchingScene(ctx, performance, GAME_INSTRUCTION_CUE)
-    : undefined;
+  if (!performance) return;
+  if (pair.single && pair.game1.bitShowId) {
+    const activeSceneId = await playBitShow(
+      ctx,
+      performanceId,
+      pair.game1.bitShowId,
+      0,
+    );
+    await ctx.db.patch(performanceId, {
+      status: "live",
+      showId: pair.game1.bitShowId,
+      activeOverlay: pair.game1.gameName || undefined,
+      ...(activeSceneId ? { activeSceneId } : {}),
+    });
+    return;
+  }
+  const activeSceneId = await playMatchingScene(
+    ctx,
+    performance,
+    GAME_INSTRUCTION_CUE,
+  );
   await ctx.db.patch(performanceId, {
     status: "live",
     activeOverlay: GAME_INSTRUCTION_CUE,
     ...(activeSceneId ? { activeSceneId } : {}),
   });
+}
+
+/** Make a bit/sketch the live show and play joke `index`. */
+async function playBitShow(
+  ctx: MutationCtx,
+  performanceId: Id<"performances">,
+  showId: Id<"shows">,
+  index: number,
+) {
+  const scenes = await scenesForShow(ctx, showId);
+  if (scenes.length === 0) {
+    await ctx.db.patch(showId, {
+      status: "live",
+      currentSceneIndex: 0,
+      sceneStartedAt: Date.now(),
+      cuedByPerformanceId: performanceId,
+    });
+    return undefined;
+  }
+  const clamped = Math.max(0, Math.min(index, scenes.length - 1));
+  const scene = scenes[clamped]!;
+  await ctx.db.patch(showId, {
+    status: "live",
+    currentSceneIndex: clamped,
+    sceneStartedAt: Date.now(),
+    cuedByPerformanceId: performanceId,
+  });
+  await enqueueSceneCommands(ctx, {
+    showId,
+    sceneId: scene._id,
+    performanceId,
+  });
+  await ctx.db.patch(performanceId, {
+    showId,
+    activeOverlay: scene.title,
+    activeSceneId: scene._id,
+  });
+  return scene._id;
 }
 
 // ------------------------------------------------------------------ queries
@@ -349,6 +411,34 @@ export const list = query({
       : performances;
     scoped.sort((a, b) => b._creationTime - a._creationTime);
     return scoped;
+  },
+});
+
+/** Designed bits/sketches the set-list picker can assemble into a night. */
+export const listBits = query({
+  args: { tag: v.optional(v.string()) },
+  handler: async (ctx, { tag }) => {
+    const want = tag ? requireLoco(tag).tag : undefined;
+    const shows = await ctx.db.query("shows").collect();
+    const bits = shows.filter((s) => {
+      if (s.kind !== "bit" && s.kind !== "sketch") return false;
+      if (want && s.tag !== want) return false;
+      return true;
+    });
+    bits.sort((a, b) => a.title.localeCompare(b.title));
+    const rows = [];
+    for (const s of bits) {
+      const scenes = await scenesForShow(ctx, s._id);
+      rows.push({
+        _id: s._id,
+        title: s.title,
+        kind: s.kind,
+        roundType: s.roundType,
+        tag: s.tag,
+        sceneCount: scenes.length,
+      });
+    }
+    return rows;
   },
 });
 
@@ -418,12 +508,34 @@ export const get = query({
           : pair.game1;
     const catalog = playing?.gameId ? catalogById[playing.gameId] : undefined;
 
-    const show = performance.showId
-      ? await ctx.db.get(performance.showId)
-      : null;
+    const bitShowIds = [
+      ...new Set(games.map((g) => g.bitShowId).filter(Boolean)),
+    ] as Id<"shows">[];
+    const bitShowById: Record<
+      string,
+      { _id: Id<"shows">; title: string; kind?: string; roundType?: string; sceneCount: number }
+    > = {};
+    for (const id of bitShowIds) {
+      const row = await ctx.db.get(id);
+      if (!row) continue;
+      const scenes = await scenesForShow(ctx, id);
+      bitShowById[id] = {
+        _id: row._id,
+        title: row.title,
+        kind: row.kind,
+        roundType: row.roundType,
+        sceneCount: scenes.length,
+      };
+    }
+
+    const bitShowId =
+      setlist && pair?.game1.bitShowId ? pair.game1.bitShowId : undefined;
+    const showId = bitShowId ?? performance.showId;
+    const show = showId ? await ctx.db.get(showId) : null;
     const designed = show ? await scenesForShow(ctx, show._id) : [];
     const teams = { team1: performance.team1, team2: performance.team2 };
     const sceneBuckets = bucketScenes(designed, teams);
+    const bitSceneIndex = show?.currentSceneIndex ?? 0;
 
     return {
       ...performance,
@@ -439,6 +551,7 @@ export const get = query({
         volunteers: g.volunteers ?? 0,
         score: rowPoints(g),
         catalog: g.gameId ? catalogById[g.gameId] : undefined,
+        bitShow: g.bitShowId ? bitShowById[g.bitShowId] : undefined,
       })),
       performers,
       overlays,
@@ -454,6 +567,9 @@ export const get = query({
             game2Id: pair.game2._id,
             volunteerRound: isVolunteerRound(pair.game1),
             isScored: pair.game1.isScored,
+            bitShowId: pair.game1.bitShowId,
+            bitSceneIndex,
+            bitSceneCount: designed.length,
           }
         : null,
       mode: requireLoco(performance.tag).mode,
@@ -613,6 +729,11 @@ export const playPerformanceScene = mutation({
       sceneStartedAt: Date.now(),
       cuedByPerformanceId: performanceId,
     });
+    await enqueueSceneCommands(ctx, {
+      showId: scene.showId,
+      sceneId: scene._id,
+      performanceId,
+    });
     await ctx.db.patch(performanceId, {
       showId: scene.showId,
       activeOverlay: scene.title,
@@ -668,12 +789,14 @@ export const endRound = mutation({
     if (pair.single) {
       if (pair.phase !== "team1") return;
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
-      await cueTrack(
-        ctx,
-        performanceId,
-        pair.game1.round,
-        celebrationOrInstructions(performance, pair.game1.roundType),
-      );
+      if (!pair.game1.bitShowId) {
+        await cueTrack(
+          ctx,
+          performanceId,
+          pair.game1.round,
+          celebrationOrInstructions(performance, pair.game1.roundType),
+        );
+      }
       return;
     }
     if (pair.phase !== "team2" && pair.phase !== "both") return;
@@ -722,13 +845,24 @@ export const next = mutation({
       return;
     }
     if (pair.single) {
+      if (pair.game1.bitShowId) {
+        const bit = await ctx.db.get(pair.game1.bitShowId);
+        const scenes = await scenesForShow(ctx, pair.game1.bitShowId);
+        const idx = bit?.currentSceneIndex ?? 0;
+        if (idx + 1 < scenes.length) {
+          await playBitShow(ctx, performanceId, pair.game1.bitShowId, idx + 1);
+          return;
+        }
+      }
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
-      await cueTrack(
-        ctx,
-        performanceId,
-        pair.game1.round,
-        celebrationOrInstructions(performance, pair.game1.roundType),
-      );
+      if (!pair.game1.bitShowId) {
+        await cueTrack(
+          ctx,
+          performanceId,
+          pair.game1.round,
+          celebrationOrInstructions(performance, pair.game1.roundType),
+        );
+      }
       return;
     }
     if (pair.phase === "team1") {
@@ -846,19 +980,32 @@ export const assignGame = mutation({
     gameRowId: v.id("performanceGames"),
     catalogId: v.optional(v.id("comedyGames")),
     gameName: v.optional(v.string()),
+    bitShowId: v.optional(v.id("shows")),
   },
-  handler: async (ctx, { gameRowId, catalogId, gameName }) => {
+  handler: async (ctx, { gameRowId, catalogId, gameName, bitShowId }) => {
+    if (bitShowId) {
+      const show = await ctx.db.get(bitShowId);
+      if (!show) return;
+      await ctx.db.patch(gameRowId, {
+        bitShowId,
+        gameName: show.title,
+        gameId: undefined,
+      });
+      return;
+    }
     if (catalogId) {
       const catalog = await ctx.db.get(catalogId);
       if (!catalog) return;
       await ctx.db.patch(gameRowId, {
         gameId: catalogId,
         gameName: catalog.name,
+        bitShowId: undefined,
       });
       return;
     }
     await ctx.db.patch(gameRowId, {
       gameId: undefined,
+      bitShowId: undefined,
       gameName: (gameName ?? "").trim(),
     });
   },

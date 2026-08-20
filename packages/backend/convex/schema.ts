@@ -113,6 +113,10 @@ export default defineSchema({
     description: v.string(),
     /** Sub-brand tag, e.g. "comedyloco" | "headcase" | "halloween". */
     tag: v.optional(v.string()),
+    /** HeadCase/LaffUp library unit: a bit or sketch assembled into a set list. */
+    kind: v.optional(v.union(v.literal("bit"), v.literal("sketch"))),
+    /** Catalog bucket this bit/sketch belongs to (Intro, Bit, Set, …). */
+    roundType: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("live"), v.literal("ended")),
     currentSceneIndex: v.number(),
     /** Epoch ms when the current scene started, for effect start-time playback. */
@@ -201,8 +205,11 @@ export default defineSchema({
 
   effects: defineTable({
     sceneId: v.id("scenes"),
-    /** Physical panel fallback when no logical mapping resolves. */
-    panelId: v.id("panels"),
+    /**
+     * Physical panel fallback when no logical mapping resolves.
+     * Optional: command effects are non-visual and have no panel.
+     */
+    panelId: v.optional(v.id("panels")),
     /**
      * Logical slot name (legacy Effect.LogicalPanelName). When a display
      * profile maps this name to a panel, playback uses that panel instead.
@@ -215,6 +222,15 @@ export default defineSchema({
       v.literal("text"),
       v.literal("url"),
       v.literal("html"),
+      /** RossTalk switcher command; content is the raw command string. */
+      v.literal("command"),
+      /** Snap Camera / OS hotkey for the laptop agent; content is ctrl+1. */
+      v.literal("hotkey"),
+      /**
+       * Live remote camera fill. Content is unused (room = this panel's
+       * screen). The capture page publishes; Head / Preview subscribe.
+       */
+      v.literal("camera"),
     ),
     content: v.string(),
     startTime: v.number(),
@@ -229,6 +245,69 @@ export default defineSchema({
   })
     .index("by_scene", ["sceneId"])
     .index("by_panel", ["panelId"]),
+
+  /**
+   * RossTalk commands enqueued when a scene becomes current. The bridge
+   * (`scripts/rosstalk-bridge.mjs`) drains `pending` rows over TCP.
+   */
+  sceneCommands: defineTable({
+    showId: v.id("shows"),
+    sceneId: v.id("scenes"),
+    effectId: v.id("effects"),
+    /** Token-expanded command string, without the trailing CRLF. */
+    command: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("sent"),
+      v.literal("error"),
+    ),
+    createdAt: v.number(),
+    sentAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("by_status_created", ["status", "createdAt"])
+    .index("by_show", ["showId"]),
+
+  /** Laptop Snap/hotkey queue — separate from RossTalk sceneCommands. */
+  hotkeyCommands: defineTable({
+    showId: v.id("shows"),
+    sceneId: v.id("scenes"),
+    effectId: v.id("effects"),
+    hotkey: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("sent"),
+      v.literal("error"),
+    ),
+    createdAt: v.number(),
+    sentAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("by_status_created", ["status", "createdAt"])
+    .index("by_show", ["showId"]),
+
+  /** WebRTC camera mesh: one publisher (laptop/iOS), many subscribers (Head, Preview). */
+  cameraPeers: defineTable({
+    screenId: v.id("screens"),
+    clientId: v.string(),
+    role: v.union(v.literal("publisher"), v.literal("subscriber")),
+    heartbeatAt: v.number(),
+  })
+    .index("by_screen", ["screenId"])
+    .index("by_screen_client", ["screenId", "clientId"]),
+
+  cameraSignals: defineTable({
+    screenId: v.id("screens"),
+    fromClientId: v.string(),
+    toClientId: v.string(),
+    kind: v.union(
+      v.literal("offer"),
+      v.literal("answer"),
+      v.literal("ice"),
+    ),
+    payload: v.string(),
+    createdAt: v.number(),
+  }).index("by_screen_to", ["screenId", "toClientId"]),
 
   // ---- display profiles (legacy DisplayProfile → PanelMapping) ----
   // Show-scoped binding of a logical layout onto a physical Layout:
@@ -298,6 +377,8 @@ export default defineSchema({
     gameName: v.string(),
     /** Optional link to the Games catalog (legacy LLGameId). */
     gameId: v.optional(v.id("comedyGames")),
+    /** Set list: designed bit/sketch show this segment plays (Show → Scene → Effect). */
+    bitShowId: v.optional(v.id("shows")),
     votes: v.number(),
     score: v.number(),
     isPlaying: v.boolean(),

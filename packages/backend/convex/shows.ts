@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { showIsHostCued } from "./locos";
+import { enqueueSceneCommands } from "./sceneCommands";
 
 /**
  * Live show engine. In the legacy app this was the Show → Scene → Effect SQL
@@ -46,6 +47,17 @@ export const setStatus = mutation({
         ? { currentSceneIndex: 0, sceneStartedAt: Date.now() }
         : {}),
     });
+    if (status === "live") {
+      const scenes = await ctx.db
+        .query("scenes")
+        .withIndex("by_show", (q) => q.eq("showId", showId))
+        .collect();
+      scenes.sort((a, b) => a.order - b.order);
+      const scene = scenes[0];
+      if (scene) {
+        await enqueueSceneCommands(ctx, { showId, sceneId: scene._id });
+      }
+    }
   },
 });
 
@@ -64,6 +76,10 @@ export const setScene = mutation({
       currentSceneIndex: clamped,
       sceneStartedAt: Date.now(),
     });
+    const scene = scenes[clamped];
+    if (scene) {
+      await enqueueSceneCommands(ctx, { showId, sceneId: scene._id });
+    }
   },
 });
 
@@ -87,6 +103,10 @@ export const playScene = mutation({
       currentSceneIndex: clamped,
       sceneStartedAt: Date.now(),
     });
+    const scene = scenes[clamped];
+    if (scene) {
+      await enqueueSceneCommands(ctx, { showId, sceneId: scene._id });
+    }
   },
 });
 
@@ -127,11 +147,15 @@ export const advanceIfDue = mutation({
       currentSceneIndex: next,
       sceneStartedAt: Date.now(),
     });
+    const nextScene = scenes[next];
+    if (nextScene) {
+      await enqueueSceneCommands(ctx, { showId, sceneId: nextScene._id });
+    }
     return {
       advanced: true as const,
       ended: false as const,
       index: next,
-      title: scenes[next]?.title,
+      title: nextScene?.title,
     };
   },
 });

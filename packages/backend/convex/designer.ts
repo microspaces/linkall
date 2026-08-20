@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { KEY_FILL_LOGICALS } from "./rossRig";
 
 /**
  * Show designer backend (legacy: Homeshow/Surroundshow Designer page).
@@ -107,6 +108,7 @@ export const LOGICAL_PANEL_TYPES = [
   "Header",
   "Footer",
   "Phone",
+  ...KEY_FILL_LOGICALS,
 ] as const;
 
 export const listLogicalPanelTypes = query({
@@ -156,13 +158,18 @@ export const getSceneEffects = query({
       const resolvedPanelId =
         (effect.logicalPanelName && mappings?.get(effect.logicalPanelName)) ||
         effect.panelId;
-      const panel = await ctx.db.get(resolvedPanelId);
+      const panel = resolvedPanelId ? await ctx.db.get(resolvedPanelId) : null;
       const screen = panel ? await ctx.db.get(panel.screenId) : null;
       rows.push({
         ...effect,
         panelId: resolvedPanelId,
         sourcePanelId: effect.panelId,
-        panelName: panel?.name ?? "(deleted panel)",
+        panelName:
+          effect.kind === "command"
+            ? "Switcher"
+            : effect.kind === "hotkey"
+              ? "Hotkey"
+            : (panel?.name ?? "(deleted panel)"),
         screenName: screen?.name ?? "",
         screenId: screen?._id,
         zIndex: panel?.zIndex ?? 0,
@@ -194,7 +201,7 @@ export const getShowCueEffects = query({
       string,
       Array<{
         panelId: Id<"panels">;
-        kind: "image" | "video" | "color" | "text" | "url" | "html";
+        kind: "image" | "video" | "color" | "text" | "url" | "html" | "camera";
         content: string;
         startTime: number;
         isEnabled: boolean;
@@ -207,16 +214,31 @@ export const getShowCueEffects = query({
         .query("effects")
         .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
         .collect();
-      byScene[scene._id] = effects.map((e) => ({
-        panelId:
-          (e.logicalPanelName && mappings?.get(e.logicalPanelName)) || e.panelId,
-        kind: e.kind,
-        content: e.content,
-        startTime: e.startTime,
-        isEnabled: e.isEnabled,
-        durationSec: e.durationSec,
-        videoStartSec: e.videoStartSec,
-      }));
+      const visual: Array<{
+        panelId: Id<"panels">;
+        kind: "image" | "video" | "color" | "text" | "url" | "html" | "camera";
+        content: string;
+        startTime: number;
+        isEnabled: boolean;
+        durationSec?: number;
+        videoStartSec?: number;
+      }> = [];
+      for (const e of effects) {
+        if (e.kind === "command" || e.kind === "hotkey") continue;
+        const panelId =
+          (e.logicalPanelName && mappings?.get(e.logicalPanelName)) || e.panelId;
+        if (!panelId) continue;
+        visual.push({
+          panelId,
+          kind: e.kind,
+          content: e.content,
+          startTime: e.startTime,
+          isEnabled: e.isEnabled,
+          durationSec: e.durationSec,
+          videoStartSec: e.videoStartSec,
+        });
+      }
+      byScene[scene._id] = visual;
     }
     return byScene;
   },
@@ -337,7 +359,7 @@ export const screenView = query({
     let scene: Doc<"scenes"> | null = null;
     let effects: Array<{
       panelId: Id<"panels">;
-      kind: "image" | "video" | "color" | "text" | "url" | "html";
+      kind: "image" | "video" | "color" | "text" | "url" | "html" | "camera";
       content: string;
       startTime: number;
       isEnabled: boolean;
@@ -357,22 +379,26 @@ export const screenView = query({
         const mappings = profileId
           ? await mappingLookup(ctx, profileId)
           : null;
-        effects = (
-          await ctx.db
-            .query("effects")
-            .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
-            .collect()
-        ).map((e) => ({
-          panelId:
+        const raw = await ctx.db
+          .query("effects")
+          .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
+          .collect();
+        for (const e of raw) {
+          if (e.kind === "command" || e.kind === "hotkey") continue;
+          const panelId =
             (e.logicalPanelName && mappings?.get(e.logicalPanelName)) ||
-            e.panelId,
-          kind: e.kind,
-          content: e.content,
-          startTime: e.startTime,
-          isEnabled: e.isEnabled,
-          durationSec: e.durationSec,
-          videoStartSec: e.videoStartSec,
-        }));
+            e.panelId;
+          if (!panelId) continue;
+          effects.push({
+            panelId,
+            kind: e.kind,
+            content: e.content,
+            startTime: e.startTime,
+            isEnabled: e.isEnabled,
+            durationSec: e.durationSec,
+            videoStartSec: e.videoStartSec,
+          });
+        }
       }
     }
 
@@ -730,7 +756,7 @@ async function deleteSceneCascade(ctx: MutationCtx, sceneId: Id<"scenes">) {
 export const createEffect = mutation({
   args: {
     sceneId: v.id("scenes"),
-    panelId: v.id("panels"),
+    panelId: v.optional(v.id("panels")),
     logicalPanelName: v.optional(v.string()),
     kind: v.union(
       v.literal("image"),
@@ -739,6 +765,9 @@ export const createEffect = mutation({
       v.literal("text"),
       v.literal("url"),
       v.literal("html"),
+      v.literal("command"),
+      v.literal("hotkey"),
+      v.literal("camera"),
     ),
     content: v.string(),
     startTime: v.number(),
@@ -760,11 +789,11 @@ export const createEffect = mutation({
   ) => {
     return await ctx.db.insert("effects", {
       sceneId,
-      panelId,
       kind,
       content,
       startTime,
       isEnabled: true,
+      ...(panelId ? { panelId } : {}),
       ...(logicalPanelName ? { logicalPanelName } : {}),
       ...(durationSec !== undefined ? { durationSec } : {}),
       ...(videoStartSec !== undefined ? { videoStartSec } : {}),
@@ -785,6 +814,9 @@ export const updateEffect = mutation({
         v.literal("text"),
         v.literal("url"),
         v.literal("html"),
+        v.literal("command"),
+        v.literal("hotkey"),
+        v.literal("camera"),
       ),
     ),
     content: v.optional(v.string()),
@@ -797,9 +829,10 @@ export const updateEffect = mutation({
     if (logicalPanelName === null) {
       const existing = await ctx.db.get(effectId);
       if (!existing) return;
+      const nextPanelId = fields.panelId ?? existing.panelId;
       await ctx.db.replace(effectId, {
         sceneId: existing.sceneId,
-        panelId: fields.panelId ?? existing.panelId,
+        ...(nextPanelId ? { panelId: nextPanelId } : {}),
         kind: fields.kind ?? existing.kind,
         content: fields.content ?? existing.content,
         startTime: fields.startTime ?? existing.startTime,
@@ -1223,6 +1256,9 @@ export const autoMapByPanelName = mutation({
       scoreboard: "Scoreboard",
       phone: "Phone",
       "audience phone": "Phone",
+      "key fill: full overlay": "Key Fill: Full Overlay",
+      "key fill: lower third": "Key Fill: Lower Third",
+      "key fill: top corners": "Key Fill: Top Corners",
     };
     let count = 0;
     for (const panel of panels) {

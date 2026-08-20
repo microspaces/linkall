@@ -105,39 +105,79 @@ export function wantsSideScores(title: string) {
   );
 }
 
-/** Expand LinkAll8-style tokens in a URL effect. */
-export function expandEffectUrl(
+/**
+ * Full-frame overlay pages keyed on Ross KEY 1 (vote, instructions, winner,
+ * games, …). Host looks like Introduction / Crowd use a lower third instead.
+ */
+export function isFullOverlayCue(title: string): boolean {
+  const kind = overlayKindForTitle(title);
+  return (
+    kind === "instructions" ||
+    kind === "vote" ||
+    kind === "winner" ||
+    kind === "games" ||
+    kind === "suggestions" ||
+    kind === "punishment" ||
+    kind === "ring"
+  );
+}
+
+/**
+ * Scoreboard / corner-score overlay cues keyed on Ross KEY 3
+ * (Score, Box Score, Score Rotation).
+ */
+export function isScoreOverlayCue(title: string): boolean {
+  const kind = overlayKindForTitle(title);
+  return kind === "score" || kind === "box-score" || kind === "rotation";
+}
+
+/** Tokens shared by URL effects and RossTalk command effects. */
+export type EffectTokenContext = {
+  performanceId?: string;
+  score1?: string | number;
+  score2?: string | number;
+  team1?: string;
+  team2?: string;
+};
+
+/**
+ * Expand LinkAll8-style tokens. URL effects URI-encode team names; command
+ * effects pass them through (RossTalk is not a URL).
+ */
+export function expandEffectTokens(
   raw: string,
-  ctx: {
-    performanceId?: string;
-    score1?: string | number;
-    score2?: string | number;
-    team1?: string;
-    team2?: string;
-  },
+  ctx: EffectTokenContext,
+  opts?: { encodeTeams?: boolean },
 ) {
-  let url = raw;
+  const encodeTeam = (value: string) =>
+    opts?.encodeTeams ? encodeURIComponent(value) : value;
+  let out = raw;
   if (ctx.performanceId) {
-    url = url.replaceAll("{performanceId}", ctx.performanceId);
-    url = url.replaceAll("[performanceId]", ctx.performanceId);
+    out = out.replaceAll("{performanceId}", ctx.performanceId);
+    out = out.replaceAll("[performanceId]", ctx.performanceId);
   }
   if (ctx.score1 !== undefined) {
-    url = url.replaceAll("[Score1]", String(ctx.score1));
-    url = url.replaceAll("{score1}", String(ctx.score1));
+    out = out.replaceAll("[Score1]", String(ctx.score1));
+    out = out.replaceAll("{score1}", String(ctx.score1));
   }
   if (ctx.score2 !== undefined) {
-    url = url.replaceAll("[Score2]", String(ctx.score2));
-    url = url.replaceAll("{score2}", String(ctx.score2));
+    out = out.replaceAll("[Score2]", String(ctx.score2));
+    out = out.replaceAll("{score2}", String(ctx.score2));
   }
   if (ctx.team1) {
-    url = url.replaceAll("[Team1]", encodeURIComponent(ctx.team1));
-    url = url.replaceAll("{team1}", encodeURIComponent(ctx.team1));
+    out = out.replaceAll("[Team1]", encodeTeam(ctx.team1));
+    out = out.replaceAll("{team1}", encodeTeam(ctx.team1));
   }
   if (ctx.team2) {
-    url = url.replaceAll("[Team2]", encodeURIComponent(ctx.team2));
-    url = url.replaceAll("{team2}", encodeURIComponent(ctx.team2));
+    out = out.replaceAll("[Team2]", encodeTeam(ctx.team2));
+    out = out.replaceAll("{team2}", encodeTeam(ctx.team2));
   }
-  return url;
+  return out;
+}
+
+/** Expand LinkAll8-style tokens in a URL effect. */
+export function expandEffectUrl(raw: string, ctx: EffectTokenContext) {
+  return expandEffectTokens(raw, ctx, { encodeTeams: true });
 }
 
 function compact(name: string) {
@@ -275,6 +315,32 @@ export function selfCheck(): string | null {
   }
   if (wantsSideScores("Crowd") || wantsSideScores("BringTheFun")) {
     return "Crowd / music should not show side scores";
+  }
+  if (!isFullOverlayCue("Vote") || !isFullOverlayCue("Game Instructions")) {
+    return "Vote / Instructions should be full-overlay cues";
+  }
+  if (isFullOverlayCue("Score") || isFullOverlayCue("Introduction")) {
+    return "Score / Introduction should not be full-overlay cues";
+  }
+  if (!isScoreOverlayCue("Score") || !isScoreOverlayCue("Score Rotation")) {
+    return "Score / Score Rotation should be score-overlay cues";
+  }
+  if (isScoreOverlayCue("Vote") || isScoreOverlayCue("Crowd")) {
+    return "Vote / Crowd should not be score-overlay cues";
+  }
+  const url = expandEffectUrl("/x?id={performanceId}&t=[Team1]", {
+    performanceId: "abc",
+    team1: "A B",
+  });
+  if (url !== "/x?id=abc&t=A%20B") {
+    return `URL tokens expected encoded team, got ${url}`;
+  }
+  const cmd = expandEffectTokens("XPT AUX:2:{team1} [Score1]", {
+    team1: "A B",
+    score1: 7,
+  });
+  if (cmd !== "XPT AUX:2:A B 7") {
+    return `command tokens should not URI-encode teams, got ${cmd}`;
   }
   return null;
 }
