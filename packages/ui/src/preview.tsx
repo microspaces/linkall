@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@linkall/backend/convex/_generated/api";
@@ -9,6 +9,7 @@ import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PanelStage } from "./designer";
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;
+type PreviewScreen = Doc<"screens"> & { panels: Doc<"panels">[] };
 
 /**
  * Operator run-through wall: every physical screen in the selected display
@@ -19,6 +20,102 @@ function formatClock(sec: number) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Per-layout tile order + hidden ids for the preview wall only. */
+const ARRANGEMENT_STORAGE_PREFIX = "linkall.preview.arrangement.v1";
+
+type PreviewArrangement = {
+  order: string[];
+  hidden: string[];
+};
+
+const EMPTY_ARRANGEMENT: PreviewArrangement = { order: [], hidden: [] };
+
+function arrangementStorageKey(layoutId: string) {
+  return `${ARRANGEMENT_STORAGE_PREFIX}:${layoutId}`;
+}
+
+function readArrangement(layoutId: string): PreviewArrangement {
+  if (typeof window === "undefined") return EMPTY_ARRANGEMENT;
+  try {
+    const raw = window.localStorage.getItem(arrangementStorageKey(layoutId));
+    if (!raw) return EMPTY_ARRANGEMENT;
+    const parsed = JSON.parse(raw) as PreviewArrangement;
+    if (!Array.isArray(parsed?.order) || !Array.isArray(parsed?.hidden)) {
+      return EMPTY_ARRANGEMENT;
+    }
+    return {
+      order: parsed.order.filter((id) => typeof id === "string"),
+      hidden: parsed.hidden.filter((id) => typeof id === "string"),
+    };
+  } catch {
+    return EMPTY_ARRANGEMENT;
+  }
+}
+
+function writeArrangement(layoutId: string, next: PreviewArrangement) {
+  if (typeof window === "undefined") return;
+  try {
+    const empty = next.order.length === 0 && next.hidden.length === 0;
+    const key = arrangementStorageKey(layoutId);
+    if (empty) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function mergeScreenOrder(screenIds: string[], savedOrder: string[]) {
+  const remaining = new Set(screenIds);
+  const ordered: string[] = [];
+  for (const id of savedOrder) {
+    if (!remaining.has(id)) continue;
+    ordered.push(id);
+    remaining.delete(id);
+  }
+  for (const id of screenIds) {
+    if (remaining.has(id)) ordered.push(id);
+  }
+  return ordered;
+}
+
+function arrangeScreens(
+  screens: PreviewScreen[],
+  arrangement: PreviewArrangement,
+) {
+  const byId = new Map(screens.map((s) => [s._id as string, s]));
+  const order = mergeScreenOrder(
+    screens.map((s) => s._id),
+    arrangement.order,
+  );
+  const hidden = new Set(
+    arrangement.hidden.filter((id) => byId.has(id)),
+  );
+  const ordered = order
+    .map((id) => byId.get(id))
+    .filter((s): s is PreviewScreen => !!s);
+  return {
+    ordered,
+    visible: ordered.filter((s) => !hidden.has(s._id)),
+    hidden: ordered.filter((s) => hidden.has(s._id)),
+  };
+}
+
+function usePreviewArrangement(layoutId: string | undefined) {
+  const [arrangement, setArrangementState] =
+    useState<PreviewArrangement>(EMPTY_ARRANGEMENT);
+
+  useEffect(() => {
+    setArrangementState(layoutId ? readArrangement(layoutId) : EMPTY_ARRANGEMENT);
+  }, [layoutId]);
+
+  const setArrangement = (next: PreviewArrangement) => {
+    setArrangementState(next);
+    if (layoutId) writeArrangement(layoutId, next);
+  };
+
+  return { arrangement, setArrangement };
 }
 
 export function DisplayPreview({
@@ -42,6 +139,8 @@ export function DisplayPreview({
     Id<"displayProfiles"> | null
   >(initialProfileId ?? null);
   const [soundOn, setSoundOn] = useState(false);
+  const [screenMenuOpen, setScreenMenuOpen] = useState(false);
+  const [dragScreenId, setDragScreenId] = useState<string | null>(null);
   const [pickedPerformanceId, setPickedPerformanceId] =
     useState<Id<"performances"> | null>(performanceId ?? null);
 
@@ -94,6 +193,11 @@ export function DisplayPreview({
     layoutId ? { layoutId } : "skip",
   );
 
+  useEffect(() => {
+    setScreenMenuOpen(false);
+    setDragScreenId(null);
+  }, [layoutId]);
+
   const liveScene =
     show && scenes ? (scenes[show.currentSceneIndex] ?? null) : null;
   const effects = useQuery(
@@ -137,6 +241,87 @@ export function DisplayPreview({
     const list = layout?.screens ?? [];
     return [...list].sort((a, b) => a.order - b.order);
   }, [layout?.screens]);
+
+  const { arrangement, setArrangement } = usePreviewArrangement(layoutId);
+  const arranged = useMemo(
+    () => arrangeScreens(screens, arrangement),
+    [screens, arrangement],
+  );
+
+  const persistOrder = (order: string[], hidden = arrangement.hidden) => {
+    const known = new Set(screens.map((s) => s._id as string));
+    setArrangement({
+      order: mergeScreenOrder(
+        screens.map((s) => s._id),
+        order,
+      ),
+      hidden: hidden.filter((id) => known.has(id)),
+    });
+  };
+
+  const toggleScreenHidden = (screenId: string) => {
+    const hidden = arrangement.hidden.includes(screenId)
+      ? arrangement.hidden.filter((id) => id !== screenId)
+      : [...arrangement.hidden, screenId];
+    persistOrder(
+      mergeScreenOrder(
+        screens.map((s) => s._id),
+        arrangement.order,
+      ),
+      hidden,
+    );
+  };
+
+  const moveScreen = (screenId: string, dir: -1 | 1) => {
+    const order = mergeScreenOrder(
+      screens.map((s) => s._id),
+      arrangement.order,
+    );
+    const from = order.indexOf(screenId);
+    const to = from + dir;
+    if (from < 0 || to < 0 || to >= order.length) return;
+    const next = [...order];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    persistOrder(next);
+  };
+
+  const moveScreenBefore = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const order = mergeScreenOrder(
+      screens.map((s) => s._id),
+      arrangement.order,
+    );
+    const from = order.indexOf(fromId);
+    const to = order.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    const next = [...order];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    persistOrder(next);
+  };
+
+  const moveVisibleBefore = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const order = mergeScreenOrder(
+      screens.map((s) => s._id),
+      arrangement.order,
+    );
+    const hiddenSet = new Set(arrangement.hidden);
+    const visibleIds = order.filter((id) => !hiddenSet.has(id));
+    const from = visibleIds.indexOf(fromId);
+    const to = visibleIds.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    const nextVisible = [...visibleIds];
+    const [item] = nextVisible.splice(from, 1);
+    nextVisible.splice(to, 0, item);
+    let i = 0;
+    persistOrder(
+      order.map((id) => (hiddenSet.has(id) ? id : nextVisible[i++]!)),
+    );
+  };
+
+  const resetArrangement = () => setArrangement(EMPTY_ARRANGEMENT);
 
   const urlContext = {
     performanceId:
@@ -206,6 +391,24 @@ export function DisplayPreview({
             ))}
           </select>
         )}
+        {screens.length > 0 && (
+          <PreviewScreenMenu
+            open={screenMenuOpen}
+            onOpenChange={setScreenMenuOpen}
+            ordered={arranged.ordered}
+            hiddenIds={arranged.hidden.map((s) => s._id)}
+            visibleCount={arranged.visible.length}
+            onToggle={toggleScreenHidden}
+            onMove={moveScreen}
+            onReorder={moveScreenBefore}
+            onReset={resetArrangement}
+            canReset={
+              arrangement.order.length > 0 || arrangement.hidden.length > 0
+            }
+            dragScreenId={dragScreenId}
+            setDragScreenId={setDragScreenId}
+          />
+        )}
         {isLive && liveScene && (
           <span className="text-xs font-semibold text-red-400">
             ● {liveScene.title} · {formatClock(clockSec)}
@@ -243,6 +446,26 @@ export function DisplayPreview({
         </div>
       </header>
 
+      {arranged.hidden.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-white/10 bg-gray-950 px-3 py-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-white/35">
+            Hidden
+          </span>
+          {arranged.hidden.map((screen) => (
+            <button
+              key={screen._id}
+              type="button"
+              onClick={() => toggleScreenHidden(screen._id)}
+              className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10"
+              title={`Show ${screen.name} on the preview wall`}
+            >
+              {screen.name}
+              <span className="ml-1 text-white/35">show</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1 items-center justify-center gap-3 overflow-hidden p-3">
         {screens.length === 0 ? (
           <p className="text-sm text-white/40">
@@ -250,8 +473,12 @@ export function DisplayPreview({
               ? "This profile has no screens. Assign a layout in the Designer."
               : "Pick a show."}
           </p>
+        ) : arranged.visible.length === 0 ? (
+          <p className="text-sm text-white/40">
+            All screens are hidden. Open Screens to show some on this wall.
+          </p>
         ) : isLive && effects ? (
-          screens.map((screen) => (
+          arranged.visible.map((screen) => (
             <PreviewTile
               key={screen._id}
               screen={screen}
@@ -259,6 +486,17 @@ export function DisplayPreview({
               clockSec={clockSec}
               muted={!soundOn}
               urlContext={urlContext}
+              dragging={dragScreenId === screen._id}
+              dropTarget={
+                dragScreenId !== null && dragScreenId !== screen._id
+              }
+              onHide={() => toggleScreenHidden(screen._id)}
+              onDragStart={() => setDragScreenId(screen._id)}
+              onDragEnd={() => setDragScreenId(null)}
+              onDropOn={() => {
+                if (dragScreenId) moveVisibleBefore(dragScreenId, screen._id);
+                setDragScreenId(null);
+              }}
             />
           ))
         ) : (
@@ -301,35 +539,249 @@ export function DisplayPreview({
   );
 }
 
+function PreviewScreenMenu({
+  open,
+  onOpenChange,
+  ordered,
+  hiddenIds,
+  visibleCount,
+  onToggle,
+  onMove,
+  onReorder,
+  onReset,
+  canReset,
+  dragScreenId,
+  setDragScreenId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  ordered: PreviewScreen[];
+  hiddenIds: string[];
+  visibleCount: number;
+  onToggle: (screenId: string) => void;
+  onMove: (screenId: string, dir: -1 | 1) => void;
+  onReorder: (fromId: string, toId: string) => void;
+  onReset: () => void;
+  canReset: boolean;
+  dragScreenId: string | null;
+  setDragScreenId: (id: string | null) => void;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hidden = new Set(hiddenIds);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) onOpenChange(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onOpenChange(false);
+    };
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onOpenChange]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        className={
+          "whitespace-nowrap rounded border px-2 py-1 text-xs hover:bg-white/10 " +
+          (open || hidden.size > 0
+            ? "border-white/40 bg-white/10"
+            : "border-white/20")
+        }
+        title="Hide or rearrange screens on this preview wall"
+      >
+        Screens
+        {ordered.length > 0 ? (
+          <span className="ml-1 text-white/50">
+            {visibleCount}/{ordered.length}
+          </span>
+        ) : null}
+      </button>
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Arrange preview screens"
+          className="absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-1.5rem))] rounded-md border border-white/15 bg-gray-900 p-2 shadow-xl"
+        >
+          <p className="px-1 text-[11px] leading-snug text-white/50">
+            Hide or reorder tiles on this wall. Live outputs stay the same.
+          </p>
+          <ul className="mt-2 max-h-[min(24rem,70vh)] space-y-1 overflow-y-auto">
+            {ordered.map((screen, i) => {
+              const isHidden = hidden.has(screen._id);
+              return (
+                <li
+                  key={screen._id}
+                  onDragOver={(e) => {
+                    if (!dragScreenId || dragScreenId === screen._id) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const from =
+                      dragScreenId ?? e.dataTransfer.getData("text/plain");
+                    if (from) onReorder(from, screen._id);
+                    setDragScreenId(null);
+                  }}
+                  className={
+                    "flex items-center gap-1 rounded px-1 py-0.5 " +
+                    (dragScreenId === screen._id
+                      ? "bg-white/10"
+                      : "hover:bg-white/5")
+                  }
+                >
+                  <span
+                    draggable
+                    onDragStart={(e) => {
+                      setDragScreenId(screen._id);
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/plain", screen._id);
+                    }}
+                    onDragEnd={() => setDragScreenId(null)}
+                    className="cursor-grab px-1 text-white/30 active:cursor-grabbing"
+                    title="Drag to reorder"
+                    aria-label={`Drag ${screen.name}`}
+                  >
+                    ⋮⋮
+                  </span>
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!isHidden}
+                      onChange={() => onToggle(screen._id)}
+                      className="accent-white"
+                    />
+                    <span
+                      className={
+                        "truncate text-xs " +
+                        (isHidden ? "text-white/35 line-through" : "")
+                      }
+                    >
+                      {screen.name}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={i === 0}
+                    onClick={() => onMove(screen._id, -1)}
+                    className="rounded px-1.5 text-xs text-white/70 hover:bg-white/10 disabled:opacity-25"
+                    title="Move left"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    disabled={i === ordered.length - 1}
+                    onClick={() => onMove(screen._id, 1)}
+                    className="rounded px-1.5 text-xs text-white/70 hover:bg-white/10 disabled:opacity-25"
+                    title="Move right"
+                  >
+                    →
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-2 flex items-center justify-end gap-2 border-t border-white/10 pt-2">
+            <button
+              type="button"
+              onClick={onReset}
+              disabled={!canReset}
+              className="rounded px-2 py-1 text-xs text-white/70 hover:bg-white/10 disabled:opacity-30"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PreviewTile({
   screen,
   effects,
   clockSec,
   muted,
   urlContext,
+  dragging,
+  dropTarget,
+  onHide,
+  onDragStart,
+  onDragEnd,
+  onDropOn,
 }: {
-  screen: Doc<"screens"> & { panels: Doc<"panels">[] };
+  screen: PreviewScreen;
   effects: Parameters<typeof PanelStage>[0]["effects"];
   clockSec: number;
   muted: boolean;
   urlContext: { performanceId?: string };
+  dragging: boolean;
+  dropTarget: boolean;
+  onHide: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDropOn: () => void;
 }) {
   const ar = screen.width / Math.max(screen.height, 1);
   return (
     <div
-      className="flex h-full min-h-0 min-w-0 flex-col"
+      className={
+        "flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded " +
+        (dragging ? "opacity-50 " : "") +
+        (dropTarget ? "ring-2 ring-white/40 " : "")
+      }
       style={{
         flex: `${ar} 1 0`,
         maxWidth: ar >= 1 ? "100%" : "28%",
       }}
+      onDragOver={(e) => {
+        if (!dropTarget) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDropOn();
+      }}
     >
-      <p className="mb-1 truncate text-center text-[10px] font-semibold uppercase tracking-wide text-white/45">
-        {screen.name}
-        <span className="ml-1 font-normal text-white/25">
-          {screen.width}×{screen.height}
-        </span>
-      </p>
-      <div className="min-h-0 flex-1">
+      <div className="mb-1 flex shrink-0 items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-white/45">
+        <p
+          draggable
+          onDragStart={(e) => {
+            onDragStart();
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", screen._id);
+          }}
+          onDragEnd={onDragEnd}
+          className="min-w-0 cursor-grab truncate active:cursor-grabbing"
+          title="Drag to reorder"
+        >
+          {screen.name}
+          <span className="ml-1 font-normal text-white/25">
+            {screen.width}×{screen.height}
+          </span>
+        </p>
+        <button
+          type="button"
+          onClick={onHide}
+          className="shrink-0 rounded px-1.5 text-[11px] font-medium leading-none normal-case tracking-normal text-white/40 hover:bg-white/10 hover:text-white"
+          title={`Hide ${screen.name} from this preview`}
+          aria-label={`Hide ${screen.name}`}
+        >
+          Hide
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
         <PanelStage
           screen={screen}
           effects={effects}
