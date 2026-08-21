@@ -325,7 +325,7 @@ function EffectMedia({
   kind: string;
   content: string;
   box: { minX: number; minY: number; w: number; h: number };
-  screen: Pick<Screen, "width" | "height">;
+  screen: Pick<Screen, "_id" | "width" | "height">;
   /** Legacy VideoStartTime — offset into the media. */
   videoStartSec?: number;
   /**
