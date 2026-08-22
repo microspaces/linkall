@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { locoPaths, LOCOS } from "@linkall/backend/convex/locos";
 import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
 
@@ -13,6 +14,17 @@ export function Landing() {
       href: "/shows",
       title: "Live Shows",
       body: "Design shows scene by scene, go live, and every connected screen follows in real time.",
+    },
+    LOCOS.some((l) => l.brand === brand.id) && {
+      href: "/locos",
+      title:
+        brand.id === "surroundshow"
+          ? "HomeShow, Ceremony, Reception & Bar Loco"
+          : "Locos",
+      body:
+        brand.id === "surroundshow"
+          ? "Holiday house bits, a chapel ceremony set list, a DJ reception set list, and the pop-up bar night."
+          : "Competitions and set lists — open a format to run its performances.",
     },
     brand.features.marketplace && {
       href: "/market",
@@ -83,16 +95,19 @@ export function Landing() {
             {brand.features.shows ? "Our stages" : "Categories"}
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {brand.showTags.map((t) => (
-              <Link
-                key={t.tag}
-                href={`/shows?tag=${t.tag}`}
-                className="rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md"
-              >
-                <h3 className="font-semibold text-brand-dark">{t.label}</h3>
-                <p className="mt-1 text-sm text-gray-500">{t.blurb}</p>
-              </Link>
-            ))}
+            {brand.showTags.map((t, i) => {
+              const loco = LOCOS.find((l) => l.tag === t.tag);
+              return (
+                <Link
+                  key={`${t.tag}-${i}`}
+                  href={loco ? locoPaths(loco.slug).home : `/shows?tag=${t.tag}`}
+                  className="rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md"
+                >
+                  <h3 className="font-semibold text-brand-dark">{t.label}</h3>
+                  <p className="mt-1 text-sm text-gray-500">{t.blurb}</p>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

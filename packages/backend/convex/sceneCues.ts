@@ -88,7 +88,7 @@ export function overlayKindForTitle(title: string): string | null {
 }
 
 export function overlayPath(slug: string, kind: string) {
-  return `/locos/${slug}/performance/overlay/${kind}?id={performanceId}`;
+  return `/${slug}/performance/overlay/${kind}?id={performanceId}`;
 }
 
 /** Scenes that put a live team score on the left / right screens (legacy Score/Vote URLs). */

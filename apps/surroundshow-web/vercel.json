@@ -2,5 +2,37 @@
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter surroundshow-web build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "homeshow.com" }],
+      "destination": "/homeshow"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.homeshow.com" }],
+      "destination": "/homeshow"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "weddingloco.com" }],
+      "destination": "/wedding-loco"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.weddingloco.com" }],
+      "destination": "/wedding-loco"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "barloco.com" }],
+      "destination": "/bar-loco"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.barloco.com" }],
+      "destination": "/bar-loco"
+    }
+  ]
 }

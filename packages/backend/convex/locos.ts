@@ -4,17 +4,22 @@
  * All formats live in one array (Comedy Loco, Battle Loco, Wrestle Loco,
  * HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …). Each entry
  * has a `brand` so FunFirst and SurroundShow only list their own locos.
- * Direct `/locos/[slug]/...` routes still resolve any slug.
+ * Direct `/{slug}/...` routes resolve any format (Comedy Loco, LaffUp, …).
  *
  * Two engine modes (`mode` on each format):
  *   competition — two teams play each round; scored rounds go to audience voting.
  *     comedyloco, battleloco, wrestleloco, thisgameshow.
  *   setlist — one segment at a time; no opponents, scores, or winners.
- *     headcase, laffup, weddingloco, barloco. `team1`/`team2` are cast labels.
+ *     headcase, laffup, homeshow, weddingceremony, weddingreception, barloco.
+ * Wedding Ceremony and Wedding Reception are separate set lists.
  *
  * Templates, catalogs, default teams, overlays, and tracks live here so a new
  * loco is data — not a new page tree. Operator routes are
- * `/locos/[slug]/{performances,performance,games}`.
+ * `/{slug}/{performances,performance,designer,player,games}`.
+ * `/locos` is the format index. SurroundShow's named shows are HomeShow,
+ * Wedding Ceremony, Wedding Reception, and Bar Loco.
+ * FunFirst's are Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp,
+ * and This Game Show.
  *
  * `tag` is the short id stored on performances / comedyGames (legacy comedy
  * rows with no tag count as `comedyloco`). `slug` is the URL segment.
@@ -31,7 +36,9 @@ export type LocoTag =
   | "headcase"
   | "laffup"
   | "thisgameshow"
-  | "weddingloco"
+  | "homeshow"
+  | "weddingceremony"
+  | "weddingreception"
   | "barloco";
 
 export type CatalogGameSpec = {
@@ -54,8 +61,10 @@ export type LocoConfig = {
   name: string;
   /** Owning brand — hub and any list surfaces filter on this. */
   brand: BrandId;
-  /** competition = paired teams + voting; setlist = one segment at a time. */
-  mode: "competition" | "setlist";
+  /** Nested under this parent slug, e.g. ceremony under wedding-loco. */
+  parentSlug?: string;
+  /** competition = paired teams + voting; setlist = one segment at a time; hub = parent of child formats. */
+  mode: "competition" | "setlist" | "hub";
   blurb: string;
   listHint: string;
   catalogHint: string;
@@ -429,35 +438,26 @@ export const LOCOS: LocoConfig[] = [
     ],
   },
   {
-    tag: "weddingloco",
-    slug: "wedding-loco",
-    name: "Wedding Loco",
+    tag: "homeshow",
+    slug: "homeshow",
+    name: "HomeShow",
     brand: "surroundshow",
     mode: "setlist",
     blurb:
-      "Reception set list — step through the night's segments from grand entrance to send-off.",
+      "Holiday house shows — Christmas, Halloween, New Year and the rest of the year, stepped through as a set list.",
     listHint:
-      "14-segment card: grand entrance, toasts, dinner sets, dances, crowd games, cake cutting, and send-off.",
+      "Assign a holiday bit to each segment. Migrated Christmas, Halloween, and New Year shows are already in the library.",
     catalogHint:
-      "Entrance, toasts, dinner sets, dances, crowd games, cake, and send-off bits for a Wedding Loco set list. Assign these on a performance.",
-    team1: "Bride",
-    team2: "Groom",
-    accent: "from-pink-300 to-rose-200",
+      "Each holiday is a bit (designed Show → Scene → Effect), same as a HeadCase sketch.",
+    team1: "House",
+    team2: "Yard",
+    accent: "from-emerald-500 to-red-500",
     templateRounds: [
       { round: 1, roundType: "Intro", isScored: false },
-      { round: 2, roundType: "Toast", isScored: false },
-      { round: 3, roundType: "Set", isScored: false },
-      { round: 4, roundType: "Game", isScored: false },
-      { round: 5, roundType: "Dance", isScored: false },
-      { round: 6, roundType: "Set", isScored: false },
-      { round: 7, roundType: "Game", isScored: false },
-      { round: 8, roundType: "Ceremony", isScored: false },
-      { round: 9, roundType: "Dance", isScored: false },
-      { round: 10, roundType: "Set", isScored: false },
-      { round: 11, roundType: "Dance", isScored: false },
-      { round: 12, roundType: "Set", isScored: false },
-      { round: 13, roundType: "Dance", isScored: false },
-      { round: 14, roundType: "Outro", isScored: false },
+      { round: 2, roundType: "Christmas", isScored: false },
+      { round: 3, roundType: "Halloween", isScored: false },
+      { round: 4, roundType: "New Year", isScored: false },
+      { round: 5, roundType: "Outro", isScored: false },
     ],
     overlays: [
       "Game Instructions",
@@ -470,20 +470,138 @@ export const LOCOS: LocoConfig[] = [
     ],
     tracks: SHARED_TRACKS,
     catalog: [
-      { name: "Grand Entrance", roundType: "Intro", shortDescription: "Couple walk-in", suggestions: "An entrance song", description: "DJ announces the couple. Unscored." },
-      { name: "Wedding Party Walk", roundType: "Intro", shortDescription: "Party walk-in", suggestions: "A walk-up song", description: "Bridal party hits the floor. Unscored." },
-      { name: "Best Man Toast", roundType: "Toast", shortDescription: "Best man mic", suggestions: "A story", description: "Best man takes the mic. Unscored." },
-      { name: "Maid of Honor Toast", roundType: "Toast", shortDescription: "Maid of honor mic", suggestions: "A story", description: "Maid of honor takes the mic. Unscored." },
-      { name: "Dinner Playlist", roundType: "Set", shortDescription: "Dinner music", suggestions: "A decade", description: "Soft dinner set while tables eat. Unscored." },
-      { name: "Open Floor Set", roundType: "Set", shortDescription: "Dance floor open", suggestions: "A request", description: "Open-floor bangers. Unscored." },
-      { name: "Shoe Game", roundType: "Game", shortDescription: "Who knows who", suggestions: "A question", description: "Couple holds shoes and answers." },
-      { name: "Bouquet and Garter", roundType: "Game", shortDescription: "Toss and catch", suggestions: "A volunteer", description: "Bouquet toss and garter hunt." },
+      { name: "Welcome Home", roundType: "Intro", shortDescription: "House lights up", suggestions: "A welcome song", description: "Doors, porch, and first look. Unscored." },
+      { name: "Christmas", roundType: "Christmas", shortDescription: "Garage Christmas", suggestions: "A carol", description: "Migrated Christmas garage show — candy-stripe roof, video door, glowing gable." },
+      { name: "Halloween", roundType: "Halloween", shortDescription: "Haunt the windows", suggestions: "A scare", description: "Migrated Halloween Spooktacular — ghosts, storms, pumpkin finale." },
+      { name: "New Year", roundType: "New Year", shortDescription: "Countdown", suggestions: "A toast", description: "Migrated New Year countdown across every screen." },
+      { name: "4th of July", roundType: "Holiday", shortDescription: "Fireworks night", suggestions: "A patriotic song", description: "Flags, fireworks, and summer-night projections." },
+      { name: "Easter", roundType: "Holiday", shortDescription: "Spring pastels", suggestions: "A spring song", description: "Pastel palettes and spring holiday projections." },
+      { name: "Mardi Gras", roundType: "Holiday", shortDescription: "Beads and brass", suggestions: "A parade song", description: "Balcony vibes and parade energy." },
+      { name: "St. Patrick's", roundType: "Holiday", shortDescription: "Green lights", suggestions: "A pub song", description: "Green wash and parade screens." },
+      { name: "Thanksgiving", roundType: "Holiday", shortDescription: "Autumn house", suggestions: "A hymn", description: "Warm autumn ambience for the house." },
+      { name: "Valentine's", roundType: "Holiday", shortDescription: "Date-night house", suggestions: "A love song", description: "Romantic scenes for the windows." },
+      { name: "Super Bowl", roundType: "Holiday", shortDescription: "Game-day party", suggestions: "A fight song", description: "Party screens for kickoff through the trophy." },
+      { name: "Goodnight", roundType: "Outro", shortDescription: "Lights out", suggestions: "A closer", description: "Last look and house lights. Unscored." },
+    ],
+  },
+  {
+    tag: "weddingceremony",
+    slug: "wedding-ceremony",
+    name: "Wedding Ceremony",
+    brand: "surroundshow",
+    mode: "setlist",
+    blurb:
+      "Immersive chapel — wrap-around HD theme, aisle music, vows, rings, kiss, first dance in the room. Pick a theme like Elvis, flowers, forest, neon, or MARRY-OKE.",
+    listHint:
+      "Short chapel card: arrival, first look, theme, processional, vows, rings, pronouncement, recessional, chapel first dance, photos, send to reception.",
+    catalogHint:
+      "Assign a theme bit and chapel beats. Themes are designed shows (Show → Scene → Effect) on the wrap-around walls.",
+    team1: "Bride",
+    team2: "Groom",
+    accent: "from-pink-400 to-violet-400",
+    templateRounds: [
+      { round: 1, roundType: "Intro", isScored: false },
+      { round: 2, roundType: "Photo", isScored: false },
+      { round: 3, roundType: "Theme", isScored: false },
+      { round: 4, roundType: "Aisle", isScored: false },
+      { round: 5, roundType: "Speech", isScored: false },
+      { round: 6, roundType: "Speech", isScored: false },
+      { round: 7, roundType: "Speech", isScored: false },
+      { round: 8, roundType: "Speech", isScored: false },
+      { round: 9, roundType: "Aisle", isScored: false },
+      { round: 10, roundType: "Dance", isScored: false },
+      { round: 11, roundType: "Photo", isScored: false },
+      { round: 12, roundType: "Outro", isScored: false },
+    ],
+    overlays: [
+      "Theme",
+      "Aisle",
+      "Vows",
+      "Photo",
+      "Timeline",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Arrival", roundType: "Intro", shortDescription: "Doors and coordinator", suggestions: "A welcome cue", description: "Couple and guests arrive. Coordinator and officiant meet. Unscored." },
+      { name: "First Look", roundType: "Photo", shortDescription: "Bridal room", suggestions: "A first-look song", description: "Bridal room and first-look photos. Unscored." },
+      { name: "Flower Wall", roundType: "Photo", shortDescription: "Selfie wall", suggestions: "A pose", description: "Unlimited photos at the flower wall. Unscored." },
+      { name: "Romantic Flowers", roundType: "Theme", shortDescription: "Wrap-around roses", suggestions: "A floral aisle song", description: "Immersive chapel theme — traditional romantic flowers on every wall." },
+      { name: "Elvis", roundType: "Theme", shortDescription: "Get married by Elvis", suggestions: "Can't Help Falling in Love", description: "Immersive Elvis chapel — officiant, photos, and the Vegas tradition." },
+      { name: "Lady Elvis", roundType: "Theme", shortDescription: "Lady Elvis officiant", suggestions: "A Vegas song", description: "Immersive Lady Elvis chapel." },
+      { name: "MARRY-OKE", roundType: "Theme", shortDescription: "Karaoke vows", suggestions: "A karaoke duet", description: "Karaoke-style immersive ceremony. The room sings the vows." },
+      { name: "Enchanted Forest", roundType: "Theme", shortDescription: "Fairy-tale woods", suggestions: "A forest cue", description: "Wrap-around enchanted forest chapel." },
+      { name: "Vintage Vegas Neon", roundType: "Theme", shortDescription: "Neon signs", suggestions: "Viva Las Vegas", description: "Vintage Vegas neon chapel." },
+      { name: "Candlelight", roundType: "Theme", shortDescription: "Soft candle walls", suggestions: "A candle aisle", description: "Candlelight immersive chapel." },
+      { name: "Under the Sea", roundType: "Theme", shortDescription: "Ocean walls", suggestions: "An underwater cue", description: "Wrap-around under-the-sea chapel." },
+      { name: "Van Gogh", roundType: "Theme", shortDescription: "Starry night", suggestions: "A starry aisle", description: "Starry Wedding Night — Van Gogh immersive." },
+      { name: "Processional", roundType: "Aisle", shortDescription: "Walk the aisle", suggestions: "An aisle song", description: "Thematic aisle music. Couple and party process. Unscored." },
+      { name: "Welcome", roundType: "Speech", shortDescription: "Officiant open", suggestions: "A welcome line", description: "Licensed thematic officiant welcomes the room. Unscored." },
+      { name: "Vows", roundType: "Speech", shortDescription: "Thematic or own", suggestions: "A vow line", description: "Traditional/thematic vows, or the couple's own. Unscored." },
+      { name: "Rings", roundType: "Speech", shortDescription: "Ring exchange", suggestions: "A ring line", description: "Rings. Unscored." },
+      { name: "Pronouncement", roundType: "Speech", shortDescription: "You may kiss", suggestions: "A kiss cue", description: "Pronouncement and kiss. Unscored." },
+      { name: "Recessional", roundType: "Aisle", shortDescription: "Walk out", suggestions: "A recessional song", description: "Couple walks out on the theme. Unscored." },
+      { name: "Chapel First Dance", roundType: "Dance", shortDescription: "First dance in the room", suggestions: "A first-dance song", description: "Optional first dance in the immersive chapel after the ceremony. Unscored." },
+      { name: "Chapel Photos", roundType: "Photo", shortDescription: "Theme photos", suggestions: "A pose", description: "Photos in the wrap-around theme. Unscored." },
+      { name: "To Reception", roundType: "Outro", shortDescription: "Send to the party", suggestions: "A transition song", description: "Out of the chapel, into the DJ reception. Unscored." },
+    ],
+  },
+  {
+    tag: "weddingreception",
+    slug: "wedding-reception",
+    name: "Wedding Reception",
+    brand: "surroundshow",
+    mode: "setlist",
+    blurb:
+      "DJ reception — a music list with a splatter of interludes: speeches, dances, and games. Guest comments and photos on the screens come later.",
+    listHint:
+      "DJ card: cocktail mix, entrance, first dance, dinner mix, toasts, parent dances, open floor, games, cake, late mix, last dance, send-off.",
+    catalogHint:
+      "Most segments are DJ sets. Drop in speech, dance, or game interludes. Guest Wall overlay is reserved for live comments and pics.",
+    team1: "Bride",
+    team2: "Groom",
+    accent: "from-rose-300 to-amber-200",
+    templateRounds: [
+      { round: 1, roundType: "Set", isScored: false },
+      { round: 2, roundType: "Intro", isScored: false },
+      { round: 3, roundType: "Dance", isScored: false },
+      { round: 4, roundType: "Set", isScored: false },
+      { round: 5, roundType: "Speech", isScored: false },
+      { round: 6, roundType: "Dance", isScored: false },
+      { round: 7, roundType: "Set", isScored: false },
+      { round: 8, roundType: "Game", isScored: false },
+      { round: 9, roundType: "Set", isScored: false },
+      { round: 10, roundType: "Speech", isScored: false },
+      { round: 11, roundType: "Game", isScored: false },
+      { round: 12, roundType: "Set", isScored: false },
+      { round: 13, roundType: "Dance", isScored: false },
+      { round: 14, roundType: "Outro", isScored: false },
+    ],
+    overlays: [
+      "Timeline",
+      "Dedication",
+      "Guest Wall",
+      "Games",
+      "Vote",
+      "Score Rotation",
+    ],
+    tracks: SHARED_TRACKS,
+    catalog: [
+      { name: "Cocktail Hour", roundType: "Set", shortDescription: "Dinner-in music", suggestions: "A cocktail playlist", description: "DJ cocktail mix while guests arrive and graze. Unscored." },
+      { name: "Grand Entrance", roundType: "Intro", shortDescription: "Couple walk-in", suggestions: "An entrance song", description: "DJ announces the couple and wedding party. Unscored." },
       { name: "First Dance", roundType: "Dance", shortDescription: "Couple first dance", suggestions: "A first-dance song", description: "Bride and groom take the floor. Unscored." },
-      { name: "Parent Dances", roundType: "Dance", shortDescription: "Family dances", suggestions: "A parent song", description: "Parents take their dances. Unscored." },
-      { name: "Anniversary Dance", roundType: "Dance", shortDescription: "Longest married", suggestions: "A year", description: "Couples stay on the floor by years. Unscored." },
-      { name: "Cake Cutting", roundType: "Ceremony", shortDescription: "Cake bit", suggestions: "A flavor", description: "Cut the cake and feed the bit. Unscored." },
-      { name: "Sparkler Send-off", roundType: "Outro", shortDescription: "Exit the venue", suggestions: "A last song", description: "Sparklers, bubbles, and goodnight. Unscored." },
-      { name: "Getaway Wave", roundType: "Outro", shortDescription: "Car send-off", suggestions: "A getaway song", description: "Wave them out the door. Unscored." },
+      { name: "Dinner Mix", roundType: "Set", shortDescription: "Eat-to mix", suggestions: "A dinner decade", description: "Soft DJ set while tables eat. Unscored." },
+      { name: "Toasts", roundType: "Speech", shortDescription: "Best man / maid of honor", suggestions: "A story", description: "Speeches. Unscored interlude." },
+      { name: "Parent Dances", roundType: "Dance", shortDescription: "Family dances", suggestions: "A parent song", description: "Parents take their dances. Unscored interlude." },
+      { name: "Dance Floor Open", roundType: "Set", shortDescription: "Floor filler", suggestions: "A request", description: "DJ opens the floor. Unscored." },
+      { name: "Shoe Game", roundType: "Game", shortDescription: "Who knows who", suggestions: "A question", description: "Couple holds shoes and answers. Interlude." },
+      { name: "Peak Mix", roundType: "Set", shortDescription: "Peak-hour bangers", suggestions: "A peak request", description: "DJ peak set. Unscored." },
+      { name: "Cake Cutting", roundType: "Speech", shortDescription: "Cake bit", suggestions: "A cake song", description: "Cut the cake. Speech/photo interlude." },
+      { name: "Bouquet and Garter", roundType: "Game", shortDescription: "Toss and catch", suggestions: "A volunteer", description: "Bouquet toss and garter hunt. Interlude." },
+      { name: "Late Mix", roundType: "Set", shortDescription: "Late-night set", suggestions: "A last-hour request", description: "Louder, later DJ set. Unscored." },
+      { name: "Last Dance", roundType: "Dance", shortDescription: "Last slow dance", suggestions: "A last-dance song", description: "Last dance. Unscored." },
+      { name: "Sparkler Send-off", roundType: "Outro", shortDescription: "Exit the venue", suggestions: "A getaway song", description: "Sparklers, bubbles, and goodnight. Unscored." },
+      { name: "Anniversary Dance", roundType: "Dance", shortDescription: "Longest married", suggestions: "A year", description: "Couples stay on the floor by years. Optional interlude." },
+      { name: "Open Floor Set", roundType: "Set", shortDescription: "Request hour", suggestions: "A request", description: "Extra DJ block you can drop in anywhere." },
     ],
   },
   {
@@ -493,52 +611,56 @@ export const LOCOS: LocoConfig[] = [
     brand: "surroundshow",
     mode: "setlist",
     blurb:
-      "Bar night set list — step through the night's segments from doors to last call.",
+      "Christmas pop-up bar night — doors, welcome pour, classics, hosts, games, Bad Elf, best dressed, carols or karaoke, last call.",
     listHint:
-      "12-segment card: doors, happy-hour sets, crowd warmup, trivia, prime set, singalong, bar games, late set, last call, and close.",
+      "12-segment card modeled on The Jingle Bar: walk-in, soundtrack beds, miracle-maker hosts, named games, contest, carols/karaoke, close.",
     catalogHint:
-      "Doors, sets, crowd bits, trivia, bar games, last call, and close bits for a Bar Loco set list. Assign these on a performance.",
-    team1: "Regulars",
-    team2: "Newcomers",
+      "Assign these on a performance. Swap Cocktails & Carols vs Karaoke by night; family sessions can pick crafts and kids karaoke.",
+    team1: "Naughty",
+    team2: "Nice",
     accent: "from-teal-400 to-amber-600",
     templateRounds: [
       { round: 1, roundType: "Intro", isScored: false },
-      { round: 2, roundType: "Set", isScored: false },
-      { round: 3, roundType: "Crowd", isScored: false },
-      { round: 4, roundType: "Game", isScored: false },
-      { round: 5, roundType: "Break", isScored: false },
-      { round: 6, roundType: "Set", isScored: false },
-      { round: 7, roundType: "Crowd", isScored: false },
+      { round: 2, roundType: "Break", isScored: false },
+      { round: 3, roundType: "Set", isScored: false },
+      { round: 4, roundType: "Crowd", isScored: false },
+      { round: 5, roundType: "Game", isScored: false },
+      { round: 6, roundType: "Crowd", isScored: false },
+      { round: 7, roundType: "Set", isScored: false },
       { round: 8, roundType: "Game", isScored: false },
-      { round: 9, roundType: "Set", isScored: false },
-      { round: 10, roundType: "Break", isScored: false },
-      { round: 11, roundType: "Set", isScored: false },
+      { round: 9, roundType: "Crowd", isScored: false },
+      { round: 10, roundType: "Crowd", isScored: false },
+      { round: 11, roundType: "Break", isScored: false },
       { round: 12, roundType: "Outro", isScored: false },
     ],
     overlays: [
       "Game Instructions",
       "Vote",
       "Crowd",
-      "Score",
+      "Photo",
+      "Carols",
       "Timeline",
       "Games",
       "Score Rotation",
     ],
     tracks: SHARED_TRACKS,
     catalog: [
-      { name: "Doors Open", roundType: "Intro", shortDescription: "House lights up", suggestions: "A welcome song", description: "Doors, specials, and first pours. Unscored." },
-      { name: "Happy Hour Set", roundType: "Set", shortDescription: "Early floor filler", suggestions: "A decade", description: "Easy set while the room fills. Unscored." },
-      { name: "Prime Time Set", roundType: "Set", shortDescription: "Peak-hour set", suggestions: "A request", description: "Prime set when the room is full. Unscored." },
-      { name: "Late Set", roundType: "Set", shortDescription: "After-peak set", suggestions: "A last-hour request", description: "Louder, later, stickier songs. Unscored." },
-      { name: "Crowd Warmup", roundType: "Crowd", shortDescription: "Host works the room", suggestions: "A regular's name", description: "Host and bartenders warm the room. Unscored." },
-      { name: "Singalong", roundType: "Crowd", shortDescription: "Room sings the chorus", suggestions: "A chorus", description: "The room takes the chorus. Unscored." },
-      { name: "Roast a Regular", roundType: "Crowd", shortDescription: "Table work", suggestions: "A nickname", description: "One regular becomes the bit. Unscored." },
-      { name: "Bar Trivia", roundType: "Game", shortDescription: "Pub quiz", suggestions: "A category", description: "The room buzzes in on bar trivia." },
-      { name: "Bar Olympics", roundType: "Game", shortDescription: "Bar stunts", suggestions: "A bar trick", description: "Timed bar games and stunts." },
-      { name: "Drink Specials", roundType: "Break", shortDescription: "Specials board", suggestions: "A house pour", description: "Call the specials and reset. Unscored." },
-      { name: "Last Call", roundType: "Break", shortDescription: "Last round", suggestions: "A last-call chant", description: "Last call and tab check. Unscored." },
-      { name: "Closing Time", roundType: "Outro", shortDescription: "Lights up", suggestions: "A closing song", description: "Last song, lights, and goodnight. Unscored." },
-      { name: "Last Song", roundType: "Outro", shortDescription: "One more song", suggestions: "A closer", description: "One more song and out the door. Unscored." },
+      { name: "Doors Open", roundType: "Intro", shortDescription: "Walk-in wonderland", suggestions: "A welcome carol", description: "Tinsel, trees, presents, photo spots. Guests hit the room. Unscored." },
+      { name: "Welcome Pour", roundType: "Break", shortDescription: "House cocktail", suggestions: "A signature pour", description: "First drink in the hand. Wednesday sessions include a house cocktail. Unscored." },
+      { name: "Christmas Classics", roundType: "Set", shortDescription: "Mariah to Sinatra", suggestions: "A carol", description: "Non-stop Xmas classics bed — Mariah Carey through Frank Sinatra. Unscored." },
+      { name: "Miracle Makers", roundType: "Crowd", shortDescription: "Hosts work the room", suggestions: "An elf name", description: "Christmas miracle makers run games and surprises all night. Unscored." },
+      { name: "Elf Bingo", roundType: "Game", shortDescription: "Holiday bingo", suggestions: "A naughty-list square", description: "Named Jingle Bar game. Hosts call; room marks. Unscored." },
+      { name: "Bad Elf", roundType: "Crowd", shortDescription: "Naughty-list bit", suggestions: "A naughty deed", description: "The Bad Elf works the room for photos, roasts, and the naughty list. Unscored." },
+      { name: "Party Hits", roundType: "Set", shortDescription: "Non-carol bangers", suggestions: "A party song", description: "Party tunes under the Christmas bed to keep the floor moving. Unscored." },
+      { name: "Reindeer Ring Toss", roundType: "Game", shortDescription: "Ring the antlers", suggestions: "A prize", description: "Named Jingle Bar game. Toss rings onto the reindeer. Unscored." },
+      { name: "Snowball Toss", roundType: "Game", shortDescription: "Soft-ball toss", suggestions: "A target", description: "Named Jingle Bar game. Snowball toss for prizes. Unscored." },
+      { name: "Best Dressed", roundType: "Crowd", shortDescription: "Ugly sweater / Grinch", suggestions: "A costume", description: "Prizes for the most festive outfits — ugly sweater or surprise Grinch. Unscored." },
+      { name: "Cocktails & Carols", roundType: "Crowd", shortDescription: "Wednesday singalong", suggestions: "A carol", description: "Live carols and group singalongs. Swap this in on Wednesday nights. Unscored." },
+      { name: "Karaoke", roundType: "Crowd", shortDescription: "Christmas karaoke", suggestions: "A karaoke song", description: "Fri/Sat night overlay — Christmas karaoke. Swap for Cocktails & Carols. Unscored." },
+      { name: "Kids Karaoke", roundType: "Crowd", shortDescription: "Family singalong", suggestions: "A kids' carol", description: "Afternoon family sessions. Kids karaoke and singalongs. Unscored." },
+      { name: "Holiday Crafts", roundType: "Crowd", shortDescription: "Make a card", suggestions: "A card line", description: "Family craft corner — make-your-own cards. Unscored." },
+      { name: "Last Call", roundType: "Break", shortDescription: "Last round", suggestions: "A last-call chant", description: "Last pour and tab check. Unscored." },
+      { name: "Closing Time", roundType: "Outro", shortDescription: "Lights up", suggestions: "A closing carol", description: "Last song, lights, and goodnight. Unscored." },
     ],
   },
 ];
@@ -553,11 +675,45 @@ export function requireLoco(tag?: string | null): LocoConfig {
 export function getLocoBySlug(slug: string | string[] | undefined): LocoConfig | undefined {
   const s = Array.isArray(slug) ? slug[0] : slug;
   if (!s) return undefined;
-  return LOCOS.find((l) => l.slug === s) ?? LOCOS.find((l) => l.tag === s);
+  return (
+    LOCOS.find((l) => l.slug === s && !l.parentSlug) ??
+    LOCOS.find((l) => l.slug === s) ??
+    LOCOS.find((l) => l.tag === s)
+  );
+}
+
+/** Resolve `/{slug}` or `/{parent}/{act}` (e.g. /wedding-loco/ceremony). */
+export function getLocoByRoute(
+  slug?: string,
+  act?: string,
+): LocoConfig | undefined {
+  if (act) return LOCOS.find((l) => l.slug === act && l.parentSlug === slug);
+  return getLocoBySlug(slug);
+}
+
+/** Holiday designed-shows that HomeShow treats as bits (migrated house data). */
+export const HOMESHOW_HOLIDAYS: { tag: string; name: string; blurb: string }[] = [
+  { tag: "christmas", name: "Christmas", blurb: "Snow, lights and holiday scenes." },
+  { tag: "halloween", name: "Halloween", blurb: "Spooky window and yard projections." },
+  { tag: "newyear", name: "New Year", blurb: "Countdown and party screens." },
+  { tag: "july4", name: "4th of July", blurb: "Fireworks and summer night projections." },
+  { tag: "easter", name: "Easter", blurb: "Spring holiday projections." },
+  { tag: "mardigras", name: "Mardi Gras", blurb: "Beads, brass, balcony vibes." },
+  { tag: "stpatricks", name: "St. Patrick's", blurb: "Green lights and parade energy." },
+  { tag: "thanksgiving", name: "Thanksgiving", blurb: "Autumn ambience for the house." },
+  { tag: "valentines", name: "Valentine's", blurb: "Romantic scenes for date night." },
+  { tag: "superbowl", name: "Super Bowl", blurb: "Party screens for game day." },
+];
+
+export function isHomeShowHolidayTag(tag?: string | null): boolean {
+  return !!tag && HOMESHOW_HOLIDAYS.some((h) => h.tag === tag);
 }
 
 export function getLocoByTag(tag: string): LocoConfig | undefined {
-  return LOCOS.find((l) => l.tag === tag);
+  const exact = LOCOS.find((l) => l.tag === tag);
+  if (exact) return exact;
+  if (isHomeShowHolidayTag(tag)) return LOCOS.find((l) => l.tag === "homeshow");
+  return undefined;
 }
 
 /** Host-cued locos (Battle / Wrestle / Comedy / …) do not auto-advance. */
@@ -581,12 +737,22 @@ export function locoRoundTypes(loco: LocoConfig): string[] {
   return [...types];
 }
 
+export function locoChildren(parentSlug: string): LocoConfig[] {
+  return LOCOS.filter((l) => l.parentSlug === parentSlug);
+}
+
 export function locoPaths(slug: string) {
-  const base = `/locos/${slug}`;
+  const loco = getLocoBySlug(slug);
+  const base = loco?.parentSlug
+    ? `/${loco.parentSlug}/${loco.slug}`
+    : `/${loco?.slug ?? slug}`;
   return {
     hub: "/locos",
+    home: base,
     performances: `${base}/performances`,
     performance: `${base}/performance`,
+    designer: `${base}/designer`,
+    player: `${base}/player`,
     games: `${base}/games`,
     screen: (id: string) => `${base}/performance/screens/${id}`,
     overlay: (id: string, kind: string) =>
