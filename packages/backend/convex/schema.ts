@@ -111,9 +111,9 @@ export default defineSchema({
   shows: defineTable({
     title: v.string(),
     description: v.string(),
-    /** Sub-brand tag, e.g. "comedyloco" | "headcase" | "halloween". */
+    /** Sub-brand tag, e.g. "comedyloco" | "headcase" | "halloween" | "homeshow". */
     tag: v.optional(v.string()),
-    /** HeadCase/LaffUp library unit: a bit or sketch assembled into a set list. */
+    /** Set-list library unit: a bit or sketch (HeadCase, LaffUp, HomeShow holidays). */
     kind: v.optional(v.union(v.literal("bit"), v.literal("sketch"))),
     /** Catalog bucket this bit/sketch belongs to (Intro, Bit, Set, …). */
     roundType: v.optional(v.string()),
@@ -362,7 +362,7 @@ export default defineSchema({
     /** Last visual scene cued from that show. */
     activeSceneId: v.optional(v.id("scenes")),
     ownerId: v.id("users"),
-    /** Loco format (competition: comedyloco / battleloco / wrestleloco / thisgameshow; setlist: headcase / laffup / weddingloco / barloco). Untagged = comedyloco. */
+    /** Loco format (competition: comedyloco / battleloco / wrestleloco / thisgameshow; setlist: headcase / laffup / homeshow / weddingceremony / weddingreception / barloco). Untagged = comedyloco. */
     tag: v.optional(v.string()),
   }).index("by_tag", ["tag"]),
 

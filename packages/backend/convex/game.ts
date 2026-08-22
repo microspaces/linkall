@@ -2,7 +2,12 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { requireLoco, rowTag, type LocoConfig } from "./locos";
+import {
+  isHomeShowHolidayTag,
+  requireLoco,
+  rowTag,
+  type LocoConfig,
+} from "./locos";
 import {
   bucketScenes,
   GAME_INSTRUCTION_CUE,
@@ -25,7 +30,8 @@ import { enqueueSceneCommands } from "./sceneCommands";
  *     segment → end segment → next segment. No opponents, scores, or winners.
  *
  * Performances and catalog rows are tagged (`comedyloco` / `battleloco` /
- * `wrestleloco` / `headcase` / `laffup` / `thisgameshow` / `weddingloco` /
+ * `wrestleloco` / `headcase` / `laffup` / `thisgameshow` / `weddingceremony` /
+ * `weddingreception` /
  * `barloco`); untagged legacy rows count as Comedy Loco.
  */
 
@@ -421,8 +427,9 @@ export const listBits = query({
     const want = tag ? requireLoco(tag).tag : undefined;
     const shows = await ctx.db.query("shows").collect();
     const bits = shows.filter((s) => {
-      if (s.kind !== "bit" && s.kind !== "sketch") return false;
-      if (want && s.tag !== want) return false;
+      const holidayBit = want === "homeshow" && isHomeShowHolidayTag(s.tag);
+      if (s.kind !== "bit" && s.kind !== "sketch" && !holidayBit) return false;
+      if (want && s.tag !== want && !holidayBit) return false;
       return true;
     });
     bits.sort((a, b) => a.title.localeCompare(b.title));
@@ -596,6 +603,9 @@ export const create = mutation({
   },
   handler: async (ctx, { title, team1, team2, ownerId, tag, showId }) => {
     const loco = requireLoco(tag);
+    if (loco.mode === "hub") {
+      throw new Error("This show is a hub — open a set list instead.");
+    }
     const performanceId = await ctx.db.insert("performances", {
       title: title.trim(),
       team1: team1.trim() || loco.team1,

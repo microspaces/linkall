@@ -22,8 +22,7 @@ import { DesignedSceneStage } from "./shows";
 /**
  * Loco game-engine pages (Comedy Loco, Battle Loco, Wrestle Loco, HeadCase, LaffUp, This Game Show, Wedding Loco, Bar Loco, …).
  *
- * Routes live under `/locos/[slug]/{performances,performance,games}`. Comedy
- * Loco aliases at `/performances`, `/performance`, `/games` still work.
+ * Routes live under `/{slug}/{performances,performance,games}`.
  */
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;

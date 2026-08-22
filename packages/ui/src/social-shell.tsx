@@ -27,10 +27,9 @@ const CHROMELESS_PREFIXES = [
   "/preview",
   "/screens",
   "/camera",
-  "/performance/screens",
-  "/battle-loco",
-  "/wrestle-loco",
 ];
+
+const CHROMELESS_LANDINGS = ["/battle-loco", "/wrestle-loco"];
 
 const CHROMELESS_HOSTS = [
   "battleloco.com",
@@ -39,12 +38,26 @@ const CHROMELESS_HOSTS = [
   "www.wrestleloco.com",
 ];
 
+function isOperatorPath(pathname: string) {
+  return (
+    pathname.includes("/performances") ||
+    pathname.includes("/performance") ||
+    pathname.includes("/games")
+  );
+}
+
 function isChromeless(pathname: string, host?: string) {
-  if (host && CHROMELESS_HOSTS.includes(host)) return true;
   if (pathname.includes("/performance/screens")) return true;
   if (pathname.includes("/performance/overlay")) return true;
   if (pathname.includes("/performance/preview")) return true;
-  return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
+  if (pathname === "/player" || pathname.endsWith("/player")) return true;
+  if (CHROMELESS_LANDINGS.includes(pathname)) return true;
+  if (host && CHROMELESS_HOSTS.includes(host) && !isOperatorPath(pathname)) {
+    return true;
+  }
+  return CHROMELESS_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 }
 
 function GroupLink({ group }: { group: SidebarGroup }) {

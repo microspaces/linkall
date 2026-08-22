@@ -2,7 +2,14 @@ import { mutation } from "./_generated/server";
 import { MutationCtx } from "./_generated/server";
 import { Id, TableNames } from "./_generated/dataModel";
 import { christmasMikeScenes } from "./christmasMikeData";
-import { getLocoByTag, requireLoco, rowTag, type LocoConfig } from "./locos";
+import {
+  getLocoByTag,
+  HOMESHOW_HOLIDAYS,
+  isHomeShowHolidayTag,
+  requireLoco,
+  rowTag,
+  type LocoConfig,
+} from "./locos";
 import {
   overlayKindForTitle,
   overlayPath,
@@ -1074,7 +1081,7 @@ function slugForShow(show: { title: string; tag?: string }) {
 function phoneOverlayPath(slug: string | null) {
   return slug
     ? overlayPath(slug, "live")
-    : "/performance/overlay/live?id={performanceId}";
+    : "/comedy-loco/performance/overlay/live?id={performanceId}";
 }
 
 /**
@@ -2175,7 +2182,7 @@ async function bindSetlistRowsToBits(
     const shows = await ctx.db.query("shows").collect();
     const library = shows.filter(
       (s) =>
-        s.tag === tag &&
+        (s.tag === tag || (tag === "homeshow" && isHomeShowHolidayTag(s.tag))) &&
         (s.kind === "bit" || s.kind === "sketch") &&
         ids[s.title],
     );
@@ -2722,6 +2729,56 @@ export const surroundshow = mutation({
       ],
     });
 
+    const holidayName = Object.fromEntries(
+      HOMESHOW_HOLIDAYS.map((h) => [h.tag, h.name]),
+    );
+    const allShows = await ctx.db.query("shows").collect();
+    for (const show of allShows) {
+      if (!isHomeShowHolidayTag(show.tag)) continue;
+      await ctx.db.patch(show._id, {
+        kind: "bit",
+        roundType: holidayName[show.tag!] ?? show.tag,
+      });
+    }
+
+    const homeshow = requireLoco("homeshow");
+    const homeshowCatalog = await insertLocoCatalog(ctx, homeshow);
+    const homeshowId = await insertLocoDemo(
+      ctx,
+      users[0],
+      homeshow,
+      "HomeShow · Holiday House",
+      [
+        [1, "Intro", "Welcome Home", "", false],
+        [2, "Christmas", "Christmas", "", false],
+        [3, "Halloween", "Halloween", "", false],
+        [4, "New Year", "New Year", "", false],
+        [5, "Outro", "Goodnight", "", false],
+      ],
+      [
+        ["Ava", 1],
+        ["Max", 2],
+      ],
+      homeshowCatalog,
+      christmasShowId,
+    );
+    const homeRows = await ctx.db
+      .query("performanceGames")
+      .withIndex("by_performance", (q) => q.eq("performanceId", homeshowId))
+      .collect();
+    const holidayShows = (await ctx.db.query("shows").collect()).filter((s) =>
+      isHomeShowHolidayTag(s.tag),
+    );
+    for (const row of homeRows) {
+      const bit = holidayShows.find(
+        (s) =>
+          s.roundType?.toLowerCase() === row.roundType.toLowerCase() ||
+          s.title.toLowerCase() === row.gameName.toLowerCase() ||
+          s.tag === row.roundType.toLowerCase().replace(/\s+/g, ""),
+      );
+      if (bit) await ctx.db.patch(row._id, { bitShowId: bit._id, gameName: bit.title });
+    }
+
     const products: [string, string, number, string][] = [
       ["Haunted Window Pack", "Six ghost scenes tuned for rear projection.", 4900, "halloween"],
       ["Storm & Lightning Loop", "Seamless 10-minute storm with sound cues.", 1900, "halloween"],
@@ -2740,7 +2797,7 @@ export const surroundshow = mutation({
       });
     }
 
-    return "Seeded SurroundShow: 5 users, 12 groups, 4 shows (2 designer), 3 layouts, 3 display profiles, Battle Loco HyperX, 6 products";
+    return "Seeded SurroundShow: 5 users, 12 groups, 4 shows (2 designer), HomeShow holiday bits, 3 layouts, 3 display profiles, Battle Loco HyperX, 6 products";
   },
 });
 

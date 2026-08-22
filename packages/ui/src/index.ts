@@ -16,7 +16,7 @@ export { EventList } from "./events";
 export { Feed, PostComposer } from "./feed";
 export { formatDate, formatPrice, timeAgo } from "./format";
 export { GameCatalog } from "./games";
-export { LocoHub } from "./locos";
+export { LocoHub, LocoHome } from "./locos";
 export { GroupDetail, GroupList } from "./groups";
 export { HomeCommunity } from "./home-community";
 export { Landing } from "./landing";
