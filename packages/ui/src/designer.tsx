@@ -11,6 +11,11 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { expandEffectUrl } from "@linkall/backend/convex/sceneCues";
+import {
+  SCREEN_ROLES,
+  screenRoleOf,
+  type ScreenRole,
+} from "@linkall/backend/convex/venueLogic";
 import { CameraSubscribe } from "./camera";
 import { useCurrentUser } from "./current-user";
 import { EmptyState, Loading } from "./empty-state";
@@ -2009,6 +2014,9 @@ function ScreensTab() {
               onDelete={() => deleteScreen({ screenId: s._id })}
             >
               <span className="font-medium">{s.name}</span>
+              <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">
+                {screenRoleOf(s)}
+              </span>
             </Row>
           ))}
         </Column>
@@ -2052,6 +2060,31 @@ function ScreensTab() {
           ))}
         </Column>
       </div>
+
+      {screen ? (
+        <label className="flex items-center gap-2 text-xs text-gray-600">
+          Role
+          <select
+            className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            value={screenRoleOf(screen)}
+            onChange={(e) =>
+              void updateScreen({
+                screenId: screen._id,
+                role: e.target.value as ScreenRole,
+              })
+            }
+          >
+            {SCREEN_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <span className="text-gray-400">
+            Tablets play the show unless ordering. Ticket = bar board.
+          </span>
+        </label>
+      ) : null}
 
       {screen ? (
         <PanelEditor

@@ -31,6 +31,8 @@ import type * as sceneCues from "../sceneCues.js";
 import type * as seed from "../seed.js";
 import type * as shows from "../shows.js";
 import type * as users from "../users.js";
+import type * as venue from "../venue.js";
+import type * as venueLogic from "../venueLogic.js";
 
 import type {
   ApiFromModules,
@@ -62,6 +64,8 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   shows: typeof shows;
   users: typeof users;
+  venue: typeof venue;
+  venueLogic: typeof venueLogic;
 }>;
 
 /**

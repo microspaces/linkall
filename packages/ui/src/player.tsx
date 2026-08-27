@@ -23,6 +23,7 @@ import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PANEL_FILLS, PanelStage } from "./designer";
 import { Loading } from "./empty-state";
 import { useCurrentUser } from "./current-user";
+import { BarTickets, GuestOrderSheet } from "./service";
 
 /**
  * Legacy mobile Player + Screen pages.
@@ -436,6 +437,7 @@ function ScreenPicker() {
                           <span className="mt-0.5 block text-xs text-white/45">
                             {s.width}×{s.height}
                             {s.height > s.width ? " · portrait" : " · landscape"}
+                            {s.role && s.role !== "wall" ? ` · ${s.role}` : ""}
                             {isLast ? " · last used" : ""}
                           </span>
                         </span>
@@ -476,7 +478,10 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
   const [clockSec, setClockSec] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const advanceIfDue = useMutation(api.shows.advanceIfDue);
+  const startTabletOrder = useMutation(api.venue.startTabletOrder);
+  const endTabletOrder = useMutation(api.venue.endTabletOrder);
   const allScreens = useQuery(api.designer.listScreens, {});
+  const service = useQuery(api.venue.forScreen, { screenId });
 
   // Remember this output so /screens can highlight last used.
   useEffect(() => {
@@ -627,6 +632,26 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
     screen.panels.some((p) => p._id === screen.alignPanelId);
   const selectedShowOpt = options?.shows.find((s) => s.showId === binding?.showId);
   const profileChoices = selectedShowOpt?.profiles ?? [];
+  const playsShow = service ? service.playsShow : true;
+  const canSteal = !!service?.canStealToOrder;
+
+  if (!aligning && !dualCalibRole && service?.role === "ticket") {
+    return (
+      <div className="fixed inset-0 z-50">
+        <BarTickets />
+      </div>
+    );
+  }
+  if (!aligning && !dualCalibRole && service?.mode === "order") {
+    return (
+      <div className="fixed inset-0 z-50">
+        <GuestOrderSheet
+          screenId={screenId}
+          onDone={() => void endTabletOrder({ screenId })}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
@@ -649,7 +674,7 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
             screen={screen}
             alignPanelId={screen.alignPanelId!}
           />
-        ) : show && scene && show.status === "live" ? (
+        ) : playsShow && show && scene && show.status === "live" ? (
           <PanelStage
             screen={screen}
             effects={effects}
@@ -663,15 +688,18 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
           <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-600">
             <p className="text-2xl font-semibold">{screen.name}</p>
             <p className="text-sm">
-              {show
-                ? show.status === "live"
-                  ? "Waiting for a scene…"
-                  : `Bound to “${show.title}” — not live yet`
-                : "Waiting for a show…"}
+              {service?.role === "table" && !playsShow
+                ? "Table screens are off"
+                : show
+                  ? show.status === "live"
+                    ? "Waiting for a scene…"
+                    : `Bound to “${show.title}” — not live yet`
+                  : "Waiting for a show…"}
             </p>
             <p className="text-xs text-gray-700">
               {layoutName ? `${layoutName} · ` : ""}
               {screen.width}×{screen.height}
+              {service?.role ? ` · ${service.role}` : ""}
             </p>
           </div>
         )}
@@ -686,6 +714,15 @@ function ScreenOutputBound({ screenId }: { screenId: Id<"screens"> }) {
       >
         {pickerOpen ? "Hide" : "Setup"}
       </button>
+      {canSteal && (
+        <button
+          type="button"
+          onClick={() => void startTabletOrder({ screenId })}
+          className="absolute bottom-4 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-brand px-8 py-3 text-base font-semibold text-white shadow-lg"
+        >
+          Order
+        </button>
+      )}
 
       {pickerOpen && (
         <div className="absolute bottom-4 left-4 right-4 z-[60] mx-auto max-w-md rounded-lg border border-white/15 bg-black/80 p-4 text-white shadow-xl backdrop-blur-md">

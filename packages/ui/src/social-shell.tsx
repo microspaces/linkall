@@ -9,6 +9,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { useBrand } from "./brand-context";
 import { AuthUserMenu, useCurrentUser } from "./current-user";
+import { DocumentTitle } from "./document-title";
 import { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 
 /**
@@ -27,6 +28,8 @@ const CHROMELESS_PREFIXES = [
   "/preview",
   "/screens",
   "/camera",
+  "/order",
+  "/bar",
 ];
 
 const CHROMELESS_LANDINGS = ["/battle-loco", "/wrestle-loco"];
@@ -321,11 +324,17 @@ export function SocialShell({ children }: { children: ReactNode }) {
   const chromeless = isChromeless(pathname, host);
 
   if (chromeless) {
-    return <>{children}</>;
+    return (
+      <>
+        <DocumentTitle />
+        {children}
+      </>
+    );
   }
 
   return (
     <ThemeProvider>
+      <DocumentTitle />
       <SocialChrome pathname={pathname}>{children}</SocialChrome>
     </ThemeProvider>
   );

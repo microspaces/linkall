@@ -16,7 +16,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Wrestle Loco | Location TBA Las Vegas",
+  title: { absolute: "Wrestle Loco | Location TBA Las Vegas" },
   description:
     "Wrestle Loco — live pro wrestling chaos at Location TBA Las Vegas. Two teams. Crowd weapons. Fan refs. Phone-powered mayhem. Join the waitlist.",
 };

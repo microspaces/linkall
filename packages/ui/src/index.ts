@@ -38,3 +38,5 @@ export { ResourceBrowser, ResourceDetail } from "./resources";
 export { CameraCapture } from "./camera";
 export { DisplayPreview } from "./preview";
 export { DesignedSceneStage, ShowList, ShowPlayer } from "./shows";
+export { GuestNight } from "./guest-night";
+export { BarTickets, GuestOrderSheet, VenueSettings } from "./service";

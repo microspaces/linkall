@@ -16,7 +16,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Battle Loco | Hyperex Arena · Luxor Las Vegas",
+  title: { absolute: "Battle Loco | Hyperex Arena · Luxor Las Vegas" },
   description:
     "Battle Loco — the live competitive show at Hyperex Arena, Luxor Las Vegas. YouTubers, celebrities, and athletes. Games, chaos, crowd votes. Join the waitlist.",
 };

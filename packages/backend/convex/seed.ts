@@ -35,6 +35,12 @@ import {
  */
 
 const ALL_TABLES: TableNames[] = [
+  "serviceOrderLines",
+  "serviceOrders",
+  "placeClaims",
+  "menuItems",
+  "places",
+  "venues",
   "performanceTracks",
   "performanceOverlays",
   "performers",
@@ -1102,6 +1108,7 @@ async function ensurePhoneScreenOnShow(
   let phone = screens.find((s) => s.name.toLowerCase() === "phone");
   let panelId: Id<"panels"> | undefined;
   if (phone) {
+    if (phone.role !== "phone") await ctx.db.patch(phone._id, { role: "phone" });
     const panels = await ctx.db
       .query("panels")
       .withIndex("by_screen", (q) => q.eq("screenId", phone!._id))
@@ -1115,6 +1122,7 @@ async function ensurePhoneScreenOnShow(
       order,
       width: PHONE_CANVAS.width,
       height: PHONE_CANVAS.height,
+      role: "phone",
     });
     panelId = await ctx.db.insert("panels", {
       screenId,
@@ -2482,6 +2490,74 @@ async function insertWrestleLoco(
   return { showId, layoutId, screenIds };
 }
 
+/** Generic F&B venue — not tied to a loco. Additive-safe helper. */
+async function seedVenueService(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+  opts: { name: string; layoutId?: Id<"layouts"> },
+) {
+  const existing = await ctx.db.query("venues").collect();
+  if (existing.length > 0) return existing[0]!._id;
+
+  const venueId = await ctx.db.insert("venues", {
+    name: opts.name,
+    layoutId: opts.layoutId,
+    phoneOrdering: true,
+    phoneAsScreen: true,
+    tabletOrdering: true,
+    tabletAsScreen: true,
+    ownerId,
+  });
+
+  const places: Array<{
+    name: string;
+    kind: "seat" | "zone" | "booth" | "pickup";
+    code: string;
+  }> = [
+    { name: "GA Left", kind: "zone", code: "L" },
+    { name: "GA Center", kind: "zone", code: "C" },
+    { name: "GA Right", kind: "zone", code: "R" },
+    { name: "Bar pickup", kind: "pickup", code: "BAR" },
+  ];
+  for (let i = 1; i <= 12; i++) {
+    places.push({ name: `Seat ${i}`, kind: "seat", code: String(i) });
+  }
+  for (let i = 1; i <= 4; i++) {
+    places.push({ name: `Booth ${i}`, kind: "booth", code: `B${i}` });
+  }
+  for (let i = 0; i < places.length; i++) {
+    await ctx.db.insert("places", {
+      venueId,
+      name: places[i]!.name,
+      kind: places[i]!.kind,
+      code: places[i]!.code,
+      order: i,
+    });
+  }
+
+  const menu: Array<{
+    name: string;
+    description: string;
+    priceCents: number;
+    category: string;
+  }> = [
+    { name: "House beer", description: "Draft pint", priceCents: 800, category: "Drinks" },
+    { name: "House wine", description: "Red or white", priceCents: 1000, category: "Drinks" },
+    { name: "Soda", description: "Coke, sprite, water", priceCents: 400, category: "Drinks" },
+    { name: "Pretzel", description: "Salted, mustard on the side", priceCents: 700, category: "Food" },
+    { name: "Nachos", description: "Chips, cheese, jalapeños", priceCents: 1100, category: "Food" },
+  ];
+  for (let i = 0; i < menu.length; i++) {
+    await ctx.db.insert("menuItems", {
+      venueId,
+      ...menu[i]!,
+      isAvailable: true,
+      sort: i,
+    });
+  }
+  return venueId;
+}
+
 // ---------------------------------------------------------------- brands
 
 export const surroundshow = mutation({
@@ -2797,7 +2873,12 @@ export const surroundshow = mutation({
       });
     }
 
-    return "Seeded SurroundShow: 5 users, 12 groups, 4 shows (2 designer), HomeShow holiday bits, 3 layouts, 3 display profiles, Battle Loco HyperX, 6 products";
+    await seedVenueService(ctx, users[0], {
+      name: "House",
+      layoutId,
+    });
+
+    return "Seeded SurroundShow: 5 users, 12 groups, 4 shows (2 designer), HomeShow holiday bits, 3 layouts, 3 display profiles, Battle Loco HyperX, 6 products, venue service";
   },
 });
 
@@ -3151,7 +3232,12 @@ export const funfirst = mutation({
       await ctx.db.insert("events", { title, description, venue, startsAt, priceCents, capacity, ticketsSold });
     }
 
-    return "Seeded FunFirst: 6 users, 7 groups, 6 shows (3 designer), 3 layouts, 3 display profiles, 5 loco performances bound to cue shows, 7 events";
+    await seedVenueService(ctx, users[0], {
+      name: "Main Room",
+      layoutId,
+    });
+
+    return "Seeded FunFirst: 6 users, 7 groups, 6 shows (3 designer), 3 layouts, 3 display profiles, 5 loco performances bound to cue shows, 7 events, venue service";
   },
 });
 
@@ -3719,5 +3805,21 @@ export const phoneScreens = mutation({
       urls: results.reduce((n, r) => n + r.urls, 0),
       results,
     };
+  },
+});
+
+/** Additive: venue + places + menu if none exist yet. */
+export const venueService = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const owner = users[0];
+    if (!owner) throw new Error("Seed users first");
+    const layouts = await ctx.db.query("layouts").collect();
+    const id = await seedVenueService(ctx, owner._id, {
+      name: "Main Room",
+      layoutId: layouts[0]?._id,
+    });
+    return { venueId: id };
   },
 });

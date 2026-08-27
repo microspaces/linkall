@@ -5,7 +5,10 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: brands.funfirst.name,
+  title: {
+    default: brands.funfirst.name,
+    template: `%s · ${brands.funfirst.name}`,
+  },
   description: brands.funfirst.description,
 };
 

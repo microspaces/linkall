@@ -169,6 +169,21 @@ export default defineSchema({
      * the legacy "tap a panel on the Player to align it" SignalR flow.
      */
     alignPanelId: v.optional(v.id("panels")),
+    /**
+     * How this output participates at a venue. Missing = infer from name,
+     * else wall. Tablets steal to order; ticket outputs show the bar board;
+     * phone is the shared audience-phone canvas (not a per-guest steal).
+     */
+    role: v.optional(
+      v.union(
+        v.literal("wall"),
+        v.literal("table"),
+        v.literal("phone"),
+        v.literal("ticket"),
+      ),
+    ),
+    /** Local steal on a table screen. Align still uses alignPanelId. */
+    mode: v.optional(v.union(v.literal("show"), v.literal("order"))),
   }).index("by_layout", ["layoutId"]),
 
   /**
@@ -459,4 +474,88 @@ export default defineSchema({
     parentId: v.optional(v.id("resources")),
     order: v.number(),
   }).index("by_parent", ["parentId"]),
+
+  // ---- venue service (seats / booths / phones / tablets → bar tickets) ----
+  // Not bound to a loco or show. Operator toggles phone vs tablet features
+  // per venue. Event `tickets` stay admission; these are F&B service tickets.
+  venues: defineTable({
+    name: v.string(),
+    layoutId: v.optional(v.id("layouts")),
+    phoneOrdering: v.boolean(),
+    phoneAsScreen: v.boolean(),
+    tabletOrdering: v.boolean(),
+    tabletAsScreen: v.boolean(),
+    ownerId: v.id("users"),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_layout", ["layoutId"]),
+
+  places: defineTable({
+    venueId: v.id("venues"),
+    name: v.string(),
+    kind: v.union(
+      v.literal("seat"),
+      v.literal("zone"),
+      v.literal("booth"),
+      v.literal("pickup"),
+    ),
+    /** Sticker / QR code guests type (e.g. "14", "L", "BAR"). */
+    code: v.optional(v.string()),
+    order: v.number(),
+    /** Booth tablet bound to this place, if any. */
+    screenId: v.optional(v.id("screens")),
+  })
+    .index("by_venue", ["venueId"])
+    .index("by_venue_code", ["venueId", "code"])
+    .index("by_screen", ["screenId"]),
+
+  menuItems: defineTable({
+    venueId: v.id("venues"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    priceCents: v.number(),
+    category: v.string(),
+    isAvailable: v.boolean(),
+    sort: v.number(),
+  }).index("by_venue", ["venueId"]),
+
+  placeClaims: defineTable({
+    venueId: v.id("venues"),
+    placeId: v.id("places"),
+    guestKey: v.string(),
+    userId: v.optional(v.id("users")),
+    claimedAt: v.number(),
+  })
+    .index("by_venue_guest", ["venueId", "guestKey"])
+    .index("by_place", ["placeId"]),
+
+  serviceOrders: defineTable({
+    venueId: v.id("venues"),
+    placeId: v.id("places"),
+    placeName: v.string(),
+    guestKey: v.string(),
+    userId: v.optional(v.id("users")),
+    screenId: v.optional(v.id("screens")),
+    status: v.union(
+      v.literal("new"),
+      v.literal("making"),
+      v.literal("ready"),
+      v.literal("delivered"),
+      v.literal("canceled"),
+    ),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_venue", ["venueId"])
+    .index("by_venue_status", ["venueId", "status"])
+    .index("by_place", ["placeId"])
+    .index("by_venue_guest", ["venueId", "guestKey"]),
+
+  serviceOrderLines: defineTable({
+    orderId: v.id("serviceOrders"),
+    menuItemId: v.optional(v.id("menuItems")),
+    name: v.string(),
+    priceCents: v.number(),
+    quantity: v.number(),
+  }).index("by_order", ["orderId"]),
 }, { schemaValidation: false });

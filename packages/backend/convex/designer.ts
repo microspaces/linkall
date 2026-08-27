@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { KEY_FILL_LOGICALS } from "./rossRig";
+import { inferScreenRole } from "./venueLogic";
 
 /**
  * Show designer backend (legacy: Homeshow/Surroundshow Designer page).
@@ -42,6 +43,7 @@ export const listScreens = query({
       order: number;
       layoutId: Id<"layouts">;
       layoutName: string;
+      role: "wall" | "table" | "phone" | "ticket";
     }> = [];
 
     for (const layout of layouts) {
@@ -59,6 +61,7 @@ export const listScreens = query({
           order: screen.order,
           layoutId: layout._id,
           layoutName: layout.name,
+          role: screen.role ?? inferScreenRole(screen.name),
         });
       }
     }
@@ -898,26 +901,54 @@ export const deleteLayout = mutation({
 // ----------------------------------------------------- screen mutations
 
 export const createScreen = mutation({
-  args: { layoutId: v.id("layouts"), name: v.string() },
-  handler: async (ctx, { layoutId, name }) => {
+  args: {
+    layoutId: v.id("layouts"),
+    name: v.string(),
+    role: v.optional(
+      v.union(
+        v.literal("wall"),
+        v.literal("table"),
+        v.literal("phone"),
+        v.literal("ticket"),
+      ),
+    ),
+  },
+  handler: async (ctx, { layoutId, name, role }) => {
     const screens = await ctx.db
       .query("screens")
       .withIndex("by_layout", (q) => q.eq("layoutId", layoutId))
       .collect();
+    const portrait = (role ?? inferScreenRole(name)) === "phone";
     return await ctx.db.insert("screens", {
       layoutId,
       name,
       order: screens.length,
-      width: 800,
-      height: 600,
+      width: portrait ? 390 : 800,
+      height: portrait ? 844 : 600,
+      role: role ?? inferScreenRole(name),
     });
   },
 });
 
 export const updateScreen = mutation({
-  args: { screenId: v.id("screens"), name: v.string() },
-  handler: async (ctx, { screenId, name }) => {
-    await ctx.db.patch(screenId, { name });
+  args: {
+    screenId: v.id("screens"),
+    name: v.optional(v.string()),
+    role: v.optional(
+      v.union(
+        v.literal("wall"),
+        v.literal("table"),
+        v.literal("phone"),
+        v.literal("ticket"),
+      ),
+    ),
+  },
+  handler: async (ctx, { screenId, name, role }) => {
+    const patch: { name?: string; role?: "wall" | "table" | "phone" | "ticket" } =
+      {};
+    if (name !== undefined) patch.name = name;
+    if (role !== undefined) patch.role = role;
+    await ctx.db.patch(screenId, patch);
   },
 });
 

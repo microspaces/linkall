@@ -36,6 +36,11 @@ export function Landing() {
       title: "Events & Tickets",
       body: "Grab tickets to live nights before they sell out.",
     },
+    brand.features.venueService && {
+      href: "/venue",
+      title: "Venue service",
+      body: "Seats and booths, phones and tablets, tickets on the bar iPad. Toggle each device class per night.",
+    },
     brand.features.resources && {
       href: "/resources",
       title: "Resource Library",

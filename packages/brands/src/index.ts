@@ -46,6 +46,11 @@ export interface Brand {
     resources: boolean;
     /** State / county organizing groups. */
     states: boolean;
+    /**
+     * Venue service: seats/booths, phone/tablet ordering, bar ticket board.
+     * Per-venue toggles (phones vs tablets) live in Convex, not here.
+     */
+    venueService: boolean;
   };
   nav: NavItem[];
   /** Sub-brands surfaced as show categories (legacy Site 2 brands). */
@@ -82,6 +87,7 @@ export const brands: Record<BrandId, Brand> = {
       events: false,
       resources: false,
       states: false,
+      venueService: true,
     },
     nav: [
       { label: "Shows", href: "/shows" },
@@ -93,6 +99,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "Reception", href: "/wedding-reception" },
       { label: "Bar Loco", href: "/bar-loco" },
       { label: "Marketplace", href: "/market" },
+      { label: "Venue", href: "/venue" },
       { label: "Groups", href: "/groups" },
       { label: "Feed", href: "/feed" },
       { label: "People", href: "/people" },
@@ -137,6 +144,7 @@ export const brands: Record<BrandId, Brand> = {
       events: true,
       resources: false,
       states: false,
+      venueService: true,
     },
     nav: [
       { label: "Shows", href: "/shows" },
@@ -145,6 +153,7 @@ export const brands: Record<BrandId, Brand> = {
       { label: "Preview", href: "/preview" },
       { label: "Locos", href: "/locos" },
       { label: "Events & Tickets", href: "/events" },
+      { label: "Venue", href: "/venue" },
       { label: "Solutions", href: "/groups" },
       { label: "Feed", href: "/feed" },
       { label: "People", href: "/people" },
@@ -182,6 +191,7 @@ export const brands: Record<BrandId, Brand> = {
       events: false,
       resources: true,
       states: true,
+      venueService: false,
     },
     nav: [
       { label: "Resources", href: "/resources" },

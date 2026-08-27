@@ -737,6 +737,13 @@ export function locoRoundTypes(loco: LocoConfig): string[] {
   return [...types];
 }
 
+/** Browser tab / metadata title bits for `/{slug}` or `/{parent}/{act}`. */
+export function locoLayoutTitle(slug?: string, act?: string) {
+  const loco = getLocoByRoute(slug, act) ?? getLocoBySlug(slug);
+  const name = loco?.name ?? "Show";
+  return { default: name, template: `${name} · %s` };
+}
+
 export function locoChildren(parentSlug: string): LocoConfig[] {
   return LOCOS.filter((l) => l.parentSlug === parentSlug);
 }

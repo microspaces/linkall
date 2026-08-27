@@ -40,6 +40,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="order"
+        options={{
+          title: "Order",
+          href: brand.features.venueService ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="fast-food" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",

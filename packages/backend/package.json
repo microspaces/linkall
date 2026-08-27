@@ -14,6 +14,7 @@
     "seed:wrestleLoco": "convex run seed:wrestleLoco --env-file .env.funfirst",
     "seed:locoCueShows": "convex run seed:locoCueShows --env-file .env.funfirst",
     "seed:phoneScreens": "convex run seed:phoneScreens --env-file .env.funfirst",
+    "seed:venueService": "convex run seed:venueService --env-file .env.funfirst",
     "seed:setlistBits": "convex run seed:setlistBits --env-file .env.funfirst",
     "import:mike": "node migrations/import-mike.mjs",
     "import:linkall8": "node migrations/import-linkall8.mjs",

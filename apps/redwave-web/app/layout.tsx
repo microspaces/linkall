@@ -5,7 +5,10 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: brands.redwave.name,
+  title: {
+    default: brands.redwave.name,
+    template: `%s · ${brands.redwave.name}`,
+  },
   description: brands.redwave.description,
 };
 

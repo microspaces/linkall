@@ -5,7 +5,10 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: brands.surroundshow.name,
+  title: {
+    default: brands.surroundshow.name,
+    template: `%s · ${brands.surroundshow.name}`,
+  },
   description: brands.surroundshow.description,
 };
 
