@@ -23,6 +23,26 @@
         }
       ],
       "destination": "/battle-loco"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "comedyloco.com"
+        }
+      ],
+      "destination": "/comedy-loco"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.comedyloco.com"
+        }
+      ],
+      "destination": "/comedy-loco"
     }
   ]
 }
