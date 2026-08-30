@@ -19,9 +19,9 @@ export default function ComedyLocoPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/comedy-loco/images/hero.jpg"
-              alt="League of Laughs comedy stage triptych: performers in yellow Bananas jerseys and a black pinstripe jersey under warm orange and blue stage lights"
-              width={3725}
-              height={1539}
+              alt="Seven Comedy Loco performers on a League of Laughs stage: yellow Bananas jerseys versus dark jerseys, with League of Laughs banners and a Bananas 7 scoreboard"
+              width={2261}
+              height={1085}
               fetchPriority="high"
             />
             <div className="cl-hero__veil" aria-hidden="true" />
@@ -115,6 +115,17 @@ export default function ComedyLocoPage() {
               </p>
             </div>
 
+            <figure className="cl-media-frame cl-media-frame--wide mt-10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/comedy-loco/images/how-it-works.jpg"
+                alt="Balloon Battle on a League of Laughs stage: two performers at a table of red cups under LED screens showing the game and rules"
+                width={2129}
+                height={1469}
+                loading="lazy"
+              />
+            </figure>
+
             <div className="cl-experience-grid mt-12">
               <article className="cl-xp-item">
                 <div className="cl-xp-item__num" aria-hidden="true">01</div>
@@ -169,13 +180,13 @@ export default function ComedyLocoPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/comedy-loco/images/teams.jpg"
-                alt="Banana Peels in yellow jerseys and Comedy Clubtrotters in dark jerseys with red and blue trim, seven performers on stage under a League of Laughs backdrop"
-                width={1600}
-                height={1067}
+                alt="Three-panel Comedy Loco stage triptych: a performer in a yellow Bananas jersey, the same night at a table of bits under League of Laughs screens, and a performer in a black pinstripe jersey"
+                width={3725}
+                height={1539}
                 loading="lazy"
               />
               <figcaption className="cl-media-caption">
-                Yellow vs dark jerseys. Funny vs funnier. The crowd breaks the tie.
+                Bananas jersey. Table of bits. Black pinstripe. League of Laughs on the screens.
               </figcaption>
             </figure>
 
