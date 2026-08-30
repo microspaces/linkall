@@ -7,7 +7,7 @@ import type { Id } from "@linkall/backend/convex/_generated/dataModel";
 const OVERLAY_ART: Record<string, string> = {
   "battle-loco": "https://battleloco.com/battle-loco/images/hero.jpg",
   "wrestle-loco": "/wrestle-loco/images/hero.jpg",
-  "comedy-loco": "https://battleloco.com/battle-loco/images/hero.jpg",
+  "comedy-loco": "/comedy-loco/images/hero.jpg",
 };
 
 export default function LocoPerformanceOverlayPage() {

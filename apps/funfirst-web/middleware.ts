@@ -22,6 +22,12 @@ export default convexAuthNextjsMiddleware(
     ) {
       return NextResponse.rewrite(new URL("/wrestle-loco", request.url));
     }
+    if (
+      (host === "comedyloco.com" || host === "www.comedyloco.com") &&
+      request.nextUrl.pathname === "/"
+    ) {
+      return NextResponse.rewrite(new URL("/comedy-loco", request.url));
+    }
 
     if (isSignInPage(request) && (await convexAuth.isAuthenticated())) {
       return nextjsMiddlewareRedirect(request, "/");
