@@ -254,10 +254,10 @@ html {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(11, 7, 8, 0.55) 0%, rgba(11, 7, 8, 0.35) 35%, rgba(11, 7, 8, 0.78) 70%, rgba(11, 7, 8, 0.96) 100%),
-    linear-gradient(90deg, rgba(11, 7, 8, 0.55) 0%, transparent 45%),
-    radial-gradient(ellipse at 70% 40%, rgba(255, 176, 32, 0.2), transparent 45%),
-    radial-gradient(ellipse at 30% 60%, rgba(155, 45, 138, 0.18), transparent 40%);
+    linear-gradient(180deg, rgba(11, 7, 8, 0.62) 0%, rgba(11, 7, 8, 0.5) 35%, rgba(11, 7, 8, 0.84) 70%, rgba(11, 7, 8, 0.97) 100%),
+    linear-gradient(90deg, rgba(11, 7, 8, 0.6) 0%, rgba(11, 7, 8, 0.28) 45%, rgba(11, 7, 8, 0.45) 100%),
+    radial-gradient(ellipse at 70% 40%, rgba(255, 176, 32, 0.16), transparent 45%),
+    radial-gradient(ellipse at 30% 60%, rgba(155, 45, 138, 0.14), transparent 40%);
 }
 
 .cl-hero__content {

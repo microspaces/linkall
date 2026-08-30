@@ -19,9 +19,9 @@ export default function ComedyLocoPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/comedy-loco/images/hero.jpg"
-              alt="Wide shot of a comedy stage under warm amber and navy lights with two improv teams and a packed Las Vegas crowd"
-              width={1920}
-              height={1080}
+              alt="League of Laughs comedy stage triptych: performers in yellow Bananas jerseys and a black pinstripe jersey under warm orange and blue stage lights"
+              width={3725}
+              height={1539}
               fetchPriority="high"
             />
             <div className="cl-hero__veil" aria-hidden="true" />
