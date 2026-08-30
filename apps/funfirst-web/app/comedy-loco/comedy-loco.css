@@ -253,11 +253,12 @@ html {
 .cl-hero__veil {
   position: absolute;
   inset: 0;
+  /* Darker lineup photo: lighter mid-frame so banners stay visible, keep bottom/left for type */
   background:
-    linear-gradient(180deg, rgba(11, 7, 8, 0.62) 0%, rgba(11, 7, 8, 0.5) 35%, rgba(11, 7, 8, 0.84) 70%, rgba(11, 7, 8, 0.97) 100%),
-    linear-gradient(90deg, rgba(11, 7, 8, 0.6) 0%, rgba(11, 7, 8, 0.28) 45%, rgba(11, 7, 8, 0.45) 100%),
-    radial-gradient(ellipse at 70% 40%, rgba(255, 176, 32, 0.16), transparent 45%),
-    radial-gradient(ellipse at 30% 60%, rgba(155, 45, 138, 0.14), transparent 40%);
+    linear-gradient(180deg, rgba(11, 7, 8, 0.48) 0%, rgba(11, 7, 8, 0.3) 38%, rgba(11, 7, 8, 0.76) 72%, rgba(11, 7, 8, 0.95) 100%),
+    linear-gradient(90deg, rgba(11, 7, 8, 0.5) 0%, rgba(11, 7, 8, 0.12) 50%, rgba(11, 7, 8, 0.3) 100%),
+    radial-gradient(ellipse at 70% 40%, rgba(255, 176, 32, 0.14), transparent 45%),
+    radial-gradient(ellipse at 30% 60%, rgba(155, 45, 138, 0.12), transparent 40%);
 }
 
 .cl-hero__content {
@@ -482,9 +483,15 @@ html {
   aspect-ratio: 21 / 9;
 }
 
+.cl-section-how .cl-media-frame--wide img {
+  /* how-it-works.jpg is 2129x1469 (~3:2); keep screens + table in frame */
+  aspect-ratio: 2129 / 1469;
+  object-position: center center;
+}
+
 .cl-media-frame--lineup img {
-  /* teams.jpg is 2261x1085 (~2.08:1); match it so the full lineup stays in frame */
-  aspect-ratio: 2261 / 1085;
+  /* teams.jpg is 3725x1539 (~2.42:1); match the triptych so all three panels stay in frame */
+  aspect-ratio: 3725 / 1539;
   object-fit: cover;
   object-position: center center;
 }
@@ -494,8 +501,13 @@ html {
     aspect-ratio: 16 / 10;
   }
 
+  .cl-section-how .cl-media-frame--wide img {
+    aspect-ratio: 2129 / 1469;
+    object-position: center center;
+  }
+
   .cl-media-frame--lineup img {
-    aspect-ratio: 2261 / 1085;
+    aspect-ratio: 3725 / 1539;
     object-position: center center;
   }
 
