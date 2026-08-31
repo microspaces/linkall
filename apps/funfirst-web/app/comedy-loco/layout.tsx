@@ -18,7 +18,7 @@ const sora = Sora({
 export const metadata: Metadata = {
   title: { absolute: "Comedy Loco | Location TBA Las Vegas" },
   description:
-    "Comedy Loco — competitive improv comedy at Location TBA Las Vegas. Two teams. Short-form games. Crowd suggestions. Phone-powered voting. Join the waitlist.",
+    "Comedy Loco - live competitive comedy in Las Vegas. 2 teams, Celebrity Superstars, cheers choose the winner. Fast comedy, games, points that count. Join the waitlist.",
 };
 
 export default function ComedyLocoLayout({ children }: { children: ReactNode }) {
