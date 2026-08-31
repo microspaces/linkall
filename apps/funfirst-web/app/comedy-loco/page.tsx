@@ -24,8 +24,8 @@ export default function ComedyLocoPage() {
               height={1085}
               fetchPriority="high"
             />
-            <div className="cl-hero__veil" aria-hidden="true" />
           </div>
+          <div className="cl-hero__veil" aria-hidden="true" />
 
           <div className="cl-hero__content mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-end px-5 pb-16 pt-16 md:justify-center md:px-8 md:pb-24 md:pt-20">
             <p className="cl-hero__location cl-reveal">
@@ -38,7 +38,7 @@ export default function ComedyLocoPage() {
             </h1>
 
             <p className="cl-hero__tagline cl-reveal cl-reveal-delay-2">
-              Two improv teams. Crowd picks the winner.<br className="hidden sm:block" />
+              2 teams. Celebrity Superstars, Cheers choose the winner<br className="hidden sm:block" />
               Whose Line energy with a scoreboard.
             </p>
 
@@ -65,15 +65,14 @@ export default function ComedyLocoPage() {
                 <span style={{ color: "var(--banana)" }}>The crowd calls it.</span>
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
-                Competitive improv: Whose Line Is It Anyway energy, ComedySportz-style
-                team vs team. Two squads of improvisers face off in short-form games —
-                scenes, line games, singing games — while the audience shouts the
-                suggestions and votes the winners from their phones.
+                Competitive Comedy: Whose Line Is It Anyway energy, team vs team.
+                2 teams face off in games — scenes, line games, singing games — while the
+                audience shouts the suggestions and votes the winners from their phones.
               </p>
               <ul className="cl-feature-list mt-8">
                 <li>
                   <span className="cl-feature-list__icon cl-feature-list__icon--banana" aria-hidden="true" />
-                  Short-form games — scenes, lines, music, challenges, jokes
+                  Games — scenes, lines, music, challenges, jokes
                 </li>
                 <li>
                   <span className="cl-feature-list__icon cl-feature-list__icon--berry" aria-hidden="true" />
@@ -107,24 +106,13 @@ export default function ComedyLocoPage() {
             <div className="mx-auto max-w-2xl text-center">
               <p className="cl-eyebrow cl-eyebrow--center">How a show works</p>
               <h2 id="how-heading" className="cl-section-title">
-                A referee. A stack of games. Points that are made up.
+                A referee. A stack of games. Points that count.
               </h2>
               <p className="mt-4 text-base text-white/65 md:text-lg">
-                Short-form comedy, live scoring, and a crowd that refuses to sit quietly —
+                Fast comedy, live scoring, and a crowd that refuses to sit quietly —
                 your phone is part of the cast.
               </p>
             </div>
-
-            <figure className="cl-media-frame cl-media-frame--wide mt-10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/comedy-loco/images/how-it-works.jpg"
-                alt="Balloon Battle on a League of Laughs stage: two performers at a table of red cups under LED screens showing the game and rules"
-                width={2129}
-                height={1469}
-                loading="lazy"
-              />
-            </figure>
 
             <div className="cl-experience-grid mt-12">
               <article className="cl-xp-item">
@@ -168,11 +156,13 @@ export default function ComedyLocoPage() {
           <div className="mx-auto max-w-6xl px-5 md:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <p className="cl-eyebrow cl-eyebrow--center">The Teams</p>
-              <h2 id="teams-heading" className="cl-section-title">
-                Banana Peels vs Comedy Clubtrotters.
+              <h2 id="teams-heading" className="cl-section-title cl-teams-heading">
+                <span className="cl-teams-heading__name">Banana Peels</span>
+                <span className="cl-teams-heading__vs">VS</span>
+                <span className="cl-teams-heading__name">Comedy Clubtrotters.</span>
               </h2>
               <p className="mt-4 text-base text-white/65 md:text-lg">
-                Two improv teams. One scoreboard. Pick a side and yell accordingly.
+                2 teams. One scoreboard. Pick a side and yell accordingly.
               </p>
             </div>
 
@@ -217,6 +207,7 @@ export default function ComedyLocoPage() {
           <div className="mx-auto max-w-6xl px-5 md:px-8">
             <div className="cl-waitlist-panel">
               <div className="cl-waitlist-panel__glow" aria-hidden="true" />
+              <div className="cl-waitlist-panel__glow cl-waitlist-panel__glow--berry" aria-hidden="true" />
 
               <div className="relative z-10 mx-auto max-w-xl text-center">
                 <p className="cl-eyebrow cl-eyebrow--center">Don&apos;t miss the drop</p>
@@ -291,17 +282,17 @@ export default function ComedyLocoPage() {
               <span className="cl-brand-mark__loco">Loco</span>
             </a>
             <p className="mt-2 text-sm text-white/45">
-            Location TBA Hotel &amp; Casino · Las Vegas
+              Location TBA Hotel &amp; Casino · Las Vegas
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-5 text-sm text-white/55">
+          <nav className="flex flex-wrap items-center gap-5 text-sm text-white/55" aria-label="Footer">
             <a href="#waitlist" className="cl-footer-link">Waitlist</a>
             <a href="mailto:hello@comedyloco.com" className="cl-footer-link">Contact</a>
             <a href="#" className="cl-footer-link" aria-label="Instagram (placeholder)">Instagram</a>
             <a href="#" className="cl-footer-link" aria-label="X / Twitter (placeholder)">X</a>
             <a href="#" className="cl-footer-link" aria-label="TikTok (placeholder)">TikTok</a>
-          </div>
+          </nav>
 
           <p className="text-xs text-white/35 md:text-right">
             © {year} Comedy Loco. All rights reserved.
