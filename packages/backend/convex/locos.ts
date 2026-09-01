@@ -70,6 +70,9 @@ export type LocoConfig = {
   catalogHint: string;
   team1: string;
   team2: string;
+  /** Short name for scoreboard / chant copy. Comedy Loco only. */
+  team1Nick?: string;
+  team2Nick?: string;
   accent: string;
   templateRounds: TemplateRound[];
   overlays: string[];
@@ -106,13 +109,15 @@ export const LOCOS: LocoConfig[] = [
     brand: "funfirst",
     mode: "competition",
     blurb:
-      "Team game show: Bananas vs Berries, live scoring and audience votes.",
+      "Team game show: Banana Peels vs Comedy Clubtrotters, live scoring and audience votes.",
     listHint:
       "Live comedy game nights — run the console, drive overlays, and push the venue screen.",
     catalogHint:
       "Assign these on a performance so the console knows the type and how to score the round.",
-    team1: "Bananas",
-    team2: "Berries",
+    team1: "Banana Peels",
+    team2: "Comedy Clubtrotters",
+    team1Nick: "Bananas",
+    team2Nick: "Clubtrotters",
     accent: "from-amber-400 to-orange-500",
     templateRounds: [
       { round: 1, roundType: "Intro", isScored: false },

@@ -19,8 +19,6 @@ import type * as events from "../events.js";
 import type * as game from "../game.js";
 import type * as geo from "../geo.js";
 import type * as groups from "../groups.js";
-import type * as headcaseBits from "../headcaseBits.js";
-import type * as headcaseBitsData from "../headcaseBitsData.js";
 import type * as http from "../http.js";
 import type * as importLegacy from "../importLegacy.js";
 import type * as importLinkAll8 from "../importLinkAll8.js";
@@ -57,8 +55,6 @@ declare const fullApi: ApiFromModules<{
   game: typeof game;
   geo: typeof geo;
   groups: typeof groups;
-  headcaseBits: typeof headcaseBits;
-  headcaseBitsData: typeof headcaseBitsData;
   http: typeof http;
   importLegacy: typeof importLegacy;
   importLinkAll8: typeof importLinkAll8;

@@ -2918,7 +2918,7 @@ export const funfirst = mutation({
     await insertPosts(
       ctx,
       [
-        { content: "Comedy Loco Championship goes LIVE Friday — Bananas need this one.", groupIndex: 0 },
+        { content: "Comedy Loco Championship goes LIVE Friday — Banana Peels need this one.", groupIndex: 0 },
         { content: "New HeadCase bit in the show queue: 'My Smart Fridge Judges Me'.", groupIndex: 1 },
         { content: "WWCCE title match ended with a folding-chair pun. Cinema.", groupIndex: 6 },
         { content: "Five spots left for Thursday open mic — sign up in the events page!", groupIndex: 2 },
@@ -2931,12 +2931,12 @@ export const funfirst = mutation({
 
     await insertShow(ctx, {
       title: "Comedy Loco Championship",
-      description: "Bananas vs Berries. Three rounds, live audience voting, one champion.",
+      description: "Banana Peels vs Comedy Clubtrotters. Three rounds, live audience voting, one champion.",
       tag: "comedyloco",
       status: "live",
       owner: users[0],
       scenes: [
-        { title: "Team Intros", kind: "title", content: "BANANAS vs BERRIES" },
+        { title: "Team Intros", kind: "title", content: "BANANA PEELS vs COMEDY CLUBTROTTERS" },
         { title: "Round 1", kind: "text", content: "Improv relay — audience picks the scenario." },
         { title: "Scoreboard", kind: "score", content: JSON.stringify({ bananas: 12, berries: 9 }) },
         { title: "Round 2", kind: "text", content: "Physical challenge: the Great Fruit Carry." },
@@ -3017,12 +3017,12 @@ export const funfirst = mutation({
     ][] = [
       ["Warmup", 60, "#14532d", "WARMUP"],
       ["Introduction", 20, "#1e3a8a", "INTRODUCING", true],
-      ["Team Intros", 90, "#1e3a8a", "BANANAS vs BERRIES"],
+      ["Team Intros", 90, "#1e3a8a", "BANANA PEELS vs COMEDY CLUBTROTTERS"],
       ["Game Instructions", 30, "#7c2d12", "PLAY THIS", true],
       ["Round 1", 120, "#7c2d12", "ROUND 1"],
       ["Vote", 20, "#b45309", "VOTE!", true],
-      ["Winner Bananas", 15, "#ca8a04", "BANANAS WIN", true],
-      ["Winner Berries", 15, "#db2777", "BERRIES WIN", true],
+      ["Winner Banana Peels", 15, "#ca8a04", "BANANA PEELS WIN", true],
+      ["Winner Comedy Clubtrotters", 15, "#db2777", "COMEDY CLUBTROTTERS WIN", true],
       ["Score Rotation", 15, "#0369a1", "ROTATION", true],
       ["Score", 20, "#0f766e", "SCORE", true],
       ["Halftime", 45, "#4c1d95", "HALFTIME"],
@@ -3054,7 +3054,7 @@ export const funfirst = mutation({
         ["Background", "color", "#0f172a", 0, undefined],
         ["LeftSidebar", "color", wingColor, 0, undefined],
         ["RightSidebar", "color", wingColor, 0, undefined],
-        ["Scoreboard", "text", `Bananas ${10 + s} – ${8 + s} Berries`, 0, undefined],
+        ["Scoreboard", "text", `Banana Peels ${10 + s} – ${8 + s} Comedy Clubtrotters`, 0, undefined],
         ["MainContent", "text", centerText, 0, 30],
         ["MainContent", "color", "#fbbf24", 30, 15],
       ];
@@ -3224,7 +3224,7 @@ export const funfirst = mutation({
     const day = 24 * 60 * 60 * 1000;
     const events: [string, string, string, number, number, number, number][] = [
       ["FunFirst Comedy Night", "Stand-up showcase with five headliners.", "The Chuckle Hut, Austin TX", now + 3 * day, 2500, 120, 74],
-      ["Comedy Loco Live Championship", "Bananas vs Berries with live audience voting.", "Rialto Arena, Austin TX", now + 7 * day, 3500, 400, 312],
+      ["Comedy Loco Live Championship", "Banana Peels vs Comedy Clubtrotters with live audience voting.", "Rialto Arena, Austin TX", now + 7 * day, 3500, 400, 312],
       ["LaffUp Open Mic", "Ten five-minute sets. Sign up at the door.", "LaffUp Basement Stage", now + 1 * day, 1000, 60, 41],
       ["HeadCase Bits Night", "AI-assisted sketches, written by the room.", "HeadCase Lab, Austin TX", now + 5 * day, 2000, 80, 51],
       ["WWCCE: Winter Brawl-ha-ha", "Wrestling comedy title matches all night.", "Eastside Ballroom", now + 14 * day, 3000, 250, 96],
@@ -3606,7 +3606,7 @@ export const locoCueShows = mutation({
           side: BATTLE_LOCO_IMAGES.competitors,
           crowd: BATTLE_LOCO_IMAGES.crowd,
         }),
-        "Bananas 0 – 0 Berries",
+        "Banana Peels 0 – 0 Comedy Clubtrotters",
         "comedy-loco",
       );
     }
