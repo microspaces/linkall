@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as battlelocoLuxor from "../battlelocoLuxor.js";
 import type * as camera from "../camera.js";
 import type * as christmasMikeData from "../christmasMikeData.js";
+import type * as comedylocoLuxor from "../comedylocoLuxor.js";
 import type * as designer from "../designer.js";
 import type * as emailProvider from "../emailProvider.js";
 import type * as events from "../events.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   battlelocoLuxor: typeof battlelocoLuxor;
   camera: typeof camera;
   christmasMikeData: typeof christmasMikeData;
+  comedylocoLuxor: typeof comedylocoLuxor;
   designer: typeof designer;
   emailProvider: typeof emailProvider;
   events: typeof events;
