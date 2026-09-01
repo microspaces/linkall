@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
@@ -690,6 +690,126 @@ export const inspect = query({
         showId: p.showId,
         status: p.status,
       })),
+    };
+  },
+});
+
+const SHOWDOWN_PERFORMANCE_ID =
+  "ms7c1s7d9922rbcqkf8j3xx2198djq2t" as Id<"performances">;
+
+/** Creator Showdown Las Vegas 2026 order. Game rounds only (2/5/8/11/14). */
+const SHOWDOWN_GAMES: Array<{ round: number; gameName: string }> = [
+  { round: 2, gameName: "Rivals" },
+  { round: 5, gameName: "Chained" },
+  { round: 8, gameName: "Dueling Grounds" },
+  { round: 11, gameName: "Racket Rivals" },
+  { round: 14, gameName: "Knockout" },
+];
+
+async function findShowdownPerformance(ctx: MutationCtx | QueryCtx) {
+  const byId = await ctx.db.get(SHOWDOWN_PERFORMANCE_ID);
+  if (byId) return byId;
+  const performances = await ctx.db.query("performances").collect();
+  return performances.find(
+    (p) => p.title === PERFORMANCE_TITLE && p.tag === "battleloco",
+  );
+}
+
+/**
+ * Patch Battle Loco — Luxor Oct 17 Game rounds to the Creator Showdown
+ * lineup. Only writes `gameName` when it differs, so a second run is a
+ * no-op (changes: 0).
+ *
+ *   pnpm --filter @linkall/backend exec convex run battlelocoLuxor:setShowdownGames --env-file .env.funfirst
+ */
+export const setShowdownGames = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const performance = await findShowdownPerformance(ctx);
+    if (!performance) {
+      return {
+        found: false as const,
+        changes: 0,
+        games: [],
+      };
+    }
+
+    const rows = await ctx.db
+      .query("performanceGames")
+      .withIndex("by_performance", (q) =>
+        q.eq("performanceId", performance._id),
+      )
+      .collect();
+
+    let changes = 0;
+    const games: Array<{
+      round: number;
+      teamIndex: 1 | 2;
+      before: string;
+      after: string;
+      changed: boolean;
+    }> = [];
+
+    for (const spec of SHOWDOWN_GAMES) {
+      const roundRows = rows
+        .filter((r) => r.round === spec.round)
+        .sort((a, b) => a.teamIndex - b.teamIndex);
+      for (const row of roundRows) {
+        const before = row.gameName;
+        const after = spec.gameName;
+        const changed = before !== after;
+        if (changed) {
+          await ctx.db.patch(row._id, { gameName: after });
+          changes += 1;
+        }
+        games.push({
+          round: spec.round,
+          teamIndex: row.teamIndex,
+          before,
+          after,
+          changed,
+        });
+      }
+    }
+
+    return {
+      found: true as const,
+      performanceId: performance._id,
+      performanceTitle: performance.title,
+      changes,
+      games,
+    };
+  },
+});
+
+export const inspectShowdownGames = query({
+  args: {},
+  handler: async (ctx) => {
+    const performance = await findShowdownPerformance(ctx);
+    if (!performance) {
+      return { found: false as const, games: [] };
+    }
+    const rows = await ctx.db
+      .query("performanceGames")
+      .withIndex("by_performance", (q) =>
+        q.eq("performanceId", performance._id),
+      )
+      .collect();
+    const rounds = new Set(SHOWDOWN_GAMES.map((g) => g.round));
+    const games = rows
+      .filter((r) => rounds.has(r.round))
+      .sort((a, b) => a.round - b.round || a.teamIndex - b.teamIndex)
+      .map((r) => ({
+        round: r.round,
+        teamIndex: r.teamIndex,
+        gameName: r.gameName,
+        roundType: r.roundType,
+      }));
+    return {
+      found: true as const,
+      performanceId: performance._id,
+      performanceTitle: performance.title,
+      games,
     };
   },
 });
