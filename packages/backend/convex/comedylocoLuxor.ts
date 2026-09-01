@@ -13,13 +13,15 @@ import { overlayKindForTitle } from "./sceneCues";
  *
  * Scene titles match sceneCues.ts. Visuals use kind "panels" + image/video
  * effects (scene.kind has no "video"; walls come from effects like boom videos).
- * Winner titles use exact comedyloco team names: Winner Bananas / Winner Berries.
+ * Winner titles use exact comedyloco team names: Winner Banana Peels /
+ * Winner Comedy Clubtrotters. Re-running seed skips existing scene/performance
+ * rows — use renameComedyTeams to patch live Luxor data.
  */
 
 export const SHOW_SOURCE_KEY = "cl-luxor:show";
 export const SHOW_TITLE = "Comedy Loco — Luxor Night 1";
 export const SHOW_DESCRIPTION =
-  "Luxor Las Vegas — Bananas vs Berries. Fast comedy, games, points that count.";
+  "Luxor Las Vegas — Banana Peels vs Comedy Clubtrotters. Fast comedy, games, points that count.";
 export const PERFORMANCE_TITLE = "Comedy Loco — Luxor Night 1";
 
 const FX = "/comedy-loco/effects";
@@ -99,21 +101,21 @@ const VISUAL_SCENES: VisualSpec[] = [
     dress: "venue",
   },
   {
-    title: "Winner Bananas",
+    title: "Winner Banana Peels",
     durationSec: 15,
     isOverlay: true,
     center: ASSETS.bananas,
     dress: "bananas",
   },
   {
-    title: "Winner Berries",
+    title: "Winner Comedy Clubtrotters",
     durationSec: 15,
     isOverlay: true,
     center: ASSETS.berries,
     dress: "berries",
   },
-  { title: "Bananas Arena", durationSec: 60, center: ASSETS.bananas, dress: "bananas" },
-  { title: "Berries Arena", durationSec: 60, center: ASSETS.berries, dress: "berries" },
+  { title: "Banana Peels Arena", durationSec: 60, center: ASSETS.bananas, dress: "bananas" },
+  { title: "Comedy Clubtrotters Arena", durationSec: 60, center: ASSETS.berries, dress: "berries" },
   { title: "Luxor Stage", durationSec: 60, center: ASSETS.flythrough, dress: "stage" },
   { title: "Award Ceremony", durationSec: 90, center: ASSETS.mic, dress: "award" },
   { title: "Outro", durationSec: 90, center: ASSETS.thanks, dress: "award" },
@@ -709,6 +711,143 @@ export const inspect = query({
         team1: p.team1,
         team2: p.team2,
       })),
+    };
+  },
+});
+
+/**
+ * Patch already-seeded Luxor Comedy Loco rows. The seeder upserts by
+ * sourceKey and skips existing scenes/performances, so team renames never
+ * land on live data unless this runs. Safe to run twice: second call is a
+ * no-op (changes: 0).
+ *
+ *   pnpm --filter @linkall/backend exec convex run comedylocoLuxor:renameComedyTeams --env-file .env.funfirst
+ */
+const SCENE_RENAMES: Array<{ from: string; to: string }> = [
+  { from: "Winner Bananas", to: "Winner Banana Peels" },
+  { from: "Winner Berries", to: "Winner Comedy Clubtrotters" },
+  { from: "Bananas Arena", to: "Banana Peels Arena" },
+  { from: "Berries Arena", to: "Comedy Clubtrotters Arena" },
+];
+
+export const renameComedyTeams = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const loco = requireLoco("comedyloco");
+    const byKey = await ctx.db
+      .query("shows")
+      .withIndex("by_sourceKey", (q) => q.eq("sourceKey", SHOW_SOURCE_KEY))
+      .collect();
+    const tagged = await ctx.db
+      .query("shows")
+      .withIndex("by_tag", (q) => q.eq("tag", "comedyloco"))
+      .collect();
+    const show =
+      byKey[0] ??
+      tagged.find((s) => s.sourceKey === SHOW_SOURCE_KEY) ??
+      tagged.find((s) => s.title === SHOW_TITLE);
+
+    if (!show) {
+      return {
+        found: false as const,
+        changes: 0,
+        show: null,
+        scenes: [],
+        performances: [],
+      };
+    }
+
+    let changes = 0;
+    const descriptionBefore = show.description ?? "";
+    const descriptionChanged = descriptionBefore !== SHOW_DESCRIPTION;
+    if (descriptionChanged) {
+      await ctx.db.patch(show._id, { description: SHOW_DESCRIPTION });
+      changes += 1;
+    }
+
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", show._id))
+      .collect();
+
+    const sceneResults: Array<{
+      sourceKey?: string;
+      before: string;
+      after: string;
+      changed: boolean;
+    }> = [];
+
+    for (const rename of SCENE_RENAMES) {
+      const scene = scenes.find((s) => {
+        if (s.sourceKey && !s.sourceKey.startsWith("cl-luxor:scene:")) return false;
+        return s.title === rename.from || s.title === rename.to;
+      });
+      if (!scene) {
+        sceneResults.push({
+          before: rename.from,
+          after: rename.to,
+          changed: false,
+        });
+        continue;
+      }
+      const before = scene.title;
+      const changed = before !== rename.to;
+      if (changed) {
+        await ctx.db.patch(scene._id, { title: rename.to });
+        scene.title = rename.to;
+        changes += 1;
+      }
+      sceneResults.push({
+        sourceKey: scene.sourceKey,
+        before,
+        after: rename.to,
+        changed,
+      });
+    }
+
+    const performances = (await ctx.db.query("performances").collect()).filter(
+      (p) => p.tag === "comedyloco" && p.title === PERFORMANCE_TITLE,
+    );
+    const performanceResults: Array<{
+      _id: Id<"performances">;
+      title: string;
+      before: { team1: string; team2: string };
+      after: { team1: string; team2: string };
+      changed: boolean;
+    }> = [];
+
+    for (const p of performances) {
+      const before = { team1: p.team1, team2: p.team2 };
+      const after = { team1: loco.team1, team2: loco.team2 };
+      const changed = before.team1 !== after.team1 || before.team2 !== after.team2;
+      if (changed) {
+        await ctx.db.patch(p._id, after);
+        changes += 1;
+      }
+      performanceResults.push({
+        _id: p._id,
+        title: p.title,
+        before,
+        after,
+        changed,
+      });
+    }
+
+    return {
+      found: true as const,
+      changes,
+      show: {
+        _id: show._id,
+        title: show.title,
+        sourceKey: show.sourceKey,
+        description: {
+          before: descriptionBefore,
+          after: SHOW_DESCRIPTION,
+          changed: descriptionChanged,
+        },
+      },
+      scenes: sceneResults,
+      performances: performanceResults,
     };
   },
 });
