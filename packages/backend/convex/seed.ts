@@ -17,6 +17,7 @@ import {
   winnerCue,
 } from "./sceneCues";
 import { runBattleLocoLuxorSeed } from "./battlelocoLuxor";
+import { runWrestleLocoLuxorSeed } from "./wrestlelocoLuxor";
 import {
   KEY_FILL_LOGICALS,
   KEY_FILL_FULL_OVERLAY,
@@ -3818,6 +3819,17 @@ export const phoneScreens = mutation({
 export const battleLocoLuxor = mutation({
   args: {},
   handler: async (ctx) => runBattleLocoLuxorSeed(ctx),
+});
+
+/**
+ * Idempotent Luxor Night 1 Wrestle Loco show + performance.
+ * Does not wipe data and does not call dressWrestleLocoLook.
+ *
+ *   pnpm --filter @linkall/backend seed:wrestleLocoLuxor
+ */
+export const wrestleLocoLuxor = mutation({
+  args: {},
+  handler: async (ctx) => runWrestleLocoLuxorSeed(ctx),
 });
 
 /** Additive: venue + places + menu if none exist yet. */

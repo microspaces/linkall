@@ -13,6 +13,7 @@
     "seed:battleLoco": "convex run seed:battleLoco --env-file .env.funfirst",
     "seed:battleLocoLuxor": "convex run seed:battleLocoLuxor --env-file .env.funfirst",
     "seed:wrestleLoco": "convex run seed:wrestleLoco --env-file .env.funfirst",
+    "seed:wrestleLocoLuxor": "convex run seed:wrestleLocoLuxor --env-file .env.funfirst",
     "seed:locoCueShows": "convex run seed:locoCueShows --env-file .env.funfirst",
     "seed:phoneScreens": "convex run seed:phoneScreens --env-file .env.funfirst",
     "seed:venueService": "convex run seed:venueService --env-file .env.funfirst",
