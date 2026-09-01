@@ -117,6 +117,22 @@ export default defineSchema({
     kind: v.optional(v.union(v.literal("bit"), v.literal("sketch"))),
     /** Catalog bucket this bit/sketch belongs to (Intro, Bit, Set, …). */
     roundType: v.optional(v.string()),
+    /** HeadCase sheet Type (Bit, Gag, Line, Heckler, …). */
+    bitType: v.optional(v.string()),
+    /** HeadCase sheet Category (Sketch, Commercial, Audience, …). */
+    category: v.optional(v.string()),
+    difficulty: v.optional(v.string()),
+    rating: v.optional(v.string()),
+    political: v.optional(v.boolean()),
+    /** Sheet Todo column: 1 / 2 / 3 when set. */
+    todo: v.optional(v.string()),
+    techSteps: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    assetsNeeded: v.optional(v.string()),
+    /** Verbatim Outline Dialog/Steps from the HeadCase sheet. */
+    dialog: v.optional(v.string()),
+    /** Idempotent import key, e.g. hc-csv:000. */
+    sourceKey: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("live"), v.literal("ended")),
     currentSceneIndex: v.number(),
     /** Epoch ms when the current scene started, for effect start-time playback. */
@@ -126,7 +142,10 @@ export default defineSchema({
     /** Performance that last cued this show — expands {performanceId} in URL effects. */
     cuedByPerformanceId: v.optional(v.id("performances")),
     ownerId: v.id("users"),
-  }).index("by_status", ["status"]),
+  })
+    .index("by_status", ["status"])
+    .index("by_tag", ["tag"])
+    .index("by_sourceKey", ["sourceKey"]),
 
   scenes: defineTable({
     showId: v.id("shows"),
@@ -148,7 +167,11 @@ export default defineSchema({
     isOverlay: v.optional(v.boolean()),
     /** Legacy Scene.IsSoundEffect — Music / Sounds buckets, no visual steal. */
     isSoundEffect: v.optional(v.boolean()),
-  }).index("by_show", ["showId"]),
+    /** Idempotent seed key, e.g. bl-luxor:scene:01. */
+    sourceKey: v.optional(v.string()),
+  })
+    .index("by_show", ["showId"])
+    .index("by_sourceKey", ["sourceKey"]),
 
   // ---- designer: physical screens (legacy: Layout → Screen → Panel) ----
   layouts: defineTable({
@@ -257,9 +280,12 @@ export default defineSchema({
      * For YouTube this is the embed `start=` second; for <video> it's currentTime.
      */
     videoStartSec: v.optional(v.number()),
+    /** Idempotent seed key, e.g. bl-luxor:effect:scene01:LeftSidebar. */
+    sourceKey: v.optional(v.string()),
   })
     .index("by_scene", ["sceneId"])
-    .index("by_panel", ["panelId"]),
+    .index("by_panel", ["panelId"])
+    .index("by_sourceKey", ["sourceKey"]),
 
   /**
    * RossTalk commands enqueued when a scene becomes current. The bridge
@@ -359,9 +385,15 @@ export default defineSchema({
     description: v.optional(v.string()),
     /** Loco format this catalog row belongs to (default: comedyloco). */
     tag: v.optional(v.string()),
+    difficulty: v.optional(v.string()),
+    rating: v.optional(v.string()),
+    category: v.optional(v.string()),
+    /** Idempotent import key, e.g. hc-csv:000. */
+    sourceKey: v.optional(v.string()),
   })
     .index("by_roundType", ["roundType"])
-    .index("by_tag", ["tag"]),
+    .index("by_tag", ["tag"])
+    .index("by_sourceKey", ["sourceKey"]),
 
   performances: defineTable({
     title: v.string(),

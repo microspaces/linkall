@@ -16,6 +16,7 @@ import {
   wantsSideScores,
   winnerCue,
 } from "./sceneCues";
+import { runBattleLocoLuxorSeed } from "./battlelocoLuxor";
 import {
   KEY_FILL_LOGICALS,
   KEY_FILL_FULL_OVERLAY,
@@ -3806,6 +3807,17 @@ export const phoneScreens = mutation({
       results,
     };
   },
+});
+
+/**
+ * Idempotent Luxor Oct 17 Battle Loco show + performance.
+ * Does not wipe data and does not call dressBattleLocoLook.
+ *
+ *   pnpm --filter @linkall/backend seed:battleLocoLuxor
+ */
+export const battleLocoLuxor = mutation({
+  args: {},
+  handler: async (ctx) => runBattleLocoLuxorSeed(ctx),
 });
 
 /** Additive: venue + places + menu if none exist yet. */
