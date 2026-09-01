@@ -18,6 +18,7 @@ import {
 } from "./sceneCues";
 import { runBattleLocoLuxorSeed } from "./battlelocoLuxor";
 import { runWrestleLocoLuxorSeed } from "./wrestlelocoLuxor";
+import { runComedyLocoLuxorSeed } from "./comedylocoLuxor";
 import {
   KEY_FILL_LOGICALS,
   KEY_FILL_FULL_OVERLAY,
@@ -3830,6 +3831,17 @@ export const battleLocoLuxor = mutation({
 export const wrestleLocoLuxor = mutation({
   args: {},
   handler: async (ctx) => runWrestleLocoLuxorSeed(ctx),
+});
+
+/**
+ * Idempotent Luxor Night 1 Comedy Loco show + performance.
+ * Does not wipe data and does not call dressComedyLocoLook.
+ *
+ *   pnpm --filter @linkall/backend seed:comedyLocoLuxor
+ */
+export const comedyLocoLuxor = mutation({
+  args: {},
+  handler: async (ctx) => runComedyLocoLuxorSeed(ctx),
 });
 
 /** Additive: venue + places + menu if none exist yet. */
