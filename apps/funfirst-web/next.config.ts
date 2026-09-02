@@ -11,31 +11,11 @@ const nextConfig: NextConfig = {
   // /locos is the index. Old Comedy Loco aliases and /locos/{slug}/... redirect.
   async redirects() {
     return [
-      {
-        source: "/performances",
-        destination: "/comedy-loco/performances",
-        permanent: true,
-      },
-      {
-        source: "/performance",
-        destination: "/comedy-loco/performance",
-        permanent: true,
-      },
-      {
-        source: "/performance/screens/:id",
-        destination: "/comedy-loco/performance/screens/:id",
-        permanent: true,
-      },
-      {
-        source: "/performance/overlay/:kind",
-        destination: "/comedy-loco/performance/overlay/:kind",
-        permanent: true,
-      },
-      {
-        source: "/games",
-        destination: "/comedy-loco/games",
-        permanent: true,
-      },
+      // NOTE: the old Comedy-only bare-path aliases (/performances →
+      // /comedy-loco/performances, etc.) were removed — redirects run before
+      // middleware, so they hijacked the clean branded URLs on battleloco.com
+      // and wrestleloco.com. The branded host rewrites in middleware.ts now
+      // serve those paths per-domain.
       {
         source: "/locos/:slug/performances",
         destination: "/:slug/performances",
