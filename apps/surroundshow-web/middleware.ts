@@ -52,7 +52,10 @@ export default convexAuthNextjsMiddleware(
       const segment = request.nextUrl.pathname.split("/")[1] ?? "";
       if (strippedSegments.includes(segment)) {
         return NextResponse.rewrite(
-          new URL(`/${brandSlug}${request.nextUrl.pathname}`, request.url),
+          new URL(
+            `/${brandSlug}${request.nextUrl.pathname}${request.nextUrl.search}`,
+            request.url,
+          ),
         );
       }
     }
@@ -61,7 +64,7 @@ export default convexAuthNextjsMiddleware(
       if (segment === "ceremony" || segment === "reception") {
         return NextResponse.rewrite(
           new URL(
-            `/wedding-${segment}${request.nextUrl.pathname.slice(segment.length + 1)}`,
+            `/wedding-${segment}${request.nextUrl.pathname.slice(segment.length + 1)}${request.nextUrl.search}`,
             request.url,
           ),
         );
@@ -70,7 +73,10 @@ export default convexAuthNextjsMiddleware(
         // weddingloco.com defaults to the reception card (mirrors the legacy
         // /wedding-loco/* redirects).
         return NextResponse.rewrite(
-          new URL(`/wedding-reception${request.nextUrl.pathname}`, request.url),
+          new URL(
+            `/wedding-reception${request.nextUrl.pathname}${request.nextUrl.search}`,
+            request.url,
+          ),
         );
       }
     }

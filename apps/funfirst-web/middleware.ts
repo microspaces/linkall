@@ -53,7 +53,10 @@ export default convexAuthNextjsMiddleware(
       const segment = request.nextUrl.pathname.split("/")[1] ?? "";
       if (strippedSegments.includes(segment)) {
         return NextResponse.rewrite(
-          new URL(`/${brandSlug}${request.nextUrl.pathname}`, request.url),
+          new URL(
+            `/${brandSlug}${request.nextUrl.pathname}${request.nextUrl.search}`,
+            request.url,
+          ),
         );
       }
     }
