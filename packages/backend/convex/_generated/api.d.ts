@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as barlocoHolidays from "../barlocoHolidays.js";
 import type * as battlelocoLuxor from "../battlelocoLuxor.js";
 import type * as camera from "../camera.js";
 import type * as christmasMikeData from "../christmasMikeData.js";
@@ -19,6 +20,8 @@ import type * as events from "../events.js";
 import type * as game from "../game.js";
 import type * as geo from "../geo.js";
 import type * as groups from "../groups.js";
+import type * as headcaseBits from "../headcaseBits.js";
+import type * as headcaseBitsData from "../headcaseBitsData.js";
 import type * as http from "../http.js";
 import type * as importLegacy from "../importLegacy.js";
 import type * as importLinkAll8 from "../importLinkAll8.js";
@@ -45,6 +48,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  barlocoHolidays: typeof barlocoHolidays;
   battlelocoLuxor: typeof battlelocoLuxor;
   camera: typeof camera;
   christmasMikeData: typeof christmasMikeData;
@@ -55,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   game: typeof game;
   geo: typeof geo;
   groups: typeof groups;
+  headcaseBits: typeof headcaseBits;
+  headcaseBitsData: typeof headcaseBitsData;
   http: typeof http;
   importLegacy: typeof importLegacy;
   importLinkAll8: typeof importLinkAll8;

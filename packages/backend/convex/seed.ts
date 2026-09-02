@@ -19,6 +19,7 @@ import {
 import { runBattleLocoLuxorSeed } from "./battlelocoLuxor";
 import { runWrestleLocoLuxorSeed } from "./wrestlelocoLuxor";
 import { runComedyLocoLuxorSeed } from "./comedylocoLuxor";
+import { runBarlocoHolidaysSeed } from "./barlocoHolidays";
 import {
   KEY_FILL_LOGICALS,
   KEY_FILL_FULL_OVERLAY,
@@ -3842,6 +3843,17 @@ export const wrestleLocoLuxor = mutation({
 export const comedyLocoLuxor = mutation({
   args: {},
   handler: async (ctx) => runComedyLocoLuxorSeed(ctx),
+});
+
+/**
+ * Idempotent Bar Loco holiday shows (Halloween, Jingle Bar, Valentine's)
+ * plus month-long performances. SurroundShow only — does not wipe data.
+ *
+ *   pnpm --filter @linkall/backend seed:barlocoHolidays
+ */
+export const barlocoHolidays = mutation({
+  args: {},
+  handler: async (ctx) => runBarlocoHolidaysSeed(ctx),
 });
 
 /** Additive: venue + places + menu if none exist yet. */

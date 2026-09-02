@@ -671,6 +671,9 @@ export const LOCOS: LocoConfig[] = [
       { name: "Holiday Crafts", roundType: "Crowd", shortDescription: "Make a card", suggestions: "A card line", description: "Family craft corner — make-your-own cards. Unscored." },
       { name: "Last Call", roundType: "Break", shortDescription: "Last round", suggestions: "A last-call chant", description: "Last pour and tab check. Unscored." },
       { name: "Closing Time", roundType: "Outro", shortDescription: "Lights up", suggestions: "A closing carol", description: "Last song, lights, and goodnight. Unscored." },
+      { name: "Prize Time", roundType: "Crowd", shortDescription: "Prizes!", suggestions: "A winner", description: "Raffles and contest winners — costume contest, ugly sweater, couples quiz. Prize art on screen." },
+      { name: "Costume Contest", roundType: "Crowd", shortDescription: "Best costume wins", suggestions: "A costume", description: "Prizes for the most festive or spooky look. Unscored." },
+      { name: "Couples Quiz", roundType: "Crowd", shortDescription: "How well do they know each other", suggestions: "A couple fact", description: "Valentine's pairs game — how well do they know each other. Unscored." },
     ],
   },
 ];
