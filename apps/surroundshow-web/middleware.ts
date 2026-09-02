@@ -29,6 +29,52 @@ export default convexAuthNextjsMiddleware(
       return NextResponse.rewrite(new URL("/bar-loco", request.url));
     }
 
+    // Clean branded URLs: strip the slug prefix on known format routes so
+    // homeshow.com/performances serves /homeshow/performances, barloco.com/games
+    // serves /bar-loco/games, etc. Physical /{slug}/* routes, /locos, and shared
+    // app routes pass through untouched, so legacy links keep working.
+    const brandSlugs: Record<string, string> = {
+      "homeshow.com": "homeshow",
+      "www.homeshow.com": "homeshow",
+      "barloco.com": "bar-loco",
+      "www.barloco.com": "bar-loco",
+    };
+    const weddingHosts = ["weddingloco.com", "www.weddingloco.com"];
+    const strippedSegments = [
+      "performances",
+      "performance",
+      "games",
+      "designer",
+      "player",
+    ];
+    const brandSlug = brandSlugs[host];
+    if (brandSlug && request.nextUrl.pathname !== "/") {
+      const segment = request.nextUrl.pathname.split("/")[1] ?? "";
+      if (strippedSegments.includes(segment)) {
+        return NextResponse.rewrite(
+          new URL(`/${brandSlug}${request.nextUrl.pathname}`, request.url),
+        );
+      }
+    }
+    if (weddingHosts.includes(host) && request.nextUrl.pathname !== "/") {
+      const segment = request.nextUrl.pathname.split("/")[1] ?? "";
+      if (segment === "ceremony" || segment === "reception") {
+        return NextResponse.rewrite(
+          new URL(
+            `/wedding-${segment}${request.nextUrl.pathname.slice(segment.length + 1)}`,
+            request.url,
+          ),
+        );
+      }
+      if (strippedSegments.includes(segment)) {
+        // weddingloco.com defaults to the reception card (mirrors the legacy
+        // /wedding-loco/* redirects).
+        return NextResponse.rewrite(
+          new URL(`/wedding-reception${request.nextUrl.pathname}`, request.url),
+        );
+      }
+    }
+
     if (isSignInPage(request) && (await convexAuth.isAuthenticated())) {
       return nextjsMiddlewareRedirect(request, "/");
     }
