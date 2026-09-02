@@ -38,6 +38,7 @@ import type * as shows from "../shows.js";
 import type * as users from "../users.js";
 import type * as venue from "../venue.js";
 import type * as venueLogic from "../venueLogic.js";
+import type * as weddingShows from "../weddingShows.js";
 import type * as wrestlelocoLuxor from "../wrestlelocoLuxor.js";
 
 import type {
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   venue: typeof venue;
   venueLogic: typeof venueLogic;
+  weddingShows: typeof weddingShows;
   wrestlelocoLuxor: typeof wrestlelocoLuxor;
 }>;
 
