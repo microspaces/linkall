@@ -29,6 +29,35 @@ export default convexAuthNextjsMiddleware(
       return NextResponse.rewrite(new URL("/comedy-loco", request.url));
     }
 
+    // Clean branded URLs: strip the slug prefix on known format routes so
+    // battleloco.com/performances serves /battle-loco/performances, etc.
+    // Physical /{slug}/* routes, /locos, and shared app routes pass through
+    // untouched, so legacy links keep working.
+    const brandSlugs: Record<string, string> = {
+      "battleloco.com": "battle-loco",
+      "www.battleloco.com": "battle-loco",
+      "wrestleloco.com": "wrestle-loco",
+      "www.wrestleloco.com": "wrestle-loco",
+      "comedyloco.com": "comedy-loco",
+      "www.comedyloco.com": "comedy-loco",
+    };
+    const strippedSegments = [
+      "performances",
+      "performance",
+      "games",
+      "designer",
+      "player",
+    ];
+    const brandSlug = brandSlugs[host];
+    if (brandSlug && request.nextUrl.pathname !== "/") {
+      const segment = request.nextUrl.pathname.split("/")[1] ?? "";
+      if (strippedSegments.includes(segment)) {
+        return NextResponse.rewrite(
+          new URL(`/${brandSlug}${request.nextUrl.pathname}`, request.url),
+        );
+      }
+    }
+
     if (isSignInPage(request) && (await convexAuth.isAuthenticated())) {
       return nextjsMiddlewareRedirect(request, "/");
     }
