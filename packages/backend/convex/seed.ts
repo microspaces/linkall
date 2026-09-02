@@ -20,6 +20,7 @@ import { runBattleLocoLuxorSeed } from "./battlelocoLuxor";
 import { runWrestleLocoLuxorSeed } from "./wrestlelocoLuxor";
 import { runComedyLocoLuxorSeed } from "./comedylocoLuxor";
 import { runBarlocoHolidaysSeed } from "./barlocoHolidays";
+import { runWeddingShowsSeed } from "./weddingShows";
 import {
   KEY_FILL_LOGICALS,
   KEY_FILL_FULL_OVERLAY,
@@ -3854,6 +3855,17 @@ export const comedyLocoLuxor = mutation({
 export const barlocoHolidays = mutation({
   args: {},
   handler: async (ctx) => runBarlocoHolidaysSeed(ctx),
+});
+
+/**
+ * Idempotent Wedding Ceremony + Reception setlist shows and template
+ * performances. SurroundShow only — does not wipe data, does not insert catalog.
+ *
+ *   pnpm --filter @linkall/backend seed:weddingShows
+ */
+export const weddingShows = mutation({
+  args: {},
+  handler: async (ctx) => runWeddingShowsSeed(ctx),
 });
 
 /** Additive: venue + places + menu if none exist yet. */
