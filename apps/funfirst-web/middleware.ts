@@ -50,6 +50,21 @@ export default convexAuthNextjsMiddleware(
     ];
     const brandSlug = brandSlugs[host];
     if (brandSlug && request.nextUrl.pathname !== "/") {
+      // Legacy slug URLs on branded hosts: redirect to the clean route so the
+      // address bar stays consistent (308 preserves method + query string).
+      if (request.nextUrl.pathname === `/${brandSlug}`) {
+        return NextResponse.redirect(new URL("/", request.url), 308);
+      }
+      if (request.nextUrl.pathname.startsWith(`/${brandSlug}/`)) {
+        return NextResponse.redirect(
+          new URL(
+            request.nextUrl.pathname.slice(brandSlug.length + 1) +
+              request.nextUrl.search,
+            request.url,
+          ),
+          308,
+        );
+      }
       const segment = request.nextUrl.pathname.split("/")[1] ?? "";
       if (strippedSegments.includes(segment)) {
         return NextResponse.rewrite(

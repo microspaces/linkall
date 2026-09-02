@@ -49,6 +49,21 @@ export default convexAuthNextjsMiddleware(
     ];
     const brandSlug = brandSlugs[host];
     if (brandSlug && request.nextUrl.pathname !== "/") {
+      // Legacy slug URLs on branded hosts: redirect to the clean route so the
+      // address bar stays consistent (308 preserves method + query string).
+      if (request.nextUrl.pathname === `/${brandSlug}`) {
+        return NextResponse.redirect(new URL("/", request.url), 308);
+      }
+      if (request.nextUrl.pathname.startsWith(`/${brandSlug}/`)) {
+        return NextResponse.redirect(
+          new URL(
+            request.nextUrl.pathname.slice(brandSlug.length + 1) +
+              request.nextUrl.search,
+            request.url,
+          ),
+          308,
+        );
+      }
       const segment = request.nextUrl.pathname.split("/")[1] ?? "";
       if (strippedSegments.includes(segment)) {
         return NextResponse.rewrite(
@@ -60,7 +75,25 @@ export default convexAuthNextjsMiddleware(
       }
     }
     if (weddingHosts.includes(host) && request.nextUrl.pathname !== "/") {
+      // Legacy physical wedding routes on the branded host: redirect to the
+      // clean segment route so the address bar stays consistent.
+      if (request.nextUrl.pathname === "/wedding-loco") {
+        return NextResponse.redirect(new URL("/", request.url), 308);
+      }
+      const weddingCleanMap: Record<string, string> = {
+        "wedding-ceremony": "ceremony",
+        "wedding-reception": "reception",
+      };
       const segment = request.nextUrl.pathname.split("/")[1] ?? "";
+      if (weddingCleanMap[segment]) {
+        return NextResponse.redirect(
+          new URL(
+            `/${weddingCleanMap[segment]}${request.nextUrl.pathname.slice(segment.length + 1)}${request.nextUrl.search}`,
+            request.url,
+          ),
+          308,
+        );
+      }
       if (segment === "ceremony" || segment === "reception") {
         return NextResponse.rewrite(
           new URL(
