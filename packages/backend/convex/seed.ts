@@ -21,6 +21,7 @@ import { runWrestleLocoLuxorSeed } from "./wrestlelocoLuxor";
 import { runComedyLocoLuxorSeed } from "./comedylocoLuxor";
 import { runBarlocoHolidaysSeed } from "./barlocoHolidays";
 import { runWeddingShowsSeed } from "./weddingShows";
+import { SNAP_SLOT_COUNT, snapSlotHotkey } from "./filterCues";
 import {
   KEY_FILL_LOGICALS,
   KEY_FILL_FULL_OVERLAY,
@@ -373,7 +374,8 @@ function isProtectedSeedEffect(e: {
   kind: string;
   logicalPanelName?: string;
 }) {
-  if (e.kind === "command" || e.kind === "hotkey") return true;
+  if (e.kind === "command" || e.kind === "hotkey" || e.kind === "filter")
+    return true;
   const logical = e.logicalPanelName ?? "";
   return logical === "Phone" || KEY_FILL_LOGICAL_SET.has(logical);
 }
@@ -2023,16 +2025,24 @@ async function bindHeadCaseShowsToHead(
             content: e.content.replace(/^key:\s*/i, ""),
           });
         }
+        // Old default ctrl+N collides with Chrome's tab switching when the
+        // capture page has focus. Move to the ctrl+alt+N slot hotkeys.
+        const legacy = e.kind === "hotkey" && /^ctrl\+(\d)$/i.exec(e.content);
+        if (legacy) {
+          await ctx.db.patch(e._id, {
+            content: snapSlotHotkey(Number(legacy[1])),
+          });
+        }
       }
       const after = await ctx.db
         .query("effects")
         .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
         .collect();
-      if (!after.some((e) => e.kind === "hotkey")) {
+      if (!after.some((e) => e.kind === "hotkey" || e.kind === "filter")) {
         await ctx.db.insert("effects", {
           sceneId: scene._id,
           kind: "hotkey",
-          content: `ctrl+${(i % 9) + 1}`,
+          content: snapSlotHotkey((i % SNAP_SLOT_COUNT) + 1),
           startTime: 0,
           isEnabled: true,
         });
@@ -2145,7 +2155,7 @@ async function insertBitLibrary(
           await ctx.db.insert("effects", {
             sceneId,
             kind: "hotkey",
-            content: `ctrl+${i + 1}`,
+            content: snapSlotHotkey((i % SNAP_SLOT_COUNT) + 1),
             startTime: 0,
             isEnabled: true,
           });

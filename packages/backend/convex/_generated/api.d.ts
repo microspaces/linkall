@@ -17,6 +17,7 @@ import type * as comedylocoLuxor from "../comedylocoLuxor.js";
 import type * as designer from "../designer.js";
 import type * as emailProvider from "../emailProvider.js";
 import type * as events from "../events.js";
+import type * as filterCues from "../filterCues.js";
 import type * as game from "../game.js";
 import type * as geo from "../geo.js";
 import type * as groups from "../groups.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   designer: typeof designer;
   emailProvider: typeof emailProvider;
   events: typeof events;
+  filterCues: typeof filterCues;
   game: typeof game;
   geo: typeof geo;
   groups: typeof groups;
