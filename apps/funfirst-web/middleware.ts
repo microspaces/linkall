@@ -28,6 +28,12 @@ export default convexAuthNextjsMiddleware(
     ) {
       return NextResponse.rewrite(new URL("/comedy-loco", request.url));
     }
+    if (
+      (host === "headcaseai.com" || host === "www.headcaseai.com") &&
+      request.nextUrl.pathname === "/"
+    ) {
+      return NextResponse.rewrite(new URL("/head-case", request.url));
+    }
 
     // Clean branded URLs: strip the slug prefix on known format routes so
     // battleloco.com/performances serves /battle-loco/performances, etc.
@@ -40,6 +46,8 @@ export default convexAuthNextjsMiddleware(
       "www.wrestleloco.com": "wrestle-loco",
       "comedyloco.com": "comedy-loco",
       "www.comedyloco.com": "comedy-loco",
+      "headcaseai.com": "head-case",
+      "www.headcaseai.com": "head-case",
     };
     const strippedSegments = [
       "performances",
