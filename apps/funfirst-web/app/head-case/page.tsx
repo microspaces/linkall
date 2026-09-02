@@ -89,8 +89,8 @@ export default function HeadCasePage() {
               <figure className="media-frame media-frame--tilt">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/head-case/images/crowd.jpg"
-                  alt="Club crowd filming with glowing phones beneath a giant grinning TV screen"
+                  src="/head-case/images/hero.jpg"
+                  alt="Comedian with a flat-screen TV for a head performing in front of twin vertical screens"
                   width={1600}
                   height={900}
                   loading="lazy"
@@ -152,8 +152,8 @@ export default function HeadCasePage() {
             <figure className="media-frame media-frame--wide mt-14">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/head-case/images/crowd.jpg"
-                alt="Packed comedy club audience holding up glowing phones toward a huge glowing TV screen"
+                src="/head-case/images/stage.jpg"
+                alt="Comedian with a flat-screen TV head working the crowd, audience filming with glowing phones"
                 width={1600}
                 height={900}
                 loading="lazy"
