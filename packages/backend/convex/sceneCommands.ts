@@ -3,12 +3,15 @@ import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { expandEffectTokens, type EffectTokenContext } from "./sceneCues";
+import { parseFilterCue, routeFilterCue } from "./filterCues";
 
 /**
  * RossTalk command queue. When a scene becomes current, enabled `command`
  * effects are inserted as pending rows (tokens expanded). The Node bridge
  * subscribes to `pendingSceneCommands` and marks each row sent/error.
  * Snap/laptop hotkeys are a separate effect kind (`hotkey`) and table.
+ * `filter` effects are routed here: Snap-backed names become hotkey rows,
+ * everything else becomes a `filterCommands` row for the capture page.
  */
 
 function rowPoints(game: {
@@ -83,7 +86,12 @@ export async function enqueueSceneCommands(
   const hotkeys = effects.filter(
     (e) => e.kind === "hotkey" && e.isEnabled && e.content.trim(),
   );
-  if (commands.length === 0 && hotkeys.length === 0) return;
+  const filters = effects.filter(
+    (e) => e.kind === "filter" && e.isEnabled && e.content.trim(),
+  );
+  if (commands.length === 0 && hotkeys.length === 0 && filters.length === 0) {
+    return;
+  }
 
   const tokenCtx = await tokenContextForShow(
     ctx,
@@ -111,7 +119,99 @@ export async function enqueueSceneCommands(
       createdAt,
     });
   }
+  // Filters fire in startTime order so a bit's cue stack lands as authored.
+  filters.sort((a, b) => a.startTime - b.startTime);
+  for (const effect of filters) {
+    const cue = effect.content.trim();
+    const parsed = parseFilterCue(cue);
+    if (!parsed.ok) {
+      await ctx.db.insert("filterCommands", {
+        showId: args.showId,
+        sceneId: args.sceneId,
+        effectId: effect._id,
+        cue,
+        status: "error",
+        createdAt,
+        sentAt: createdAt,
+        errorMessage: parsed.error,
+      });
+      continue;
+    }
+    const route = routeFilterCue(parsed.cue);
+    if (route.to === "hotkey") {
+      await ctx.db.insert("hotkeyCommands", {
+        showId: args.showId,
+        sceneId: args.sceneId,
+        effectId: effect._id,
+        hotkey: route.hotkey,
+        status: "pending",
+        createdAt,
+      });
+    } else {
+      await ctx.db.insert("filterCommands", {
+        showId: args.showId,
+        sceneId: args.sceneId,
+        effectId: effect._id,
+        cue,
+        status: "pending",
+        createdAt,
+      });
+    }
+  }
 }
+
+export const pendingFilterCommands = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("filterCommands")
+      .withIndex("by_status_created", (q) => q.eq("status", "pending"))
+      .order("asc")
+      .take(50);
+  },
+});
+
+export const completeFilterCommand = mutation({
+  args: {
+    id: v.id("filterCommands"),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, error }) => {
+    const row = await ctx.db.get(id);
+    if (!row) throw new Error("filter command not found");
+    if (row.status !== "pending") return;
+    await ctx.db.patch(id, {
+      status: error ? "error" : "sent",
+      sentAt: Date.now(),
+      ...(error ? { errorMessage: error } : {}),
+    });
+  },
+});
+
+/**
+ * Called by the capture page when it goes live: anything queued while no
+ * publisher was listening is stale and must not replay onto the Head.
+ */
+export const skipStaleFilterCommands = mutation({
+  args: { before: v.number() },
+  handler: async (ctx, { before }) => {
+    const rows = await ctx.db
+      .query("filterCommands")
+      .withIndex("by_status_created", (q) =>
+        q.eq("status", "pending").lt("createdAt", before),
+      )
+      .take(200);
+    const now = Date.now();
+    for (const row of rows) {
+      await ctx.db.patch(row._id, {
+        status: "error",
+        sentAt: now,
+        errorMessage: "skipped: no capture page was live",
+      });
+    }
+    return rows.length;
+  },
+});
 
 export const pendingHotkeyCommands = query({
   args: {},

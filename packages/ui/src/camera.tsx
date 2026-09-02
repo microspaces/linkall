@@ -4,9 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@linkall/backend/convex/_generated/api";
 import type { Id } from "@linkall/backend/convex/_generated/dataModel";
-
+import {
+  canvasFilterNames,
+  parseFilterCue,
+} from "@linkall/backend/convex/filterCues";
+import { FilterEngine } from "./camera-filters";
 
 const STUN = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+const CANVAS_FPS = 30;
+const FALLBACK_SIZE = { width: 1280, height: 720 };
+
+type VideoFrameCallbackVideo = HTMLVideoElement & {
+  requestVideoFrameCallback?: (cb: () => void) => number;
+  cancelVideoFrameCallback?: (handle: number) => void;
+};
 
 function clientId() {
   if (typeof window === "undefined") return "ssr";
@@ -23,7 +34,15 @@ function clientId() {
 
 /**
  * Laptop / iOS capture page. The only place getUserMedia runs.
- * Publishes to a screen (Head). Screens and Preview subscribe.
+ *
+ * Pipeline: getUserMedia → <video> (hidden) → <canvas> filter pass →
+ * canvas.captureStream() → WebRTC. Publishing from the canvas even when no
+ * filter is active means cues never renegotiate the peer connection.
+ * Screens and Preview subscribe and see whatever the canvas shows.
+ *
+ * Face-tracked lenses still come from Snap Camera (select it as the device);
+ * `filter` cues that resolve to Snap slots arrive here as hotkey rows for
+ * visibility only — the laptop agent sends the keystroke.
  */
 export function CameraCapture() {
   const screens = useQuery(api.designer.listScreens, {});
@@ -39,8 +58,17 @@ export function CameraCapture() {
   const [deviceId, setDeviceId] = useState("");
   const [live, setLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const localVideo = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  /** Raw camera stream (stopped on Stop). */
+  const rawRef = useRef<MediaStream | null>(null);
+  /** Published stream: canvas.captureStream(). */
   const streamRef = useRef<MediaStream | null>(null);
+  const engineRef = useRef<FilterEngine | null>(null);
+  const frameHandle = useRef<{ kind: "rvfc" | "raf"; id: number } | null>(null);
+  const liveAt = useRef(0);
+  const inflightFilters = useRef(new Set<string>());
   const pcs = useRef(new Map<string, RTCPeerConnection>());
   const myId = useRef(clientId());
 
@@ -49,6 +77,8 @@ export function CameraCapture() {
   const sendSignal = useMutation(api.camera.sendSignal);
   const ackSignals = useMutation(api.camera.ackSignals);
   const completeHotkey = useMutation(api.sceneCommands.completeHotkeyCommand);
+  const completeFilter = useMutation(api.sceneCommands.completeFilterCommand);
+  const skipStaleFilters = useMutation(api.sceneCommands.skipStaleFilterCommands);
 
   const peers = useQuery(
     api.camera.peers,
@@ -62,10 +92,43 @@ export function CameraCapture() {
     api.sceneCommands.pendingHotkeyCommands,
     live ? {} : "skip",
   );
+  const filterCommands = useQuery(
+    api.sceneCommands.pendingFilterCommands,
+    live ? {} : "skip",
+  );
 
   useEffect(() => {
     if (!screenId && headFirst[0]) setScreenId(headFirst[0]._id);
   }, [headFirst, screenId]);
+
+  // Execute filter cues locally. Rows queued before this page went live are
+  // stale (already skipped server-side on start; guarded here too).
+  useEffect(() => {
+    if (!live || !filterCommands?.length) return;
+    const engine = engineRef.current;
+    if (!engine) return;
+    for (const row of filterCommands) {
+      if (inflightFilters.current.has(row._id)) continue;
+      inflightFilters.current.add(row._id);
+      if (row.createdAt < liveAt.current) {
+        void completeFilter({ id: row._id, error: "skipped: stale" }).finally(
+          () => inflightFilters.current.delete(row._id),
+        );
+        continue;
+      }
+      const parsed = parseFilterCue(row.cue);
+      if (!parsed.ok) {
+        void completeFilter({ id: row._id, error: parsed.error }).finally(() =>
+          inflightFilters.current.delete(row._id),
+        );
+        continue;
+      }
+      engine.apply(parsed.cue);
+      void completeFilter({ id: row._id }).finally(() =>
+        inflightFilters.current.delete(row._id),
+      );
+    }
+  }, [live, filterCommands, completeFilter]);
 
   useEffect(() => {
     if (!live || !screenId) return;
@@ -148,23 +211,88 @@ export function CameraCapture() {
     return () => {
       for (const pc of pcs.current.values()) pc.close();
       pcs.current.clear();
+      stopFrameLoop();
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      rawRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
   const latestHotkey = (hotkeys ?? [])[0];
 
+  function stopFrameLoop() {
+    const h = frameHandle.current;
+    const video = localVideo.current as VideoFrameCallbackVideo | null;
+    if (h?.kind === "rvfc") video?.cancelVideoFrameCallback?.(h.id);
+    if (h?.kind === "raf") cancelAnimationFrame(h.id);
+    frameHandle.current = null;
+  }
+
+  /**
+   * Draw loop. Prefers requestVideoFrameCallback (frame-aligned, cheaper than
+   * rAF). Either way this stops when the tab is hidden, so the capture tab
+   * must stay foreground on the show laptop.
+   */
+  function startFrameLoop() {
+    const video = localVideo.current as VideoFrameCallbackVideo | null;
+    const canvas = canvasRef.current;
+    const engine = engineRef.current;
+    if (!video || !canvas || !engine) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let lastShown: string | null = null;
+    const tick = () => {
+      // stopFrameLoop() cancels and nulls the handle; bail if it raced us.
+      if (!frameHandle.current) return;
+      const now = performance.now();
+      engine.render(ctx, video, canvas.width, canvas.height, now);
+      const shown = engine.active(now);
+      if (shown !== lastShown) {
+        lastShown = shown;
+        setActiveFilter(shown);
+      }
+      schedule();
+    };
+    const schedule = () => {
+      if (video.requestVideoFrameCallback) {
+        frameHandle.current = { kind: "rvfc", id: video.requestVideoFrameCallback(tick) };
+      } else {
+        frameHandle.current = { kind: "raf", id: requestAnimationFrame(tick) };
+      }
+    };
+    stopFrameLoop();
+    schedule();
+  }
+
   async function start() {
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const raw = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "user" },
       });
-      streamRef.current = stream;
-      if (localVideo.current) localVideo.current.srcObject = stream;
+      rawRef.current = raw;
+      const video = localVideo.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) throw new Error("Capture elements not mounted.");
+      video.srcObject = raw;
+      await video.play().catch(() => {
+        /* autoplay policies: muted video should still start */
+      });
+      const settings = raw.getVideoTracks()[0]?.getSettings();
+      canvas.width = settings?.width || video.videoWidth || FALLBACK_SIZE.width;
+      canvas.height = settings?.height || video.videoHeight || FALLBACK_SIZE.height;
+
+      engineRef.current = new FilterEngine();
+      // First frame before captureStream so subscribers never see an empty track.
+      const ctx = canvas.getContext("2d");
+      if (ctx) engineRef.current.render(ctx, video, canvas.width, canvas.height);
+      streamRef.current = canvas.captureStream(CANVAS_FPS);
+      startFrameLoop();
+
       const all = await navigator.mediaDevices.enumerateDevices();
       setDevices(all.filter((d) => d.kind === "videoinput"));
+      liveAt.current = Date.now();
+      void skipStaleFilters({ before: liveAt.current });
       setLive(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Camera permission denied.");
@@ -173,11 +301,23 @@ export function CameraCapture() {
 
   function stop() {
     setLive(false);
+    stopFrameLoop();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    rawRef.current?.getTracks().forEach((t) => t.stop());
+    rawRef.current = null;
+    engineRef.current = null;
+    setActiveFilter(null);
     if (localVideo.current) localVideo.current.srcObject = null;
     for (const pc of pcs.current.values()) pc.close();
     pcs.current.clear();
+  }
+
+  /** Operator preview buttons: same engine the cue queue drives. */
+  function testFilter(cue: string) {
+    const parsed = parseFilterCue(cue);
+    if (!parsed.ok || !engineRef.current) return;
+    engineRef.current.apply(parsed.cue);
   }
 
   return (
@@ -212,7 +352,7 @@ export function CameraCapture() {
             disabled={live}
             onChange={(e) => setDeviceId(e.target.value)}
           >
-            <option value="">Default (pick Snap Camera here)</option>
+            <option value="">Default (pick Snap Camera here for lenses)</option>
             {devices.map((d) => (
               <option key={d.deviceId} value={d.deviceId}>
                 {d.label || d.deviceId.slice(0, 8)}
@@ -239,10 +379,41 @@ export function CameraCapture() {
         )}
         {error && <span className="text-red-400">{error}</span>}
       </div>
+      {live && (
+        <div className="flex flex-wrap items-center gap-1 px-3 pb-2 text-xs">
+          <span className="mr-1 text-white/50">
+            Filter:{" "}
+            <span className="font-mono text-fuchsia-300">
+              {activeFilter ?? "none"}
+            </span>
+          </span>
+          {canvasFilterNames().map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => testFilter(name)}
+              className={`rounded px-2 py-0.5 ${
+                activeFilter === name
+                  ? "bg-fuchsia-600 text-white"
+                  : "bg-gray-800 text-white/80 hover:bg-gray-700"
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => testFilter("clear")}
+            className="rounded bg-gray-700 px-2 py-0.5 text-white/90 hover:bg-gray-600"
+          >
+            clear
+          </button>
+        </div>
+      )}
       {latestHotkey && (
         <div className="mx-3 mb-2 rounded-lg border border-amber-400/60 bg-amber-500/20 px-4 py-3 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-200">
-            Snap / hotkey
+            Snap lens hotkey (sent by laptop agent)
           </p>
           <p className="mt-1 font-mono text-3xl font-black text-amber-100">
             {latestHotkey.hotkey}
@@ -256,14 +427,26 @@ export function CameraCapture() {
           </button>
         </div>
       )}
-      <div className="min-h-0 flex-1 bg-black p-3">
+      <div className="relative min-h-0 flex-1 bg-black p-3">
+        {/* Hidden source. Kept in-flow (not display:none) so it keeps decoding. */}
         <video
           ref={localVideo}
-          className="h-full w-full object-contain"
+          className="pointer-events-none absolute h-px w-px opacity-0"
           autoPlay
           playsInline
           muted
         />
+        <canvas
+          ref={canvasRef}
+          width={FALLBACK_SIZE.width}
+          height={FALLBACK_SIZE.height}
+          className="h-full w-full object-contain"
+        />
+        {!live && (
+          <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm text-white/40">
+            Press Start. The published feed is this canvas.
+          </p>
+        )}
       </div>
     </div>
   );

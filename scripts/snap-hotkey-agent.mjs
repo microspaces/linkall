@@ -5,6 +5,11 @@
  *   CONVEX_URL=https://….convex.cloud node scripts/snap-hotkey-agent.mjs
  *
  * Windows uses System.Windows.Forms.SendKeys. macOS uses osascript.
+ *
+ * Keystrokes go to the focused window, so bind Snap Camera favourites to
+ * combos nothing else claims. Defaults are ctrl+alt+1 … ctrl+alt+9
+ * (`snapSlotHotkey` in convex/filterCues.ts); plain ctrl+<digit> switches
+ * Chrome tabs when the capture page has focus. See docs/headcase-camera-runbook.md.
  */
 import fs from "node:fs";
 import path from "node:path";

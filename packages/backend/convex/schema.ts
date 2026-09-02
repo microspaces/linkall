@@ -262,8 +262,15 @@ export default defineSchema({
       v.literal("html"),
       /** RossTalk switcher command; content is the raw command string. */
       v.literal("command"),
-      /** Snap Camera / OS hotkey for the laptop agent; content is ctrl+1. */
+      /** Snap Camera / OS hotkey for the laptop agent; content is ctrl+alt+1. */
       v.literal("hotkey"),
+      /**
+       * Camera filter cue (see filterCues.ts). Content is a cue string such
+       * as `invert`, `flash bsod 800`, `seq droopy,pixelate 2000`, `clear`.
+       * Routed at enqueue time to the capture page (canvas) or to the Snap
+       * hotkey queue, so bits never depend on which engine renders it.
+       */
+      v.literal("filter"),
       /**
        * Live remote camera fill. Content is unused (room = this panel's
        * screen). The capture page publishes; Head / Preview subscribe.
@@ -315,6 +322,28 @@ export default defineSchema({
     sceneId: v.id("scenes"),
     effectId: v.id("effects"),
     hotkey: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("sent"),
+      v.literal("error"),
+    ),
+    createdAt: v.number(),
+    sentAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("by_status_created", ["status", "createdAt"])
+    .index("by_show", ["showId"]),
+
+  /**
+   * Capture-page filter queue. `filter` effects that resolve to a canvas
+   * executor land here; the publishing capture page drains them locally.
+   */
+  filterCommands: defineTable({
+    showId: v.id("shows"),
+    sceneId: v.id("scenes"),
+    effectId: v.id("effects"),
+    /** Raw cue string (already validated by parseFilterCue). */
+    cue: v.string(),
     status: v.union(
       v.literal("pending"),
       v.literal("sent"),

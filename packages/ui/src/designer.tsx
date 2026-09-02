@@ -12,6 +12,12 @@ import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { expandEffectUrl } from "@linkall/backend/convex/sceneCues";
 import {
+  FILTER_CATALOG,
+  SNAP_SLOT_COUNT,
+  describeFilterCue,
+  parseFilterCue,
+} from "@linkall/backend/convex/filterCues";
+import {
   SCREEN_ROLES,
   screenRoleOf,
   type ScreenRole,
@@ -299,8 +305,13 @@ function effectStackRank(kind: string): number {
   return 0;
 }
 
+/** Cue-only effects: no panel, fired when the scene becomes current. */
+function isCueEffect(kind: string) {
+  return kind === "command" || kind === "hotkey" || kind === "filter";
+}
+
 function isVisualEffect(kind: string) {
-  return kind !== "command" && kind !== "hotkey";
+  return !isCueEffect(kind);
 }
 
 function panelBoxStyle(
@@ -342,7 +353,7 @@ function EffectMedia({
   overlay?: boolean;
   urlContext?: { performanceId?: string };
 }) {
-  if (kind === "command" || kind === "hotkey") return null;
+  if (isCueEffect(kind)) return null;
 
   // Color fills the whole clipped panel (correct for irregular polygons).
   if (kind === "color") {
@@ -742,6 +753,14 @@ function EffectThumb({
         KEY
       </div>
     );
+  if (kind === "filter")
+    return (
+      <div
+        className={`${className} flex shrink-0 items-center justify-center rounded border border-fuchsia-700 bg-fuchsia-950 px-1 text-[9px] font-semibold text-fuchsia-200`}
+      >
+        FX
+      </div>
+    );
   if (kind === "camera")
     return (
       <div
@@ -880,10 +899,7 @@ function Timeline({
       <div className="relative">
         {panels.map(({ panel, label }) => {
           const rows = effects.filter(
-            (e) =>
-              e.kind !== "command" &&
-              e.kind !== "hotkey" &&
-              e.panelId === panel._id,
+            (e) => isVisualEffect(e.kind) && e.panelId === panel._id,
           );
           return (
             <div
@@ -1407,7 +1423,7 @@ function ShowsTab() {
                 <EffectThumb kind={e.kind} content={e.content} />
                 <div className="min-w-0">
                   <p className="truncate font-medium">
-                    {e.kind === "command" || e.kind === "hotkey"
+                    {isCueEffect(e.kind)
                       ? e.content
                       : e.logicalPanelName
                         ? `${e.logicalPanelName} → ${e.panelName}`
@@ -1418,6 +1434,8 @@ function ShowsTab() {
                       ? "switcher command"
                       : e.kind === "hotkey"
                         ? "laptop hotkey"
+                        : e.kind === "filter"
+                          ? `camera ${describeFilterCue(e.content)}`
                       : `${e.kind} · starts ${formatClock(e.startTime)}`}
                     {e.isEnabled ? "" : " · disabled"}
                   </p>
@@ -1667,6 +1685,7 @@ function EffectModal({
     | "html"
     | "command"
     | "hotkey"
+    | "filter"
     | "camera"
   >(effect?.kind ?? (panels.length === 0 ? "command" : "color"));
   const [content, setContent] = useState(
@@ -1683,9 +1702,16 @@ function EffectModal({
   );
   const [isEnabled, setIsEnabled] = useState(effect?.isEnabled ?? true);
 
+  const filterCueError = (() => {
+    if (kind !== "filter") return null;
+    const parsed = parseFilterCue(content);
+    return parsed.ok ? null : parsed.error;
+  })();
+
   const save = async () => {
-    const cueOnly = kind === "command" || kind === "hotkey";
+    const cueOnly = isCueEffect(kind);
     if (!cueOnly && !panelId) return;
+    if (filterCueError) return;
     const durNum = durationVal.trim() ? Math.max(0.5, Number(durationVal)) : undefined;
     const videoStartNum = videoStartVal.trim()
       ? Math.max(0, Number(videoStartVal) || 0)
@@ -1724,7 +1750,7 @@ function EffectModal({
   return (
     <Modal title={effect ? "Edit effect" : "New effect"} onClose={onClose}>
       <div className="space-y-3">
-        {kind !== "command" && kind !== "hotkey" && (
+        {!isCueEffect(kind) && (
           <>
             <Field label="Panel (fallback)">
               <select
@@ -1767,7 +1793,7 @@ function EffectModal({
               const k = e.target.value as typeof kind;
               setKind(k);
               if (k === "color" && !content.startsWith("#")) setContent("#dc2626");
-              if (k === "command" && content.startsWith("#")) setContent("");
+              if (isCueEffect(k) && content.startsWith("#")) setContent("");
             }}
           >
             <option value="color">Color</option>
@@ -1778,6 +1804,7 @@ function EffectModal({
             <option value="html">HTML</option>
             <option value="command">Switcher command (RossTalk)</option>
             <option value="hotkey">Laptop hotkey (Snap Camera)</option>
+            <option value="filter">Camera filter cue (capture page / Snap)</option>
             <option value="camera">Remote camera (Head subscribe)</option>
           </select>
         </Field>
@@ -1795,6 +1822,8 @@ function EffectModal({
                       ? "Command"
                       : kind === "hotkey"
                         ? "Hotkey"
+                        : kind === "filter"
+                          ? "Filter cue"
                       : `${kind[0].toUpperCase() + kind.slice(1)} URL`
           }
         >
@@ -1823,7 +1852,9 @@ function EffectModal({
                   : kind === "command"
                     ? "XPT AUX:2:IN:6"
                     : kind === "hotkey"
-                      ? "ctrl+1"
+                      ? "ctrl+alt+1"
+                      : kind === "filter"
+                        ? "invert · flash bsod 800 · seq invert,pixelate,spin 2000 · clear"
                     : "https://…"
               }
             />
@@ -1836,10 +1867,32 @@ function EffectModal({
         )}
         {kind === "hotkey" && (
           <p className="text-xs text-gray-500">
-            Sent only to the laptop agent. Example: ctrl+1
+            Sent only to the laptop agent. Example: ctrl+alt+1 (Snap favourite
+            slot 1). Avoid plain ctrl+digit: Chrome uses it to switch tabs.
           </p>
         )}
-        {kind !== "command" && kind !== "hotkey" && (
+        {kind === "filter" && (
+          <div className="space-y-1 text-xs text-gray-500">
+            {filterCueError ? (
+              <p className="text-red-600">{filterCueError}</p>
+            ) : (
+              <p className="text-emerald-700">{describeFilterCue(content)}</p>
+            )}
+            <p>
+              Runs on the capture page:{" "}
+              {FILTER_CATALOG.filter((f) => f.executor.kind === "canvas")
+                .map((f) => f.name)
+                .join(", ")}
+              . Snap lenses: snap-1 … snap-{SNAP_SLOT_COUNT} (sent as the
+              matching ctrl+alt hotkey).
+            </p>
+            <p>
+              Verbs: <code>set</code> (default), <code>flash &lt;name&gt; [ms]</code>,{" "}
+              <code>seq a,b,c [ms]</code>, <code>clear</code>.
+            </p>
+          </div>
+        )}
+        {!isCueEffect(kind) && (
           <>
             <Field label="Start time (seconds into scene)">
               <input

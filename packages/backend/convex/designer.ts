@@ -172,6 +172,8 @@ export const getSceneEffects = query({
             ? "Switcher"
             : effect.kind === "hotkey"
               ? "Hotkey"
+              : effect.kind === "filter"
+                ? "Filter"
             : (panel?.name ?? "(deleted panel)"),
         screenName: screen?.name ?? "",
         screenId: screen?._id,
@@ -227,7 +229,8 @@ export const getShowCueEffects = query({
         videoStartSec?: number;
       }> = [];
       for (const e of effects) {
-        if (e.kind === "command" || e.kind === "hotkey") continue;
+        if (e.kind === "command" || e.kind === "hotkey" || e.kind === "filter")
+          continue;
         const panelId =
           (e.logicalPanelName && mappings?.get(e.logicalPanelName)) || e.panelId;
         if (!panelId) continue;
@@ -387,7 +390,8 @@ export const screenView = query({
           .withIndex("by_scene", (q) => q.eq("sceneId", sceneId))
           .collect();
         for (const e of raw) {
-          if (e.kind === "command" || e.kind === "hotkey") continue;
+          if (e.kind === "command" || e.kind === "hotkey" || e.kind === "filter")
+            continue;
           const panelId =
             (e.logicalPanelName && mappings?.get(e.logicalPanelName)) ||
             e.panelId;
@@ -770,6 +774,7 @@ export const createEffect = mutation({
       v.literal("html"),
       v.literal("command"),
       v.literal("hotkey"),
+      v.literal("filter"),
       v.literal("camera"),
     ),
     content: v.string(),
@@ -819,6 +824,7 @@ export const updateEffect = mutation({
         v.literal("html"),
         v.literal("command"),
         v.literal("hotkey"),
+        v.literal("filter"),
         v.literal("camera"),
       ),
     ),
