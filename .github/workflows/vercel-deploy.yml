@@ -19,7 +19,6 @@ jobs:
         include:
           - app: surroundshow-web
           - app: funfirst-web
-          - app: redwave-web
 
     steps:
       - uses: actions/checkout@v4

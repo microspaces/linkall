@@ -8,7 +8,6 @@
     "typecheck": "turbo typecheck",
     "dev:surroundshow": "turbo dev --filter=surroundshow-web",
     "dev:funfirst": "turbo dev --filter=funfirst-web",
-    "dev:redwave": "turbo dev --filter=redwave-web",
     "dev:mobile": "pnpm --filter mobile start",
     "backend": "pnpm --filter @linkall/backend dev"
   },

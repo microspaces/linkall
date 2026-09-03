@@ -20,8 +20,6 @@ jobs:
             secret_name: CONVEX_DEPLOY_KEY_SURROUNDSHOW
           - app: funfirst
             secret_name: CONVEX_DEPLOY_KEY_FUNFIRST
-          - app: redwave
-            secret_name: CONVEX_DEPLOY_KEY_REDWAVE
 
     steps:
       - uses: actions/checkout@v4

@@ -11,7 +11,6 @@ build/
 .env.*.local
 .env.surroundshow
 .env.funfirst
-.env.redwave
 
 # convex local state
 .convex/
