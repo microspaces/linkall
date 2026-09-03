@@ -1636,7 +1636,7 @@ export const replaceTextOutsideShows = mutation({
             next =
               args.sourceKeyToPrefix +
               value.slice(args.sourceKeyFromPrefix.length);
-          } else if (field === "tag" && args.tagTo) {
+          } else if ((field === "tag" || field === "category") && args.tagTo) {
             next = args.tagTo;
           } else if (field === "sourceKey") {
             continue;
@@ -1669,4 +1669,28 @@ export const replaceTextOutsideShows = mutation({
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+/** Patch a group's slug-like category (and optional name / photoUrl). */
+export const patchGroup = mutation({
+  args: {
+    groupId: v.id("groups"),
+    category: v.optional(v.string()),
+    name: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, { groupId, ...fields }) => {
+    const group = await ctx.db.get(groupId);
+    if (!group) throw new Error("Group not found");
+    const patch: {
+      category?: string;
+      name?: string;
+      photoUrl?: string;
+    } = {};
+    if (fields.category !== undefined) patch.category = fields.category;
+    if (fields.name !== undefined) patch.name = fields.name;
+    if (fields.photoUrl !== undefined) patch.photoUrl = fields.photoUrl;
+    if (Object.keys(patch).length > 0) await ctx.db.patch(groupId, patch);
+    return await ctx.db.get(groupId);
+  },
+});
 
