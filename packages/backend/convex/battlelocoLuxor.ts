@@ -441,20 +441,10 @@ export async function seedBattleLocoLuxorDetailed(
     }
   }
 
-  for (const title of MUSIC_SCENES) {
-    n += 1;
-    const scene = await upsertScene(ctx, show._id, existingScenes, {
-      order: order++,
-      n,
-      title,
-      kind: "text",
-      content: title,
-      durationSec: 180,
-      isSoundEffect: true,
-    });
-    if (scene.inserted) scenesInserted++;
-    else scenesSkipped++;
-  }
+  // Do not insert soundtrack cue scenes. Keep the scene-number / order gap
+  // so SOUND_SCENES stay bl-luxor:scene:24–28 on re-run.
+  n += MUSIC_SCENES.length;
+  order += MUSIC_SCENES.length;
 
   for (const title of SOUND_SCENES) {
     n += 1;

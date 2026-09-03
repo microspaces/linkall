@@ -1407,3 +1407,58 @@ export const reset = mutation({
     });
   },
 });
+
+/** Soundtrack rows for a performance (console Music bucket fallback). */
+export const listPerformanceTracks = query({
+  args: { performanceId: v.id("performances") },
+  handler: async (ctx, { performanceId }) => {
+    const rows = await ctx.db
+      .query("performanceTracks")
+      .withIndex("by_performance", (q) => q.eq("performanceId", performanceId))
+      .collect();
+    rows.sort((a, b) => a.order - b.order);
+    return rows;
+  },
+});
+
+/**
+ * Delete soundtrack rows. When `ids` is omitted, every row for the
+ * performance is removed. When `ids` is set, only those rows (and only if
+ * they belong to this performance) are deleted.
+ */
+export const deletePerformanceTracks = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    ids: v.optional(v.array(v.id("performanceTracks"))),
+  },
+  handler: async (ctx, { performanceId, ids }) => {
+    const rows = await ctx.db
+      .query("performanceTracks")
+      .withIndex("by_performance", (q) => q.eq("performanceId", performanceId))
+      .collect();
+    const idSet = ids ? new Set(ids.map(String)) : null;
+    const targets = idSet
+      ? rows.filter((row) => idSet.has(row._id))
+      : rows;
+    const deleted: Array<{ _id: Id<"performanceTracks">; name: string; order: number }> =
+      [];
+    for (const row of targets) {
+      await ctx.db.delete(row._id);
+      deleted.push({ _id: row._id, name: row.name, order: row.order });
+    }
+    const remaining = await ctx.db
+      .query("performanceTracks")
+      .withIndex("by_performance", (q) => q.eq("performanceId", performanceId))
+      .collect();
+    remaining.sort((a, b) => a.order - b.order);
+    return {
+      deleted,
+      remainingCount: remaining.length,
+      remaining: remaining.map((row) => ({
+        _id: row._id,
+        name: row.name,
+        order: row.order,
+      })),
+    };
+  },
+});

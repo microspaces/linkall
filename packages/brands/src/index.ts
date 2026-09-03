@@ -160,6 +160,7 @@ export const brands: Record<BrandId, Brand> = {
     ],
     showTags: [
       { tag: "comedyloco", label: "Comedy Loco", blurb: "Team game show: Bananas vs Berries, live scoring and audience votes." },
+      { tag: "comedyloco-stage", label: "Comedy Loco (Stage Cues)", blurb: "Panel-based stage cues for the main house screen." },
       { tag: "battleloco", label: "Battle Loco", blurb: "Esports, physical chaos, and crowd control — Heat vs Ice." },
       { tag: "wrestleloco", label: "Wrestle Loco", blurb: "Wrestling comedy — Faces vs Heels, crowd refs, multi-pin finale." },
       { tag: "headcase", label: "HeadCase", blurb: "AI-assisted bits and sketches, stepped through as a set list." },
