@@ -6,9 +6,8 @@ Modern rebuild of the LinkAll8 multi-tenant ASP.NET application as a **hybrid mo
 |---|---|---|---|
 | **SurroundShow** | SiteId 1 — holiday shows + marketplace | `apps/surroundshow-web` | 3001 |
 | **FunFirst** | SiteId 2 — Laffupalunga/Laffup + Comedy Loco, HeadCase, WWCCE, Clubtrotters | `apps/funfirst-web` | 3002 |
-| **RedWave** | SiteId 3 — political organizing, resources, state/county groups | `apps/redwave-web` | 3003 |
 
-Plus one Expo mobile app (`apps/mobile`) that serves any brand via an env var.
+Plus one Expo mobile app (`apps/mobile`) that serves any brand via an env var. RedWave web now lives in its own repo (`microspaces/redwave`).
 
 ## Architecture
 
@@ -25,7 +24,6 @@ linkall-platform/
 └── apps/
     ├── surroundshow-web/   Next.js 15 (thin: pages wire up shared components)
     ├── funfirst-web/       Next.js 15
-    ├── redwave-web/        Next.js 15
     └── mobile/             Expo (expo-router), brand chosen by EXPO_PUBLIC_BRAND
 ```
 
@@ -46,7 +44,7 @@ linkall-platform/
 
 - Node 20+ ([nodejs.org](https://nodejs.org))
 - pnpm 9+ (`corepack enable` or `npm i -g pnpm`)
-- A free [Convex](https://convex.dev) account (for the three brand deployments)
+- A free [Convex](https://convex.dev) account (for the SurroundShow and FunFirst deployments)
 
 ## Setup
 
@@ -68,7 +66,6 @@ Start one backend per brand (each is a long-running watcher):
 $env:CONVEX_AGENT_MODE='anonymous'; npx convex dev
 # surroundshow → http://127.0.0.1:3212
 # funfirst     → http://127.0.0.1:3214
-# redwave      → http://127.0.0.1:3216
 ```
 
 Seed each one (also from its wrapper folder):
@@ -76,7 +73,6 @@ Seed each one (also from its wrapper folder):
 ```powershell
 npx convex run seed:surroundshow   # in deployments/surroundshow
 npx convex run seed:funfirst       # in deployments/funfirst
-npx convex run seed:redwave        # in deployments/redwave
 ```
 
 Each web app's `.env.local` points `NEXT_PUBLIC_CONVEX_URL` at the matching
@@ -86,7 +82,7 @@ folder and follow the link prompts.
 
 ### Option B: Cloud deployments (Convex account)
 
-### 1. Create the three Convex deployments
+### 1. Create the Convex deployments
 
 Each brand gets its own Convex project. From `packages/backend`, run once per brand (each command walks you through creating/selecting a project, pushes the schema and functions, runs codegen, and writes the deployment name into the env file):
 
@@ -94,7 +90,6 @@ Each brand gets its own Convex project. From `packages/backend`, run once per br
 cd packages/backend
 npx convex dev --env-file .env.surroundshow --once
 npx convex dev --env-file .env.funfirst --once
-npx convex dev --env-file .env.redwave --once
 ```
 
 > If your Convex CLI version doesn't support `--env-file`, copy the relevant
@@ -111,7 +106,6 @@ pnpm dev:funfirst   # from packages/backend → convex dev --env-file .env.funfi
 ```powershell
 pnpm --filter @linkall/backend seed:surroundshow
 pnpm --filter @linkall/backend seed:funfirst
-pnpm --filter @linkall/backend seed:redwave
 # Additive (does not wipe): copy Battle Loco + HyperX screens into FunFirst
 pnpm --filter @linkall/backend seed:battleLoco
 ```
@@ -125,19 +119,17 @@ Copy each app's `.env.local.example` to `.env.local` and set the deployment URL 
 ```
 apps/surroundshow-web/.env.local → NEXT_PUBLIC_CONVEX_URL=https://...convex.cloud
 apps/funfirst-web/.env.local     → NEXT_PUBLIC_CONVEX_URL=https://...convex.cloud
-apps/redwave-web/.env.local      → NEXT_PUBLIC_CONVEX_URL=https://...convex.cloud
 ```
 
 ### 4. Run the web apps
 
 ```powershell
-pnpm dev                 # all three via turbo
+pnpm dev                 # both web apps via turbo
 pnpm dev:funfirst        # or just one
 ```
 
 - SurroundShow → http://localhost:3001
 - FunFirst → http://localhost:3002
-- RedWave → http://localhost:3003
 
 ### 5. Run the mobile app
 
