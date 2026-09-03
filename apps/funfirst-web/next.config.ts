@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   //   battleloco.com  → /battle-loco
   //   wrestleloco.com → /wrestle-loco
   //   comedyloco.com  → /comedy-loco
+  //   headcaseai.com  → /head-case
   // Add custom domains in Vercel project settings for funfirst-web.
   // Formats live at /{slug}/{performances,performance,games}.
   // /locos is the index. Old Comedy Loco aliases and /locos/{slug}/... redirect.
@@ -104,6 +105,26 @@ const nextConfig: NextConfig = {
           },
         ],
         destination: "/comedy-loco",
+      },
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "headcaseai.com",
+          },
+        ],
+        destination: "/head-case",
+      },
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "www.headcaseai.com",
+          },
+        ],
+        destination: "/head-case",
       },
     ];
   },

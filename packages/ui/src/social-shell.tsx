@@ -32,7 +32,12 @@ const CHROMELESS_PREFIXES = [
   "/bar",
 ];
 
-const CHROMELESS_LANDINGS = ["/battle-loco", "/wrestle-loco", "/comedy-loco"];
+const CHROMELESS_LANDINGS = [
+  "/battle-loco",
+  "/wrestle-loco",
+  "/comedy-loco",
+  "/head-case",
+];
 
 const CHROMELESS_HOSTS = [
   "battleloco.com",
@@ -41,6 +46,8 @@ const CHROMELESS_HOSTS = [
   "www.wrestleloco.com",
   "comedyloco.com",
   "www.comedyloco.com",
+  "headcaseai.com",
+  "www.headcaseai.com",
 ];
 
 function isOperatorPath(pathname: string) {
