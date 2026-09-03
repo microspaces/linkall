@@ -44,6 +44,10 @@ export const KNOWN_OVERLAY_CUES = [
   "bit",
   "mic",
   "lineup",
+  "news anchor",
+  "infomercial",
+  "court tv",
+  "late night",
 ];
 
 const MUSIC_HINTS = [
@@ -84,6 +88,12 @@ export function overlayKindForTitle(title: string): string | null {
   if (t === "crowd") return "crowd";
   if (t === "punishment") return "punishment";
   if (t === "ring") return "ring";
+  if (t === "news anchor") return "news-anchor";
+  if (t === "infomercial") return "infomercial";
+  if (t === "court tv") return "court-tv";
+  if (t === "late night") return "late-night";
+  if (t === "prompt") return "prompt";
+  if (t === "bit") return "bit";
   return null;
 }
 
@@ -118,7 +128,11 @@ export function isFullOverlayCue(title: string): boolean {
     kind === "games" ||
     kind === "suggestions" ||
     kind === "punishment" ||
-    kind === "ring"
+    kind === "ring" ||
+    kind === "news-anchor" ||
+    kind === "infomercial" ||
+    kind === "court-tv" ||
+    kind === "late-night"
   );
 }
 

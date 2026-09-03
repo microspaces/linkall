@@ -801,6 +801,7 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
   const next = useMutation(api.game.next);
   const winGame = useMutation(api.game.winGame);
   const winRotation = useMutation(api.game.winRotation);
+  const resolveVote = useMutation(api.game.resolveVote);
   const reset = useMutation(api.game.reset);
 
   const performanceId = view._id;
@@ -830,8 +831,15 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
   const phase = current.phase;
   const showBegin = phase === "idle" || phase === "cued";
   const showNextGame = !setlist && phase === "team1";
-  const showEndRound =
-    setlist ? phase === "team1" : phase === "team2" || phase === "both";
+  const voteBit = view.voteBit;
+  const headcaseVoting = setlist && phase === "voting" && !!voteBit?.voting;
+  const showVoteLock = headcaseVoting && !voteBit?.hostCalls;
+  const showVoteCall = headcaseVoting && !!voteBit?.hostCalls;
+  const showEndRound = headcaseVoting
+    ? false
+    : setlist
+      ? phase === "team1"
+      : phase === "team2" || phase === "both";
   const showWin = !setlist && phase === "voting";
   const showRotation =
     !setlist && current.sameGame && (phase === "both" || phase === "team2");
@@ -845,7 +853,9 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
     !showNextGame &&
     !showEndRound &&
     !showWin &&
-    !showNextJoke;
+    !showNextJoke &&
+    !showVoteLock &&
+    !showVoteCall;
 
   return (
     <div className="shrink-0 border-t border-white/10 bg-gray-900 px-3 py-2">
@@ -926,6 +936,28 @@ function PreviewPerformanceBar({ view }: { view: PerformanceView }) {
             </button>
           </>
         )}
+        {showVoteLock && (
+          <button
+            type="button"
+            onClick={() => resolveVote({ performanceId })}
+            className={btn + " bg-violet-600 text-white"}
+          >
+            Lock Votes
+          </button>
+        )}
+        {showVoteCall &&
+          voteBit?.hostCalls?.map((label, i) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => resolveVote({ performanceId, hostCall: i })}
+              className={
+                btn + (i === 0 ? " bg-lime-400 text-lime-950" : " bg-rose-500 text-white")
+              }
+            >
+              {label}
+            </button>
+          ))}
         {showWin && (
           <>
             <button

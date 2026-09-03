@@ -28,6 +28,11 @@
  */
 
 import type { BrandId } from "@linkall/brands";
+import {
+  catalogSpecForPhoneBit,
+  HEADCASE_CHANNEL_OVERLAYS,
+  HEADCASE_PHONE_BITS,
+} from "./headcasePhoneBits";
 
 export type LocoTag =
   | "comedyloco"
@@ -47,6 +52,8 @@ export type CatalogGameSpec = {
   shortDescription: string;
   suggestions: string;
   description: string;
+  /** Idempotent catalog key (HeadCase phone bits, CSV imports). */
+  sourceKey?: string;
 };
 
 export type TemplateRound = {
@@ -334,6 +341,7 @@ export const LOCOS: LocoConfig[] = [
       "Bit",
       "Games",
       "Score Rotation",
+      ...HEADCASE_CHANNEL_OVERLAYS,
     ],
     tracks: SHARED_TRACKS,
     catalog: [
@@ -346,6 +354,7 @@ export const LOCOS: LocoConfig[] = [
       { name: "Heckle Filter", roundType: "Crowd", shortDescription: "Live moderation bit", suggestions: "A heckle", description: "Bots remix the heckle into a joke." },
       { name: "Earlier Tonight", roundType: "Callback", shortDescription: "Callback reel", suggestions: "A missed joke", description: "Revisit the night's best wrong turns." },
       { name: "Credits Roast", roundType: "Finale", shortDescription: "Close the file", suggestions: "A credit", description: "Bots roast the humans on the way out." },
+      ...HEADCASE_PHONE_BITS.map(catalogSpecForPhoneBit),
     ],
   },
   {

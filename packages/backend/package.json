@@ -22,6 +22,7 @@
     "seed:venueService": "convex run seed:venueService --env-file .env.funfirst",
     "seed:setlistBits": "convex run seed:setlistBits --env-file .env.funfirst",
     "seed:headcaseBits": "convex run headcaseBits:seed --env-file .env.funfirst",
+    "seed:headcasePhoneBits": "convex run game:ensureHeadcasePhoneBits --env-file .env.funfirst",
     "import:mike": "node migrations/import-mike.mjs",
     "import:linkall8": "node migrations/import-linkall8.mjs",
     "codegen": "convex codegen",

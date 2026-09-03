@@ -18,6 +18,16 @@ import {
   winnerCue,
 } from "./sceneCues";
 import { enqueueSceneCommands } from "./sceneCommands";
+import {
+  isHeadcasePhoneBit,
+  majorityIndex,
+  phoneBitByName,
+  resultOverlayForBit,
+  tallyOf,
+  voteViewForGame,
+  HEADCASE_PHONE_BITS,
+  catalogSpecForPhoneBit,
+} from "./headcasePhoneBits";
 
 /**
  * Loco game engine (legacy: Comedy Loco Show page + game-1.0.1.js).
@@ -313,12 +323,22 @@ async function beginPair(
   performanceId: Id<"performances">,
   pair: Pair,
 ) {
+  const phoneBit = pair.single ? phoneBitByName(pair.game1.gameName) : undefined;
   if (pair.single) {
     await ctx.db.patch(pair.game1._id, {
       isCued: false,
       isPlaying: true,
       isPlayed: false,
-      isVoting: false,
+      isVoting: !!phoneBit,
+      isWinner: false,
+      ...(phoneBit
+        ? {
+            optionVotes: tallyOf(phoneBit),
+            winningOption: undefined,
+            hostCall: undefined,
+            votes: 0,
+          }
+        : {}),
     });
   } else if (pair.sameGame) {
     await ctx.db.patch(pair.game1._id, {
@@ -341,6 +361,11 @@ async function beginPair(
   }
   const performance = await ctx.db.get(performanceId);
   if (!performance) return;
+  if (pair.single && phoneBit) {
+    await cueTrack(ctx, performanceId, pair.game1.round, VOTE_CUE);
+    await ctx.db.patch(performanceId, { status: "live" });
+    return;
+  }
   if (pair.single && pair.game1.bitShowId) {
     const activeSceneId = await playBitShow(
       ctx,
@@ -404,6 +429,80 @@ async function playBitShow(
     activeSceneId: scene._id,
   });
   return scene._id;
+}
+
+/** Lock a HeadCase phone-bit vote and cue the result overlay / scene. */
+async function resolveHeadcaseVote(
+  ctx: MutationCtx,
+  performance: Doc<"performances">,
+  game: Game,
+  hostCall: number | undefined,
+) {
+  if (rowTag(performance.tag) !== "headcase") return;
+  const bit = phoneBitByName(game.gameName);
+  if (!bit) return;
+  const call = hostCall ?? game.hostCall;
+  if (
+    bit.hostCalls &&
+    (call === undefined || call < 0 || call >= bit.hostCalls.length)
+  ) {
+    return;
+  }
+  const counts = tallyOf(bit, game.optionVotes);
+  const winning = majorityIndex(counts);
+  await ctx.db.patch(game._id, {
+    isVoting: false,
+    isPlaying: false,
+    isPlayed: true,
+    isWinner: true,
+    winningOption: winning,
+    hostCall: call,
+    votes: counts.reduce((a, b) => a + b, 0),
+    optionVotes: counts,
+  });
+  const overlay = resultOverlayForBit(bit, winning, call);
+  const activeSceneId = await playMatchingScene(ctx, performance, overlay);
+  await ctx.db.patch(performance._id, {
+    activeOverlay: overlay,
+    ...(activeSceneId ? { activeSceneId } : {}),
+  });
+}
+
+async function upsertHeadcasePhoneBits(ctx: MutationCtx) {
+  const existing = (await ctx.db.query("comedyGames").collect()).filter(
+    (g) => rowTag(g.tag) === "headcase",
+  );
+  let inserted = 0;
+  let patched = 0;
+  for (const bit of HEADCASE_PHONE_BITS) {
+    const spec = catalogSpecForPhoneBit(bit);
+    const row =
+      existing.find((g) => g.sourceKey === bit.sourceKey) ??
+      existing.find((g) => g.name === bit.name);
+    const fields = {
+      name: spec.name,
+      roundType: spec.roundType,
+      shortDescription: spec.shortDescription,
+      suggestions: spec.suggestions,
+      ask: bit.prompt,
+      description: spec.description,
+      tag: "headcase" as const,
+      sourceKey: spec.sourceKey,
+      category: "phone-vote",
+    };
+    if (row) {
+      await ctx.db.patch(row._id, fields);
+      patched++;
+    } else {
+      await ctx.db.insert("comedyGames", fields);
+      inserted++;
+    }
+  }
+  return {
+    names: HEADCASE_PHONE_BITS.map((b) => b.name),
+    inserted,
+    patched,
+  };
 }
 
 // ------------------------------------------------------------------ queries
@@ -514,6 +613,17 @@ export const get = query({
           ? pair.game2
           : pair.game1;
     const catalog = playing?.gameId ? catalogById[playing.gameId] : undefined;
+    const voteFocus =
+      playing && isHeadcasePhoneBit(playing.gameName)
+        ? playing
+        : [...games]
+            .reverse()
+            .find(
+              (g) =>
+                isHeadcasePhoneBit(g.gameName) &&
+                (g.isVoting || g.winningOption != null),
+            );
+    const voteBit = voteFocus ? voteViewForGame(voteFocus) : undefined;
 
     const bitShowIds = [
       ...new Set(games.map((g) => g.bitShowId).filter(Boolean)),
@@ -581,6 +691,7 @@ export const get = query({
         : null,
       mode: requireLoco(performance.tag).mode,
       scores: { team1: teamScore(1), team2: teamScore(2) },
+      voteBit,
     };
   },
 });
@@ -797,6 +908,10 @@ export const endRound = mutation({
     const pair = currentPair(games, isSetlist(performance.tag));
     if (!pair) return;
     if (pair.single) {
+      if (pair.phase === "voting" && isHeadcasePhoneBit(pair.game1.gameName)) {
+        await resolveHeadcaseVote(ctx, performance, pair.game1, undefined);
+        return;
+      }
       if (pair.phase !== "team1") return;
       await ctx.db.patch(pair.game1._id, { isPlaying: false, isPlayed: true });
       if (!pair.game1.bitShowId) {
@@ -849,7 +964,13 @@ export const next = mutation({
     if (!performance) return;
     const games = await gamesInOrder(ctx, performanceId);
     const pair = currentPair(games, isSetlist(performance.tag));
-    if (!pair || pair.phase === "voting") return;
+    if (!pair) return;
+    if (pair.phase === "voting") {
+      if (isHeadcasePhoneBit(pair.game1.gameName)) {
+        await resolveHeadcaseVote(ctx, performance, pair.game1, undefined);
+      }
+      return;
+    }
     if (pair.phase === "idle" || pair.phase === "cued") {
       await beginPair(ctx, performanceId, pair);
       return;
@@ -895,6 +1016,59 @@ export const next = mutation({
         celebrationOrInstructions(performance, pair.game1.roundType),
       );
     }
+  },
+});
+
+/** Audience tap on a HeadCase phone-bit option (max 4 canned choices). */
+export const voteOption = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    optionIndex: v.number(),
+  },
+  handler: async (ctx, { performanceId, optionIndex }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance || rowTag(performance.tag) !== "headcase") return;
+    const games = await gamesInOrder(ctx, performanceId);
+    const pair = currentPair(games, true);
+    if (!pair || pair.phase !== "voting") return;
+    const bit = phoneBitByName(pair.game1.gameName);
+    if (!bit || !pair.game1.isVoting) return;
+    const n = Math.min(4, bit.options.length);
+    const i = Math.floor(optionIndex);
+    if (i < 0 || i >= n) return;
+    const counts = tallyOf(bit, pair.game1.optionVotes);
+    counts[i] = (counts[i] ?? 0) + 1;
+    await ctx.db.patch(pair.game1._id, {
+      optionVotes: counts,
+      votes: counts.reduce((a, b) => a + b, 0),
+    });
+  },
+});
+
+/**
+ * Lock the current HeadCase phone-bit vote.
+ * Majority bits omit hostCall. True or Cap / Will It Land pass the host reveal.
+ */
+export const resolveVote = mutation({
+  args: {
+    performanceId: v.id("performances"),
+    hostCall: v.optional(v.number()),
+  },
+  handler: async (ctx, { performanceId, hostCall }) => {
+    const performance = await ctx.db.get(performanceId);
+    if (!performance || rowTag(performance.tag) !== "headcase") return;
+    const games = await gamesInOrder(ctx, performanceId);
+    const pair = currentPair(games, true);
+    if (!pair || pair.phase !== "voting") return;
+    await resolveHeadcaseVote(ctx, performance, pair.game1, hostCall);
+  },
+});
+
+/** Upsert the 5 HeadCase phone-vote catalog games (idempotent by sourceKey). */
+export const ensureHeadcasePhoneBits = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await upsertHeadcasePhoneBits(ctx);
   },
 });
 
@@ -1052,11 +1226,17 @@ export const seedCatalog = mutation({
     const existing = (await ctx.db.query("comedyGames").collect()).filter(
       (g) => rowTag(g.tag) === loco.tag,
     );
-    if (existing.length > 0) return existing.length;
-    for (const g of loco.catalog) {
-      await ctx.db.insert("comedyGames", { ...g, tag: loco.tag });
+    if (existing.length === 0) {
+      for (const g of loco.catalog) {
+        await ctx.db.insert("comedyGames", { ...g, tag: loco.tag });
+      }
     }
-    return loco.catalog.length;
+    if (loco.tag === "headcase") {
+      await upsertHeadcasePhoneBits(ctx);
+    }
+    return (await ctx.db.query("comedyGames").collect()).filter(
+      (g) => rowTag(g.tag) === loco.tag,
+    ).length;
   },
 });
 
@@ -1209,6 +1389,9 @@ export const reset = mutation({
         volunteers: 0,
         votes: 0,
         score: 0,
+        optionVotes: undefined,
+        winningOption: undefined,
+        hostCall: undefined,
       });
     }
     const performers = await ctx.db
