@@ -1085,6 +1085,7 @@ const PHONE_CANVAS = { width: 1080, height: 1920 } as const;
 function slugForShow(show: { title: string; tag?: string }) {
   const loco = show.tag ? getLocoByTag(show.tag) : undefined;
   if (loco) return loco.slug;
+  if (show.tag === "comedyloco-stage") return "comedy-loco";
   const t = show.title.toLowerCase();
   if (t.includes("battle")) return "battle-loco";
   if (t.includes("wrestle")) return "wrestle-loco";
@@ -3014,11 +3015,12 @@ export const funfirst = mutation({
     const stageShowId = await ctx.db.insert("shows", {
       title: "Comedy Loco Stage Cues",
       description: "Panel-based stage cues for the main house screen — designer / timeline demo.",
-      tag: "comedyloco",
+      tag: "comedyloco-stage",
       status: "draft",
       currentSceneIndex: 0,
       layoutId,
       ownerId: users[0],
+      sourceKey: "comedyloco-stage:show",
     });
     const stageScenes: [
       string,
@@ -3055,6 +3057,7 @@ export const funfirst = mutation({
         durationSec,
         isOverlay,
         isSoundEffect,
+        sourceKey: `comedyloco-stage:scene:${String(s + 1).padStart(2, "0")}`,
       });
       const ffLogical: Record<string, string> = {
         Background: "Backdrop",
@@ -3604,6 +3607,7 @@ export const locoCueShows = mutation({
       : { keyFillPanels: 0, commandScenes: 0, commands: 0, keyFills: 0 };
 
     const comedyShow =
+      shows.find((s) => s.tag === "comedyloco-stage") ??
       shows.find((s) => s.title.toLowerCase().includes("stage cues")) ??
       shows.find((s) => s.tag === "comedyloco") ??
       shows.find((s) => s.title.toLowerCase().includes("comedy loco"));

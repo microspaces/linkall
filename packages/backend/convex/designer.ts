@@ -1372,3 +1372,325 @@ export const applyProfileToShowEffects = mutation({
   },
 });
 
+const SCAN_TABLES = [
+  "users",
+  "groups",
+  "posts",
+  "notifications",
+  "shows",
+  "scenes",
+  "layouts",
+  "screens",
+  "panels",
+  "effects",
+  "displayProfiles",
+  "comedyGames",
+  "performances",
+  "performanceGames",
+  "performers",
+  "performanceOverlays",
+  "performanceTracks",
+  "events",
+  "products",
+  "resources",
+  "venues",
+  "places",
+  "menuItems",
+] as const;
+
+function topLevelStrings(
+  doc: Record<string, unknown>,
+): Array<{ field: string; value: string }> {
+  const out: Array<{ field: string; value: string }> = [];
+  for (const [field, value] of Object.entries(doc)) {
+    if (field.startsWith("_")) continue;
+    if (typeof value === "string") out.push({ field, value });
+  }
+  return out;
+}
+
+/**
+ * Read-only scan of string fields across user-data tables.
+ *   pnpm --filter @linkall/backend exec convex run designer:scanText '{"needle":"..."}' --env-file .env.funfirst
+ */
+export const scanText = query({
+  args: { needle: v.string() },
+  handler: async (ctx, { needle }) => {
+    const n = needle.trim().toLowerCase();
+    if (!n) return { needle, hits: [] as const, tablesScanned: SCAN_TABLES.length };
+    const hits: Array<{
+      table: string;
+      _id: string;
+      fields: Array<{ field: string; value: string }>;
+    }> = [];
+    for (const table of SCAN_TABLES) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) {
+        const fields = topLevelStrings(row as unknown as Record<string, unknown>).filter(
+          (f) => f.value.toLowerCase().includes(n),
+        );
+        if (fields.length === 0) continue;
+        hits.push({
+          table,
+          _id: row._id,
+          fields,
+        });
+      }
+    }
+    return { needle, hitCount: hits.length, hits, tablesScanned: SCAN_TABLES.length };
+  },
+});
+
+/**
+ * Rename one show (title/tag/description) and rewrite sourceKey prefixes on
+ * its scenes and effects. Does not touch other shows' titles or tags.
+ * Display-string replace on this show's scenes is optional.
+ *
+ *   pnpm --filter @linkall/backend exec convex run designer:renameShowAndSceneKeys --env-file .env.funfirst
+ */
+export const renameShowAndSceneKeys = mutation({
+  args: {
+    showId: v.id("shows"),
+    title: v.string(),
+    tag: v.string(),
+    description: v.optional(v.string()),
+    sourceKeyFromPrefix: v.string(),
+    sourceKeyToPrefix: v.string(),
+    displayFrom: v.optional(v.string()),
+    displayTo: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const show = await ctx.db.get(args.showId);
+    if (!show) throw new Error("Show not found");
+
+    const tagged = await ctx.db
+      .query("shows")
+      .withIndex("by_tag", (q) => q.eq("tag", args.tag))
+      .collect();
+    const clash = tagged.filter((s) => s._id !== args.showId);
+
+    const before = {
+      title: show.title,
+      tag: show.tag ?? null,
+      description: show.description,
+      sourceKey: show.sourceKey ?? null,
+    };
+
+    const showPatch: {
+      title: string;
+      tag: string;
+      description?: string;
+      sourceKey?: string;
+    } = {
+      title: args.title,
+      tag: args.tag,
+    };
+    if (args.description !== undefined) showPatch.description = args.description;
+    if (
+      show.sourceKey &&
+      show.sourceKey.startsWith(args.sourceKeyFromPrefix)
+    ) {
+      showPatch.sourceKey =
+        args.sourceKeyToPrefix +
+        show.sourceKey.slice(args.sourceKeyFromPrefix.length);
+    }
+    await ctx.db.patch(show._id, showPatch);
+
+    const replaceDisplay = (value: string) => {
+      if (!args.displayFrom || args.displayTo === undefined) return value;
+      const from = args.displayFrom;
+      const to = args.displayTo;
+      return value.replace(new RegExp(escapeRegExp(from), "gi"), to);
+    };
+
+    const scenes = await ctx.db
+      .query("scenes")
+      .withIndex("by_show", (q) => q.eq("showId", show._id))
+      .collect();
+    const sceneChanges: Array<{
+      _id: Id<"scenes">;
+      title?: { from: string; to: string };
+      sourceKey?: { from: string | null; to: string };
+    }> = [];
+    const effectChanges: Array<{
+      _id: Id<"effects">;
+      sourceKey: { from: string; to: string };
+    }> = [];
+
+    for (const scene of scenes) {
+      const patch: { title?: string; content?: string; sourceKey?: string } = {};
+      const change: (typeof sceneChanges)[number] = { _id: scene._id };
+      if (args.displayFrom && args.displayTo !== undefined) {
+        const nextTitle = replaceDisplay(scene.title);
+        if (nextTitle !== scene.title) {
+          patch.title = nextTitle;
+          change.title = { from: scene.title, to: nextTitle };
+        }
+        const nextContent = replaceDisplay(scene.content);
+        if (nextContent !== scene.content) patch.content = nextContent;
+      }
+      if (
+        scene.sourceKey &&
+        scene.sourceKey.startsWith(args.sourceKeyFromPrefix)
+      ) {
+        const next =
+          args.sourceKeyToPrefix +
+          scene.sourceKey.slice(args.sourceKeyFromPrefix.length);
+        patch.sourceKey = next;
+        change.sourceKey = { from: scene.sourceKey, to: next };
+      }
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(scene._id, patch);
+        sceneChanges.push(change);
+      }
+
+      const effects = await ctx.db
+        .query("effects")
+        .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+        .collect();
+      for (const effect of effects) {
+        const ePatch: { sourceKey?: string; content?: string } = {};
+        if (
+          effect.sourceKey &&
+          effect.sourceKey.startsWith(args.sourceKeyFromPrefix)
+        ) {
+          const next =
+            args.sourceKeyToPrefix +
+            effect.sourceKey.slice(args.sourceKeyFromPrefix.length);
+          ePatch.sourceKey = next;
+          effectChanges.push({
+            _id: effect._id,
+            sourceKey: { from: effect.sourceKey, to: next },
+          });
+        }
+        if (args.displayFrom && args.displayTo !== undefined) {
+          const nextContent = replaceDisplay(effect.content);
+          if (nextContent !== effect.content) ePatch.content = nextContent;
+        }
+        if (Object.keys(ePatch).length > 0) {
+          await ctx.db.patch(effect._id, ePatch);
+        }
+      }
+    }
+
+    const after = await ctx.db.get(show._id);
+    return {
+      showId: show._id,
+      before,
+      after: after
+        ? {
+            title: after.title,
+            tag: after.tag ?? null,
+            description: after.description,
+            sourceKey: after.sourceKey ?? null,
+          }
+        : null,
+      scenesUpdated: sceneChanges.length,
+      sceneChanges,
+      effectsUpdated: effectChanges.length,
+      effectChanges,
+      tagClashSkipped: clash.map((s) => ({ _id: s._id, title: s.title, tag: s.tag })),
+    };
+  },
+});
+
+/**
+ * Replace a needle in top-level string fields on tables other than `shows`
+ * (other shows' titles/tags must not change). `tagFieldTo` is used when the
+ * field name is `tag` (loco format), otherwise `displayTo` / case-insensitive
+ * `displayFrom` is used. `sourceKey` prefixes use the prefix rewrite.
+ */
+export const replaceTextOutsideShows = mutation({
+  args: {
+    needle: v.string(),
+    displayFrom: v.string(),
+    displayTo: v.string(),
+    tagTo: v.optional(v.string()),
+    sourceKeyFromPrefix: v.optional(v.string()),
+    sourceKeyToPrefix: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const needle = args.needle.trim().toLowerCase();
+    const changes: Array<{
+      table: string;
+      _id: string;
+      field: string;
+      from: string;
+      to: string;
+    }> = [];
+    const tables = SCAN_TABLES.filter((t) => t !== "shows");
+    for (const table of tables) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) {
+        const fields = topLevelStrings(row as unknown as Record<string, unknown>);
+        const patch: Record<string, string> = {};
+        for (const { field, value } of fields) {
+          if (!value.toLowerCase().includes(needle)) continue;
+          let next = value;
+          if (
+            field === "sourceKey" &&
+            args.sourceKeyFromPrefix &&
+            args.sourceKeyToPrefix &&
+            value.startsWith(args.sourceKeyFromPrefix)
+          ) {
+            next =
+              args.sourceKeyToPrefix +
+              value.slice(args.sourceKeyFromPrefix.length);
+          } else if ((field === "tag" || field === "category") && args.tagTo) {
+            next = args.tagTo;
+          } else if (field === "sourceKey") {
+            continue;
+          } else {
+            next = value.replace(
+              new RegExp(escapeRegExp(args.displayFrom), "gi"),
+              args.displayTo,
+            );
+          }
+          if (next !== value) {
+            patch[field] = next;
+            changes.push({
+              table,
+              _id: row._id,
+              field,
+              from: value,
+              to: next,
+            });
+          }
+        }
+        if (Object.keys(patch).length > 0) {
+          await ctx.db.patch(row._id, patch);
+        }
+      }
+    }
+    return { changeCount: changes.length, changes };
+  },
+});
+
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Patch a group's slug-like category (and optional name / photoUrl). */
+export const patchGroup = mutation({
+  args: {
+    groupId: v.id("groups"),
+    category: v.optional(v.string()),
+    name: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, { groupId, ...fields }) => {
+    const group = await ctx.db.get(groupId);
+    if (!group) throw new Error("Group not found");
+    const patch: {
+      category?: string;
+      name?: string;
+      photoUrl?: string;
+    } = {};
+    if (fields.category !== undefined) patch.category = fields.category;
+    if (fields.name !== undefined) patch.name = fields.name;
+    if (fields.photoUrl !== undefined) patch.photoUrl = fields.photoUrl;
+    if (Object.keys(patch).length > 0) await ctx.db.patch(groupId, patch);
+    return await ctx.db.get(groupId);
+  },
+});
+
