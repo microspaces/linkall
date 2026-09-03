@@ -1468,11 +1468,6 @@ export const renameShowAndSceneKeys = mutation({
       .withIndex("by_tag", (q) => q.eq("tag", args.tag))
       .collect();
     const clash = tagged.filter((s) => s._id !== args.showId);
-    if (clash.length > 0 && args.tag === "comedyloco") {
-      throw new Error(
-        `tag "${args.tag}" is already used by ${clash.map((s) => s._id).join(", ")}`,
-      );
-    }
 
     const before = {
       title: show.title,
