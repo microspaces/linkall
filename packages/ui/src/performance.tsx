@@ -1194,6 +1194,7 @@ function ControlStrip({
   const winGame = useMutation(api.game.winGame);
   const winRotation = useMutation(api.game.winRotation);
   const addVolunteers = useMutation(api.game.addVolunteers);
+  const resolveVote = useMutation(api.game.resolveVote);
 
   const performanceId = view._id;
   const current = view.current;
@@ -1215,8 +1216,15 @@ function ControlStrip({
   const phase = current.phase;
   const showBegin = phase === "idle" || phase === "cued";
   const showNextGame = !setlist && phase === "team1";
-  const showEndRound =
-    setlist ? phase === "team1" : phase === "team2" || phase === "both";
+  const voteBit = view.voteBit;
+  const headcaseVoting = setlist && phase === "voting" && !!voteBit?.voting;
+  const showVoteLock = headcaseVoting && !voteBit?.hostCalls;
+  const showVoteCall = headcaseVoting && !!voteBit?.hostCalls;
+  const showEndRound = headcaseVoting
+    ? false
+    : setlist
+      ? phase === "team1"
+      : phase === "team2" || phase === "both";
   const showWin = !setlist && phase === "voting";
   const showRotation =
     !setlist && current.sameGame && (phase === "both" || phase === "team2");
@@ -1235,7 +1243,9 @@ function ControlStrip({
     !showNextGame &&
     !showEndRound &&
     !showWin &&
-    !showNextJoke;
+    !showNextJoke &&
+    !showVoteLock &&
+    !showVoteCall;
 
   return (
     <div className="border-t border-gray-200 bg-white p-2">
@@ -1269,6 +1279,12 @@ function ControlStrip({
               Ask: {catalog.suggestions}
             </span>
           ) : null}
+        </p>
+      )}
+      {headcaseVoting && voteBit && (
+        <p className="mb-2 text-xs font-semibold text-violet-700">
+          {voteBit.options.map((o, i) => `${o} ${voteBit.counts[i]}`).join(" · ")}
+          {voteBit.total ? ` · ${voteBit.total} votes` : " · waiting on phones"}
         </p>
       )}
 
@@ -1353,6 +1369,29 @@ function ControlStrip({
             </button>
           </>
         )}
+        {showVoteLock && (
+          <button
+            onClick={() => resolveVote({ performanceId })}
+            className={btn + " bg-violet-600 text-white hover:bg-violet-500"}
+          >
+            Lock Votes
+          </button>
+        )}
+        {showVoteCall &&
+          voteBit?.hostCalls?.map((label, i) => (
+            <button
+              key={label}
+              onClick={() => resolveVote({ performanceId, hostCall: i })}
+              className={
+                btn +
+                (i === 0
+                  ? " bg-lime-400 text-lime-950 hover:bg-lime-300"
+                  : " bg-rose-500 text-white hover:bg-rose-400")
+              }
+            >
+              {label}
+            </button>
+          ))}
         {showWin && (
           <>
             <button
@@ -1414,7 +1453,11 @@ export function PerformanceOverlay({
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
       <div className="relative z-10">
-        <OverlayView view={view} forceKind={kind} />
+        <OverlayView
+          view={view}
+          forceKind={kind}
+          interactive={kind === "live" || kind === "phone"}
+        />
       </div>
     </div>
   );
@@ -1494,16 +1537,324 @@ const OVERLAY_KIND_TO_CUE: Record<string, string> = {
   ring: "ring",
   live: "",
   phone: "",
+  bit: "bit",
+  prompt: "prompt",
+  "news-anchor": "news anchor",
+  infomercial: "infomercial",
+  "court-tv": "court tv",
+  "late-night": "late night",
 };
+
+type HeadcaseVoteBit = NonNullable<PerformanceView["voteBit"]>;
+
+function votePercents(voteBit: HeadcaseVoteBit) {
+  return voteBit.counts.map((c) =>
+    voteBit.total ? Math.round((c / voteBit.total) * 100) : 0,
+  );
+}
+
+function HeadcasePhoneBitOverlay({
+  view,
+  voteBit,
+  compact,
+  interactive,
+}: {
+  view: PerformanceView;
+  voteBit: HeadcaseVoteBit;
+  compact: boolean;
+  interactive: boolean;
+}) {
+  const voteOption = useMutation(api.game.voteOption);
+  const [picked, setPicked] = useState<number | null>(null);
+  const storageKey = `linkall.headcaseVote.${view._id}.${voteBit.name}`;
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (raw != null && raw !== "") setPicked(Number(raw));
+    } catch {
+      /* ignore */
+    }
+  }, [storageKey]);
+
+  if (!voteBit.voting && voteBit.winningOption != null) {
+    return <HeadcaseBitResult voteBit={voteBit} compact={compact} />;
+  }
+
+  const percents = votePercents(voteBit);
+  const twoCol = voteBit.options.length <= 2;
+  const canTap = interactive && voteBit.voting && picked == null;
+
+  return (
+    <div className={compact ? "px-4 text-center" : "px-6 text-center sm:px-10"}>
+      <p
+        className={
+          compact
+            ? "text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300/80"
+            : "text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300/80"
+        }
+      >
+        {voteBit.name}
+      </p>
+      <h1
+        className={
+          compact
+            ? "mt-2 text-2xl font-black text-white"
+            : "mt-4 text-4xl font-black text-white sm:text-6xl"
+        }
+      >
+        {voteBit.prompt}
+      </h1>
+      <div
+        className={
+          "mx-auto mt-6 grid max-w-3xl gap-3 " +
+          (twoCol ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")
+        }
+      >
+        {voteBit.options.map((label, i) => {
+          const selected = picked === i;
+          return (
+            <button
+              key={label}
+              type="button"
+              disabled={!canTap}
+              onClick={() => {
+                if (!canTap) return;
+                setPicked(i);
+                try {
+                  window.localStorage.setItem(storageKey, String(i));
+                } catch {
+                  /* ignore */
+                }
+                void voteOption({
+                  performanceId: view._id,
+                  optionIndex: i,
+                });
+              }}
+              className={
+                "rounded-2xl border px-4 py-4 text-left transition " +
+                (selected
+                  ? "border-cyan-300 bg-cyan-400/20 text-white"
+                  : canTap
+                    ? "border-white/20 bg-white/5 text-white hover:border-cyan-300/70 hover:bg-white/10"
+                    : "border-white/10 bg-white/5 text-white/90")
+              }
+            >
+              <span
+                className={
+                  compact ? "text-lg font-black" : "text-2xl font-black"
+                }
+              >
+                {label}
+              </span>
+              <span className="mt-1 block text-sm font-semibold tabular-nums text-cyan-200">
+                {percents[i]}%
+                {voteBit.kind === "land" || voteBit.total > 0
+                  ? ` · ${voteBit.counts[i]}`
+                  : ""}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {voteBit.kind === "land" && (
+        <p className="mt-4 text-sm uppercase tracking-widest text-white/50">
+          Live prediction
+        </p>
+      )}
+    </div>
+  );
+}
+
+function HeadcaseBitResult({
+  voteBit,
+  compact,
+}: {
+  voteBit: HeadcaseVoteBit;
+  compact: boolean;
+}) {
+  const winner = voteBit.options[voteBit.winningOption ?? 0] ?? "";
+  const percents = votePercents(voteBit);
+
+  if (voteBit.kind === "truecap") {
+    const gullible = voteBit.resultLabel === "GULLIBLE";
+    return (
+      <div className="px-6 text-center">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-white/50">
+          {voteBit.prompt}
+        </p>
+        <div
+          className={
+            "mx-auto mt-8 inline-block rotate-[-8deg] rounded-md border-8 px-10 py-6 font-black uppercase tracking-widest " +
+            (gullible
+              ? "border-red-500 text-red-500"
+              : "border-amber-300 text-amber-200")
+          }
+        >
+          <p className={compact ? "text-5xl" : "text-8xl"}>
+            {voteBit.resultLabel ?? "CONFESSION"}
+          </p>
+        </div>
+        <p className="mt-8 text-xl text-white/70">
+          Majority {voteBit.options[voteBit.winningOption ?? 0]} ·{" "}
+          {percents[voteBit.winningOption ?? 0]}%
+        </p>
+      </div>
+    );
+  }
+
+  if (voteBit.kind === "land") {
+    return (
+      <div className="px-6 text-center">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-white/50">
+          Will it land?
+        </p>
+        <h1
+          className={
+            "mt-4 animate-bounce font-black text-lime-400 " +
+            (compact ? "text-5xl" : "text-8xl")
+          }
+        >
+          {voteBit.resultLabel === "LANDED" ? "Winner YES" : "Winner NO"}
+        </h1>
+        <p className="mt-4 text-3xl font-black uppercase tracking-widest text-white">
+          {voteBit.resultLabel}
+        </p>
+        <div className="mt-8 flex items-center justify-center gap-10 text-2xl font-black">
+          {voteBit.options.map((label, i) => (
+            <span key={label} className="text-white/80">
+              {label} {percents[i]}%
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (voteBit.kind === "channel") {
+    return <HeadcaseChannelLook cue={voteBit.sceneCue ?? winner} compact={compact} />;
+  }
+
+  const fullWidth = voteBit.kind === "caption";
+  return (
+    <div className={compact && !fullWidth ? "px-2" : "px-0"}>
+      {voteBit.rejected.length > 0 && !compact && (
+        <ul className="mb-6 space-y-1 text-center text-lg text-white/35 line-through">
+          {voteBit.rejected.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
+      <div
+        className={
+          "w-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 py-4 text-center shadow-[0_0_40px_rgba(168,85,247,0.45)] " +
+          (fullWidth ? "" : "mx-auto max-w-5xl rounded-xl")
+        }
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-black/70">
+          {voteBit.kind === "caption" ? "Winning caption" : "Winning burn"}
+        </p>
+        <p
+          className={
+            "font-black leading-tight text-black " +
+            (compact ? "text-2xl" : fullWidth ? "text-5xl sm:text-7xl" : "text-4xl sm:text-6xl")
+          }
+        >
+          {winner}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const CHANNEL_LOOK: Record<
+  string,
+  { kicker: string; title: string; className: string }
+> = {
+  "news anchor": {
+    kicker: "LIVE",
+    title: "NEWS ANCHOR",
+    className: "from-red-700 to-red-900",
+  },
+  infomercial: {
+    kicker: "BUT WAIT",
+    title: "INFOMERCIAL",
+    className: "from-yellow-400 to-fuchsia-600",
+  },
+  "court tv": {
+    kicker: "ON THE RECORD",
+    title: "COURT TV",
+    className: "from-emerald-800 to-stone-900",
+  },
+  "late night": {
+    kicker: "TONIGHT",
+    title: "LATE NIGHT",
+    className: "from-indigo-700 to-violet-950",
+  },
+};
+
+function HeadcaseChannelLook({
+  cue,
+  compact,
+}: {
+  cue: string;
+  compact: boolean;
+}) {
+  const look =
+    CHANNEL_LOOK[cue.trim().toLowerCase()] ?? {
+      kicker: "ON AIR",
+      title: cue,
+      className: "from-violet-600 to-cyan-700",
+    };
+  return (
+    <div
+      className={
+        "w-full bg-gradient-to-r px-6 py-5 text-center " + look.className
+      }
+    >
+      <p className="text-sm font-black uppercase tracking-[0.4em] text-white/80">
+        {look.kicker}
+      </p>
+      <h1
+        className={
+          "mt-2 font-black uppercase tracking-widest text-white " +
+          (compact ? "text-3xl" : "text-6xl sm:text-8xl")
+        }
+      >
+        {look.title}
+      </h1>
+    </div>
+  );
+}
+
+function isHeadcaseBitOverlay(
+  overlay: string,
+  voteBit: NonNullable<PerformanceView["voteBit"]>,
+) {
+  if (overlay === "vote") return true;
+  if (voteBit.voting) return overlay === "vote" || overlay === "";
+  if (voteBit.kind === "burn" || voteBit.kind === "caption") return overlay === "bit";
+  if (voteBit.kind === "truecap") return overlay === "prompt";
+  if (voteBit.kind === "land") return overlay.startsWith("winner");
+  if (voteBit.kind === "channel") {
+    const names = [voteBit.sceneCue, ...voteBit.options]
+      .filter((s): s is string => !!s)
+      .map((s) => s.trim().toLowerCase());
+    return names.includes(overlay);
+  }
+  return false;
+}
 
 function OverlayView({
   view,
   compact = false,
   forceKind,
+  interactive = false,
 }: {
   view: PerformanceView;
   compact?: boolean;
   forceKind?: string;
+  interactive?: boolean;
 }) {
   const overlay = (
     (forceKind && OVERLAY_KIND_TO_CUE[forceKind]) ||
@@ -1518,6 +1869,18 @@ function OverlayView({
   const game1 = current ? view.games.find((g) => g._id === current.game1Id) : null;
   const game2 = current ? view.games.find((g) => g._id === current.game2Id) : null;
   const playing = game2?.isPlaying ? game2 : game1?.isPlaying ? game1 : null;
+  const voteBit = view.voteBit;
+
+  if (voteBit && isHeadcaseBitOverlay(overlay, voteBit)) {
+    return (
+      <HeadcasePhoneBitOverlay
+        view={view}
+        voteBit={voteBit}
+        compact={compact}
+        interactive={interactive}
+      />
+    );
+  }
 
   if (overlay === "score-1" || overlay === "score-2")
     return (

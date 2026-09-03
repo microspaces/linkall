@@ -219,6 +219,7 @@ async function insertLocoCatalog(ctx: MutationCtx, loco: LocoConfig) {
       suggestions: g.suggestions,
       description: g.description,
       tag: loco.tag,
+      ...(g.sourceKey ? { sourceKey: g.sourceKey } : {}),
     });
   }
   return catalogIds;

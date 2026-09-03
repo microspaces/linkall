@@ -50,6 +50,12 @@ function overlayLabel(kind: string) {
     crowd: "Crowd",
     punishment: "Punishment",
     ring: "Ring",
+    prompt: "Prompt",
+    bit: "Bit",
+    "news-anchor": "News Anchor",
+    infomercial: "Infomercial",
+    "court-tv": "Court TV",
+    "late-night": "Late Night",
   };
   if (known[kind]) return known[kind];
   return kind

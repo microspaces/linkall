@@ -468,6 +468,12 @@ export default defineSchema({
     volunteers: v.optional(v.number()),
     /** Whether this round counts toward the score (legacy IsScored). */
     isScored: v.boolean(),
+    /** HeadCase phone bits: per-option tallies (max 4). */
+    optionVotes: v.optional(v.array(v.number())),
+    /** HeadCase phone bits: majority option index after lock. */
+    winningOption: v.optional(v.number()),
+    /** HeadCase phone bits: host reveal (TRUE/CAP, LANDED/BOMBED). */
+    hostCall: v.optional(v.number()),
   }).index("by_performance", ["performanceId"]),
 
   performers: defineTable({
