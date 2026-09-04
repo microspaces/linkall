@@ -2054,6 +2054,156 @@ async function bindHeadCaseShowsToHead(
   return { bound, cameras, screenId: head.screenId, layoutId: head.layoutId };
 }
 
+const BITS_NIGHT_TITLE = "HeadCase: Bits Night";
+const BITS_NIGHT_SHOW_KEY = "headcase:bits-night:show";
+const BITS_NIGHT_ASSETS = [
+  "/head-case/images/hero.jpg",
+  "/head-case/images/stage.jpg",
+  "/head-case/images/crowd.jpg",
+] as const;
+
+/**
+ * Bind the seeded "HeadCase: Bits Night" title/text show onto the Head
+ * layout with a display profile and title-card effects (existing public
+ * stills + scene text). Does not go live — the live performance cues
+ * catalog bit shows, not this set-list card.
+ *
+ *   pnpm --filter @linkall/backend exec convex run seed:headcaseBitsNightWall --env-file .env.funfirst
+ */
+async function ensureBitsNightWall(ctx: MutationCtx, ownerId: Id<"users">) {
+  const byKey = await ctx.db
+    .query("shows")
+    .withIndex("by_sourceKey", (q) => q.eq("sourceKey", BITS_NIGHT_SHOW_KEY))
+    .collect();
+  const tagged = await ctx.db
+    .query("shows")
+    .withIndex("by_tag", (q) => q.eq("tag", "headcase"))
+    .collect();
+  const show =
+    byKey[0] ??
+    tagged.find((s) => s.title === BITS_NIGHT_TITLE);
+  if (!show) {
+    return { found: false as const };
+  }
+
+  const head = await ensureHeadLayout(ctx, ownerId);
+  await ctx.db.patch(show._id, {
+    layoutId: head.layoutId,
+    sourceKey: BITS_NIGHT_SHOW_KEY,
+  });
+
+  const profiles = await ctx.db
+    .query("displayProfiles")
+    .withIndex("by_show", (q) => q.eq("showId", show._id))
+    .collect();
+  let profile = profiles.find((p) => p.isDefault) ?? profiles[0];
+  let profileInserted = false;
+  if (!profile) {
+    const profileId = await ctx.db.insert("displayProfiles", {
+      name: "Head",
+      description: "HeadCase output — screen Head.",
+      showId: show._id,
+      layoutId: head.layoutId,
+      isDefault: true,
+      ownerId,
+    });
+    profile = (await ctx.db.get(profileId))!;
+    profileInserted = true;
+  } else if (profile.layoutId !== head.layoutId) {
+    await ctx.db.patch(profile._id, { layoutId: head.layoutId });
+  }
+  const mappings = await ctx.db
+    .query("panelMappings")
+    .withIndex("by_profile", (q) => q.eq("displayProfileId", profile._id))
+    .collect();
+  if (!mappings.some((m) => m.logicalPanelName === "MainContent")) {
+    await ctx.db.insert("panelMappings", {
+      displayProfileId: profile._id,
+      logicalPanelName: "MainContent",
+      panelId: head.panelId,
+    });
+  }
+
+  const scenes = await ctx.db
+    .query("scenes")
+    .withIndex("by_show", (q) => q.eq("showId", show._id))
+    .collect();
+  scenes.sort((a, b) => a.order - b.order);
+
+  let effectsInserted = 0;
+  let effectsPatched = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i]!;
+    const sceneKey = `headcase:bits-night:scene:${String(i + 1).padStart(2, "0")}`;
+    if (scene.sourceKey !== sceneKey) {
+      await ctx.db.patch(scene._id, { sourceKey: sceneKey });
+    }
+    const asset = BITS_NIGHT_ASSETS[i % BITS_NIGHT_ASSETS.length];
+    const text = scene.content?.trim() || scene.title;
+    const existing = await ctx.db
+      .query("effects")
+      .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+      .collect();
+
+    const imageKey = `headcase:bits-night:effect:scene${String(i + 1).padStart(2, "0")}:bg`;
+    const textKey = `headcase:bits-night:effect:scene${String(i + 1).padStart(2, "0")}:text`;
+    const imageHave =
+      existing.find((e) => e.sourceKey === imageKey) ??
+      existing.find((e) => e.kind === "image" && e.logicalPanelName === "MainContent");
+    const textHave =
+      existing.find((e) => e.sourceKey === textKey) ??
+      existing.find((e) => e.kind === "text" && e.logicalPanelName === "MainContent");
+
+    const imageFields = {
+      panelId: head.panelId,
+      logicalPanelName: "MainContent",
+      kind: "image" as const,
+      content: asset,
+      startTime: 0,
+      isEnabled: true,
+      sourceKey: imageKey,
+    };
+    if (imageHave) {
+      await ctx.db.patch(imageHave._id, imageFields);
+      effectsPatched++;
+    } else {
+      await ctx.db.insert("effects", { sceneId: scene._id, ...imageFields });
+      effectsInserted++;
+    }
+
+    const textFields = {
+      panelId: head.panelId,
+      logicalPanelName: "MainContent",
+      kind: "text" as const,
+      content: text,
+      startTime: 0,
+      isEnabled: true,
+      sourceKey: textKey,
+    };
+    if (textHave) {
+      await ctx.db.patch(textHave._id, textFields);
+      effectsPatched++;
+    } else {
+      await ctx.db.insert("effects", { sceneId: scene._id, ...textFields });
+      effectsInserted++;
+    }
+  }
+
+  return {
+    found: true as const,
+    showId: show._id,
+    title: show.title,
+    status: show.status,
+    layoutId: head.layoutId,
+    panelId: head.panelId,
+    profileId: profile._id,
+    profileInserted,
+    sceneCount: scenes.length,
+    effectsInserted,
+    effectsPatched,
+  };
+}
+
 /** One Show per catalog bit/sketch (jokes = scenes, gags = effects). */
 async function insertBitLibrary(
   ctx: MutationCtx,
@@ -3750,10 +3900,6 @@ export const wrestleLoco = mutation({
 });
 
 /**
- * Add the portrait Phone screen to every show that has a layout.
- *   pnpm --filter @linkall/backend exec convex run seed:phoneScreens --env-file .env.funfirst
- */
-/**
  * Create HeadCase + LaffUp bit/sketch shows (Show → Scene → Effect) and
  * attach them to existing set-list performance rows.
  *
@@ -3803,6 +3949,23 @@ export const setlistBits = mutation({
   },
 });
 
+export const headcaseBitsNightWall = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const ownerId =
+      users.find((u) => u.tier === "admin")?._id ?? users[0]?._id;
+    if (!ownerId) {
+      throw new Error("No users in deployment — run seed:funfirst first.");
+    }
+    return ensureBitsNightWall(ctx, ownerId);
+  },
+});
+
+/**
+ * Add the portrait Phone screen to every show that has a layout.
+ *   pnpm --filter @linkall/backend exec convex run seed:phoneScreens --env-file .env.funfirst
+ */
 export const phoneScreens = mutation({
   args: {},
   handler: async (ctx) => {

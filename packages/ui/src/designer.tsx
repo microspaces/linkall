@@ -435,7 +435,7 @@ function EffectMedia({
   }
   if (kind === "camera") {
     return (
-      <div style={frame} className="bg-black">
+      <div style={frame} className="bg-transparent">
         <CameraSubscribe screenId={screen._id} />
       </div>
     );
