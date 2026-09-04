@@ -457,6 +457,7 @@ export function CameraSubscribe({ screenId }: { screenId: Id<"screens"> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const myId = useRef(clientId() + "-sub");
+  const [hasTrack, setHasTrack] = useState(false);
   const heartbeat = useMutation(api.camera.heartbeat);
   const leave = useMutation(api.camera.leave);
   const sendSignal = useMutation(api.camera.sendSignal);
@@ -468,6 +469,7 @@ export function CameraSubscribe({ screenId }: { screenId: Id<"screens"> }) {
 
   useEffect(() => {
     const id = myId.current;
+    setHasTrack(false);
     const tick = () =>
       void heartbeat({ screenId, clientId: id, role: "subscriber" });
     tick();
@@ -491,6 +493,7 @@ export function CameraSubscribe({ screenId }: { screenId: Id<"screens"> }) {
             const pc = new RTCPeerConnection(STUN);
             pcRef.current = pc;
             pc.ontrack = (ev) => {
+              setHasTrack(true);
               if (videoRef.current) videoRef.current.srcObject = ev.streams[0] ?? null;
             };
             pc.onicecandidate = (ev) => {
@@ -531,7 +534,9 @@ export function CameraSubscribe({ screenId }: { screenId: Id<"screens"> }) {
   return (
     <video
       ref={videoRef}
-      className="h-full w-full object-cover"
+      className={
+        hasTrack ? "h-full w-full object-cover" : "pointer-events-none h-full w-full opacity-0"
+      }
       autoPlay
       playsInline
       muted

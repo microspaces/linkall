@@ -19,6 +19,7 @@
     "seed:phoneScreens": "convex run seed:phoneScreens --env-file .env.funfirst",
     "seed:venueService": "convex run seed:venueService --env-file .env.funfirst",
     "seed:setlistBits": "convex run seed:setlistBits --env-file .env.funfirst",
+    "seed:headcaseBitsNightWall": "convex run seed:headcaseBitsNightWall --env-file .env.funfirst",
     "seed:headcaseBits": "convex run headcaseBits:seed --env-file .env.funfirst",
     "seed:headcasePhoneBits": "convex run game:ensureHeadcasePhoneBits --env-file .env.funfirst",
     "import:mike": "node migrations/import-mike.mjs",

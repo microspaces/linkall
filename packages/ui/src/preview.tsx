@@ -8,6 +8,7 @@ import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PanelStage } from "./designer";
 import { OverlayView, overlayCueFromScene } from "./overlays";
+import { TextSceneFallback } from "./shows";
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;
 type PreviewScreen = Doc<"screens"> & { panels: Doc<"panels">[] };
@@ -337,6 +338,24 @@ export function DisplayPreview({
   if (shows === undefined) return <div className="fixed inset-0 bg-black" />;
 
   const isLive = show?.status === "live";
+  const fallbackScene =
+    liveScene &&
+    (liveScene.kind === "title" ||
+      liveScene.kind === "text" ||
+      liveScene.kind === "score") &&
+    liveScene.content.trim()
+      ? liveScene
+      : null;
+  const wallPainted = (effects ?? []).some(
+    (e) =>
+      e.isEnabled &&
+      e.panelId &&
+      (e.kind === "image" ||
+        e.kind === "video" ||
+        e.kind === "color" ||
+        e.kind === "url" ||
+        e.kind === "html"),
+  );
 
   return (
     <div className="flex h-screen flex-col bg-black text-white">
@@ -469,17 +488,14 @@ export function DisplayPreview({
       )}
 
       <div className="flex min-h-0 flex-1 items-center justify-center gap-3 overflow-hidden p-3">
-        {screens.length === 0 ? (
-          <p className="text-sm text-white/40">
-            {show
-              ? "This profile has no screens. Assign a layout in the Designer."
-              : "Pick a show."}
-          </p>
-        ) : arranged.visible.length === 0 ? (
+        {screens.length > 0 && arranged.visible.length === 0 ? (
           <p className="text-sm text-white/40">
             All screens are hidden. Open Screens to show some on this wall.
           </p>
-        ) : isLive && effects ? (
+        ) : isLive &&
+          effects &&
+          arranged.visible.length > 0 &&
+          (wallPainted || !fallbackScene) ? (
           arranged.visible.map((screen) => (
             <PreviewTile
               key={screen._id}
@@ -503,6 +519,16 @@ export function DisplayPreview({
               }}
             />
           ))
+        ) : fallbackScene ? (
+          <div className="h-full w-full max-w-4xl overflow-hidden rounded-lg">
+            <TextSceneFallback scene={fallbackScene} />
+          </div>
+        ) : screens.length === 0 ? (
+          <p className="text-sm text-white/40">
+            {show
+              ? "This profile has no screens. Assign a layout in the Designer."
+              : "Pick a show."}
+          </p>
         ) : (
           <p className="text-sm text-white/40">
             {isLive ? "Loading scene…" : "Go live or tap a scene below."}

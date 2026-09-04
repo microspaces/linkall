@@ -168,6 +168,34 @@ function PanelSceneView({
   );
 }
 
+/** Readable wall card for title/text/score scenes that have no panel effects. */
+export function TextSceneFallback({
+  scene,
+}: {
+  scene: Pick<Doc<"scenes">, "title" | "kind" | "content">;
+}) {
+  return (
+    <div className="flex h-full min-h-[240px] w-full items-center justify-center bg-gradient-to-b from-violet-950 via-black to-black px-8 py-16">
+      <div className="max-w-3xl text-center">
+        {scene.title ? (
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+            {scene.title}
+          </p>
+        ) : null}
+        <p
+          className={
+            scene.kind === "title"
+              ? "text-center text-4xl font-bold tracking-wide text-white md:text-5xl"
+              : "max-w-xl text-center text-xl leading-snug text-white/90 md:text-2xl"
+          }
+        >
+          {scene.content}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function SceneView({ scene }: { scene: Doc<"scenes"> }) {
   if (scene.kind === "image") {
     return (

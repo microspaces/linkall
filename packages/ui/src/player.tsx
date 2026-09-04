@@ -22,6 +22,7 @@ import {
 import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PANEL_FILLS, PanelStage } from "./designer";
 import { Loading } from "./empty-state";
+import { TextSceneFallback } from "./shows";
 import { useCurrentUser } from "./current-user";
 import { BarTickets, GuestOrderSheet } from "./service";
 
@@ -1068,6 +1069,14 @@ function PlayTab() {
                   />
                 </div>
               ))}
+            </div>
+          ) : liveScene &&
+            (liveScene.kind === "title" ||
+              liveScene.kind === "text" ||
+              liveScene.kind === "score") &&
+            liveScene.content.trim() ? (
+            <div className="overflow-hidden rounded-md">
+              <TextSceneFallback scene={liveScene} />
             </div>
           ) : (
             <div className="flex min-h-[72px] items-center justify-center px-4 py-3 text-center text-sm text-gray-500">

@@ -378,12 +378,124 @@ function effectKey(prefix: string, n: number, panel: string) {
   return `${prefix}:effect:scene${String(n).padStart(2, "0")}:${panel}`;
 }
 
-/** HyperX 3-wall first; Home Front garage columns (christmasMike) as fallback. */
-async function wallsFor(ctx: MutationCtx): Promise<{
+const HYPERX_WALLS: Array<{
+  name: string;
+  order: number;
+  width: number;
+  height: number;
+  logical: "LeftSidebar" | "MainContent" | "RightSidebar";
+}> = [
+  {
+    name: "HyperX Stage Left",
+    order: 0,
+    width: 1152,
+    height: 1920,
+    logical: "LeftSidebar",
+  },
+  {
+    name: "HyperX Stage Center",
+    order: 1,
+    width: 1920,
+    height: 1080,
+    logical: "MainContent",
+  },
+  {
+    name: "HyperX Stage Right",
+    order: 2,
+    width: 1152,
+    height: 1920,
+    logical: "RightSidebar",
+  },
+];
+
+async function panelOfScreen(
+  ctx: MutationCtx,
+  screenId: Id<"screens">,
+): Promise<Id<"panels"> | undefined> {
+  const panels = await ctx.db
+    .query("panels")
+    .withIndex("by_screen", (q) => q.eq("screenId", screenId))
+    .collect();
+  panels.sort((a, b) => a.zIndex - b.zIndex);
+  return panels[0]?._id;
+}
+
+/** Create HyperX Arena + L/C/R LED walls if missing. Idempotent by name. */
+async function ensureHyperXArena(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+): Promise<{
   layoutId: Id<"layouts">;
   layoutName: string;
   panelByLogical: Record<string, Id<"panels">>;
-} | null> {
+  created: boolean;
+}> {
+  const layouts = await ctx.db.query("layouts").collect();
+  let layout = layouts.find((l) => l.name === "HyperX Arena");
+  let created = false;
+  if (!layout) {
+    const layoutId = await ctx.db.insert("layouts", {
+      name: "HyperX Arena",
+      ownerId,
+    });
+    layout = (await ctx.db.get(layoutId))!;
+    created = true;
+  }
+  const screens = await ctx.db
+    .query("screens")
+    .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
+    .collect();
+  const byName = (name: string) => screens.find((s) => s.name === name);
+  const panelByLogical: Record<string, Id<"panels">> = {};
+  for (const spec of HYPERX_WALLS) {
+    let screen = byName(spec.name);
+    if (!screen) {
+      const screenId = await ctx.db.insert("screens", {
+        layoutId: layout._id,
+        name: spec.name,
+        order: spec.order,
+        width: spec.width,
+        height: spec.height,
+      });
+      screen = (await ctx.db.get(screenId))!;
+      screens.push(screen);
+      created = true;
+    }
+    let panelId = await panelOfScreen(ctx, screen._id);
+    if (!panelId) {
+      panelId = await ctx.db.insert("panels", {
+        screenId: screen._id,
+        name: spec.name,
+        zIndex: 0,
+        points: [
+          { x: 0, y: 0 },
+          { x: spec.width, y: 0 },
+          { x: spec.width, y: spec.height },
+          { x: 0, y: spec.height },
+        ],
+      });
+      created = true;
+    }
+    panelByLogical[spec.logical] = panelId;
+  }
+  return {
+    layoutId: layout._id,
+    layoutName: layout.name,
+    panelByLogical,
+    created,
+  };
+}
+
+/** HyperX 3-wall first; Home Front garage columns as fallback; create HyperX if neither. */
+async function wallsFor(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+): Promise<{
+  layoutId: Id<"layouts">;
+  layoutName: string;
+  panelByLogical: Record<string, Id<"panels">>;
+  createdLayout: boolean;
+}> {
   const layouts = await ctx.db.query("layouts").collect();
 
   const hyperx = layouts.find((l) => l.name === "HyperX Arena");
@@ -393,21 +505,12 @@ async function wallsFor(ctx: MutationCtx): Promise<{
       .withIndex("by_layout", (q) => q.eq("layoutId", hyperx._id))
       .collect();
     const byName = (name: string) => screens.find((s) => s.name === name);
-    const panelOf = async (screen: { _id: Id<"screens"> } | undefined) => {
-      if (!screen) return undefined;
-      const panels = await ctx.db
-        .query("panels")
-        .withIndex("by_screen", (q) => q.eq("screenId", screen._id))
-        .collect();
-      panels.sort((a, b) => a.zIndex - b.zIndex);
-      return panels[0]?._id;
-    };
     const left = byName("HyperX Stage Left");
     const center = byName("HyperX Stage Center");
     const right = byName("HyperX Stage Right");
-    const lp = await panelOf(left);
-    const cp = await panelOf(center);
-    const rp = await panelOf(right);
+    const lp = left ? await panelOfScreen(ctx, left._id) : undefined;
+    const cp = center ? await panelOfScreen(ctx, center._id) : undefined;
+    const rp = right ? await panelOfScreen(ctx, right._id) : undefined;
     if (left && center && right && lp && cp && rp) {
       return {
         layoutId: hyperx._id,
@@ -417,35 +520,48 @@ async function wallsFor(ctx: MutationCtx): Promise<{
           MainContent: cp,
           RightSidebar: rp,
         },
+        createdLayout: false,
       };
     }
   }
 
   const home = layouts.find((l) => l.name === "Home Front");
-  if (!home) return null;
-  const screens = await ctx.db
-    .query("screens")
-    .withIndex("by_layout", (q) => q.eq("layoutId", home._id))
-    .collect();
-  const garage = screens.find((s) => s.name === "Garage") ?? screens[0];
-  if (!garage) return null;
-  const panels = await ctx.db
-    .query("panels")
-    .withIndex("by_screen", (q) => q.eq("screenId", garage._id))
-    .collect();
-  const byPanel = (name: string) => panels.find((p) => p.name === name);
-  const lp = byPanel("Column Left");
-  const cp = byPanel("Garage Door");
-  const rp = byPanel("Column Right");
-  if (!lp || !cp || !rp) return null;
+  if (home) {
+    const screens = await ctx.db
+      .query("screens")
+      .withIndex("by_layout", (q) => q.eq("layoutId", home._id))
+      .collect();
+    const garage = screens.find((s) => s.name === "Garage") ?? screens[0];
+    if (garage) {
+      const panels = await ctx.db
+        .query("panels")
+        .withIndex("by_screen", (q) => q.eq("screenId", garage._id))
+        .collect();
+      const byPanel = (name: string) => panels.find((p) => p.name === name);
+      const lp = byPanel("Column Left");
+      const cp = byPanel("Garage Door");
+      const rp = byPanel("Column Right");
+      if (lp && cp && rp) {
+        return {
+          layoutId: home._id,
+          layoutName: home.name,
+          panelByLogical: {
+            LeftSidebar: lp._id,
+            MainContent: cp._id,
+            RightSidebar: rp._id,
+          },
+          createdLayout: false,
+        };
+      }
+    }
+  }
+
+  const created = await ensureHyperXArena(ctx, ownerId);
   return {
-    layoutId: home._id,
-    layoutName: home.name,
-    panelByLogical: {
-      LeftSidebar: lp._id,
-      MainContent: cp._id,
-      RightSidebar: rp._id,
-    },
+    layoutId: created.layoutId,
+    layoutName: created.layoutName,
+    panelByLogical: created.panelByLogical,
+    createdLayout: created.created,
   };
 }
 
@@ -620,29 +736,37 @@ async function seedWeddingShow(
       title: spec.showTitle,
       description: spec.showDescription,
       tag: spec.tag,
-      status: "draft",
+      status: "live",
       currentSceneIndex: 0,
+      sceneStartedAt: Date.now(),
       ownerId,
       sourceKey,
-      ...(walls ? { layoutId: walls.layoutId } : {}),
+      layoutId: walls.layoutId,
     });
     show = (await ctx.db.get(showId))!;
     showInserted = true;
   } else {
+    const nextStatus =
+      show.status === "ended"
+        ? "draft"
+        : show.status === "draft"
+          ? "live"
+          : show.status;
     await ctx.db.patch(show._id, {
       title: spec.showTitle,
       description: spec.showDescription,
       tag: spec.tag,
-      status: show.status === "ended" ? "draft" : show.status,
+      status: nextStatus,
       ownerId,
       sourceKey,
-      ...(walls ? { layoutId: walls.layoutId } : {}),
+      layoutId: walls.layoutId,
+      ...(nextStatus === "live" && show.status !== "live"
+        ? { sceneStartedAt: Date.now() }
+        : {}),
     });
   }
 
-  if (walls) {
-    await ensureDisplayProfile(ctx, show._id, ownerId, walls);
-  }
+  await ensureDisplayProfile(ctx, show._id, ownerId, walls);
 
   const existingScenes = (
     await ctx.db
@@ -688,7 +812,7 @@ async function seedWeddingShow(
         n,
         logical,
         asset,
-        walls?.panelByLogical[logical],
+        walls.panelByLogical[logical],
       );
       if (inserted) effectsInserted++;
       else effectsSkipped++;
@@ -841,7 +965,7 @@ export async function seedWeddingShowsDetailed(
   ctx: MutationCtx,
   ownerId: Id<"users">,
 ) {
-  const walls = await wallsFor(ctx);
+  const walls = await wallsFor(ctx, ownerId);
   const shows = [];
   const performances = [];
 
@@ -879,8 +1003,9 @@ export async function seedWeddingShowsDetailed(
   }
 
   return {
-    layoutName: walls?.layoutName ?? null,
-    layoutId: walls?.layoutId ?? null,
+    layoutName: walls.layoutName,
+    layoutId: walls.layoutId,
+    createdLayout: walls.createdLayout,
     shows,
     performances,
     inserted: {
@@ -971,6 +1096,18 @@ export const inspect = query({
         .withIndex("by_show", (q) => q.eq("showId", show._id))
         .collect();
       scenes.sort((a, b) => a.order - b.order);
+      const profiles = await ctx.db
+        .query("displayProfiles")
+        .withIndex("by_show", (q) => q.eq("showId", show._id))
+        .collect();
+      const effectCounts: Record<string, number> = {};
+      for (const scene of scenes.slice(0, 3)) {
+        const fx = await ctx.db
+          .query("effects")
+          .withIndex("by_scene", (q) => q.eq("sceneId", scene._id))
+          .collect();
+        effectCounts[scene.title] = fx.length;
+      }
       shows.push({
         prefix: spec.prefix,
         found: true as const,
@@ -978,7 +1115,11 @@ export const inspect = query({
         showTitle: show.title,
         sourceKey: show.sourceKey,
         tag: show.tag,
+        status: show.status,
         layoutId: show.layoutId,
+        profileCount: profiles.length,
+        profileNames: profiles.map((p) => p.name),
+        effectCounts,
         sceneCount: scenes.length,
         scenes: scenes.map((s) => ({
           order: s.order,
