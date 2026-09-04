@@ -7,6 +7,7 @@ import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PanelStage } from "./designer";
+import { useShowPreviewTitle } from "./document-title";
 import { OverlayView, overlayCueFromScene } from "./overlays";
 import { TextSceneFallback } from "./shows";
 
@@ -170,6 +171,13 @@ export function DisplayPreview({
     shows?.find((s) => s._id === (lockedShowId ?? selectedShowId)) ??
     shows?.[0] ??
     null;
+
+  useShowPreviewTitle(
+    show?.title ?? performanceView?.show?.title,
+    activePerformanceId
+      ? (performanceView?.title ?? "Performance")
+      : null,
+  );
 
   const profiles = useQuery(
     api.designer.listShowProfiles,
