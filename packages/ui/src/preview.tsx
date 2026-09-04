@@ -7,6 +7,7 @@ import { api } from "@linkall/backend/convex/_generated/api";
 import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PanelStage } from "./designer";
+import { OverlayView, overlayCueFromScene } from "./overlays";
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;
 type PreviewScreen = Doc<"screens"> & { panels: Doc<"panels">[] };
@@ -200,6 +201,7 @@ export function DisplayPreview({
 
   const liveScene =
     show && scenes ? (scenes[show.currentSceneIndex] ?? null) : null;
+  const overlayCue = overlayCueFromScene(liveScene);
   const effects = useQuery(
     api.designer.getSceneEffects,
     show?.status === "live" && liveScene
@@ -486,6 +488,8 @@ export function DisplayPreview({
               clockSec={clockSec}
               muted={!soundOn}
               urlContext={urlContext}
+              overlayCue={overlayCue}
+              overlayView={performanceView}
               dragging={dragScreenId === screen._id}
               dropTarget={
                 dragScreenId !== null && dragScreenId !== screen._id
@@ -713,6 +717,8 @@ function PreviewTile({
   clockSec,
   muted,
   urlContext,
+  overlayCue,
+  overlayView,
   dragging,
   dropTarget,
   onHide,
@@ -725,6 +731,8 @@ function PreviewTile({
   clockSec: number;
   muted: boolean;
   urlContext: { performanceId?: string };
+  overlayCue: string | null;
+  overlayView: PerformanceView | null;
   dragging: boolean;
   dropTarget: boolean;
   onHide: () => void;
@@ -781,14 +789,27 @@ function PreviewTile({
           Hide
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <PanelStage
-          screen={screen}
-          effects={effects}
-          clockSec={clockSec}
-          muted={muted}
-          urlContext={urlContext}
-        />
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="relative w-full">
+          <PanelStage
+            screen={screen}
+            effects={effects}
+            clockSec={clockSec}
+            muted={muted}
+            urlContext={urlContext}
+          />
+          {overlayCue ? (
+            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end">
+              <div className="bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10">
+                <OverlayView
+                  view={overlayView}
+                  overlayCue={overlayCue}
+                  compact
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
