@@ -122,6 +122,53 @@ export function titleForPathname(
   return brand.name;
 }
 
+/** Set while a preview page is mounted so DocumentTitle does not overwrite it. */
+let previewTabTitleOverride: string | null = null;
+
+/** `${showTitle} · Preview`, else performance title, else `fallback`. */
+export function showPreviewTabTitle(
+  showTitle?: string | null,
+  performanceTitle?: string | null,
+  fallback = "Preview",
+) {
+  const show = showTitle?.trim();
+  if (show) return `${show} · Preview`;
+  if (performanceTitle != null) {
+    return `${performanceTitle.trim() || "Performance"} · Preview`;
+  }
+  return fallback;
+}
+
+/** Sets document.title for preview pages. Does not restore on unmount. */
+export function useShowPreviewTitle(
+  showTitle?: string | null,
+  performanceTitle?: string | null,
+) {
+  const pathname = usePathname();
+  const brand = useBrand();
+  const fallback = titleForPathname(pathname ?? "/", brand);
+  const title = showPreviewTabTitle(showTitle, performanceTitle, fallback);
+
+  useEffect(() => {
+    previewTabTitleOverride = title;
+    document.title = title;
+    return () => {
+      previewTabTitleOverride = null;
+    };
+  }, [title]);
+}
+
+export function PreviewDocumentTitle({
+  showTitle,
+  performanceTitle,
+}: {
+  showTitle?: string | null;
+  performanceTitle?: string | null;
+}) {
+  useShowPreviewTitle(showTitle, performanceTitle);
+  return null;
+}
+
 /** Keeps the browser tab in sync with the current show and page. */
 export function DocumentTitle() {
   const pathname = usePathname();
@@ -129,7 +176,7 @@ export function DocumentTitle() {
   const title = titleForPathname(pathname ?? "/", brand);
 
   useEffect(() => {
-    document.title = title;
+    document.title = previewTabTitleOverride ?? title;
   }, [title]);
 
   return null;
