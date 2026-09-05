@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@linkall/backend/convex/_generated/api";
@@ -76,6 +76,61 @@ export function overlayCueFromScene(scene: {
   if (fromTitle) return fromTitle;
   if (scene.isOverlay) return scene.title.trim();
   return null;
+}
+
+/** Overlay HUD is authored at this width; preview tiles scale from it. */
+const OVERLAY_DESIGN_WIDTH = 1280;
+
+/**
+ * Scales overlay HUD children to the measured container width.
+ * Preview-wall tiles only — player output stays unscaled.
+ */
+export function ScaledOverlay({ children }: { children: ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const next = el.clientWidth;
+      setWidth((prev) => (prev === next ? prev : next));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(measure);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const measured = width != null;
+  const scale = measured && width > 0 ? width / OVERLAY_DESIGN_WIDTH : 0;
+
+  return (
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute inset-0 z-10 flex items-end justify-center"
+      style={{ visibility: measured ? "visible" : "hidden" }}
+    >
+      <div
+        style={{
+          width: OVERLAY_DESIGN_WIDTH,
+          flexShrink: 0,
+          transform: `scale(${scale})`,
+          transformOrigin: "bottom center",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function teamName(view: PerformanceView, teamIndex: 1 | 2) {
