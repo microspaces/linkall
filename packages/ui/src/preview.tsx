@@ -8,7 +8,7 @@ import type { Doc, Id } from "@linkall/backend/convex/_generated/dataModel";
 import { showIsHostCued } from "@linkall/backend/convex/locos";
 import { PanelStage } from "./designer";
 import { useShowPreviewTitle } from "./document-title";
-import { OverlayView, overlayCueFromScene } from "./overlays";
+import { OverlayView, ScaledOverlay, overlayCueFromScene } from "./overlays";
 import { TextSceneFallback } from "./shows";
 
 type PerformanceView = NonNullable<FunctionReturnType<typeof api.game.get>>;
@@ -833,7 +833,7 @@ function PreviewTile({
             urlContext={urlContext}
           />
           {overlayCue ? (
-            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end">
+            <ScaledOverlay>
               <div className="bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10">
                 <OverlayView
                   view={overlayView}
@@ -841,7 +841,7 @@ function PreviewTile({
                   compact
                 />
               </div>
-            </div>
+            </ScaledOverlay>
           ) : null}
         </div>
       </div>
