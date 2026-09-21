@@ -39,7 +39,7 @@ export default function HeadCasePage() {
 
             <p className="hero__tagline reveal reveal-delay-2">
               One comedian.<br />
-              One giant head<br />
+              One giant head.<br />
               The crowd holds the remote.
             </p>
 
@@ -61,8 +61,8 @@ export default function HeadCasePage() {
             <div className="order-2 md:order-1">
               <p className="eyebrow">What is HeadCase?</p>
               <h2 id="what-heading" className="section-title">
-                Stand-up comedy.<br />
-                ON A GIANT HEAD<br />
+                Stand-up comedy<br />
+                on a giant head.<br />
                 <span style={{ color: "var(--neon-pink)" }}>What could go wrong?</span>
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
