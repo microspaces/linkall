@@ -38,7 +38,8 @@ export default function HeadCasePage() {
             </h1>
 
             <p className="hero__tagline reveal reveal-delay-2">
-              One comedian. A 40-inch TV where a head should be.<br className="hidden sm:block" />
+              One comedian.<br />
+              One giant head<br />
               The crowd holds the remote.
             </p>
 
@@ -61,7 +62,7 @@ export default function HeadCasePage() {
               <p className="eyebrow">What is HeadCase?</p>
               <h2 id="what-heading" className="section-title">
                 Stand-up comedy.<br />
-                With a screen for a head.<br />
+                ON A GIANT HEAD<br />
                 <span style={{ color: "var(--neon-pink)" }}>What could go wrong?</span>
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
