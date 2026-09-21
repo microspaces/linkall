@@ -36,7 +36,7 @@ export default function FunFirstPage() {
           <div className="hero__media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/fun-first/hero.jpg"
+              src="/group-photos/80134b92-8f5e-45d5-a516-498dd7486c69.jpg"
               alt="Four FunFirst brands colliding under neon lights: wrestling ring, esports arena, comedy stage, and TV-headed comedian"
               width={1920}
               height={1080}
@@ -124,70 +124,118 @@ export default function FunFirstPage() {
             <div className="brands-grid mt-12">
               {/* BATTLE LOCO */}
               <article className="brand-card brand-card--battle">
-                <div className="brand-card__badge">Esports + Mayhem</div>
-                <h3 className="brand-card__name">
-                  Battle <span>Loco</span>
-                </h3>
-                <p className="brand-card__tagline">
-                  Esports. Chaos. Crowd control.
-                </p>
-                <p className="brand-card__desc">
-                  YouTubers, celebrities, and athletes go head-to-head in a live Vegas showdown — video games one round, Minute to Win It–style mayhem the next. The crowd doesn't just watch. They run the show.
-                </p>
-                <a href="https://battleloco.com" className="btn btn-blue btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
-                  Visit battleloco.com →
-                </a>
+                <div className="brand-card__media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/battle-loco/images/hero.jpg"
+                    alt="Battle Loco — packed HyperX Arena under neon blue and pink lights"
+                    width={800}
+                    height={450}
+                  />
+                  <div className="brand-card__media-veil" aria-hidden="true" />
+                </div>
+                <div className="brand-card__content">
+                  <div className="brand-card__badge">Esports + Mayhem</div>
+                  <h3 className="brand-card__name">
+                    Battle <span>Loco</span>
+                  </h3>
+                  <p className="brand-card__tagline">
+                    Esports. Chaos. Crowd control.
+                  </p>
+                  <p className="brand-card__desc">
+                    YouTubers, celebrities, and athletes go head-to-head in a live Vegas showdown — video games one round, Minute to Win It–style mayhem the next. The crowd doesn't just watch. They run the show.
+                  </p>
+                  <a href="https://battleloco.com" className="btn btn-blue btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
+                    Visit battleloco.com →
+                  </a>
+                </div>
               </article>
 
               {/* WRESTLE LOCO */}
               <article className="brand-card brand-card--wrestle">
-                <div className="brand-card__badge">Wrestling Entertainment</div>
-                <h3 className="brand-card__name">
-                  Wrestle <span>Loco</span>
-                </h3>
-                <p className="brand-card__tagline">
-                  Live wrestling. Crowd action. Fan refs.
-                </p>
-                <p className="brand-card__desc">
-                  Five wrestlers vs five wrestlers in a night of multi-round matches scored by wins. Between rounds the crowd takes over: kids screaming matches that earn weapons, fans becoming the ref, phones lighting up the big screens.
-                </p>
-                <a href="https://wrestleloco.com" className="btn btn-pink btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
-                  Visit wrestleloco.com →
-                </a>
+                <div className="brand-card__media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/wrestle-loco/images/hero.jpg"
+                    alt="Wrestle Loco — live wrestling action in a neon-lit Vegas arena"
+                    width={800}
+                    height={450}
+                  />
+                  <div className="brand-card__media-veil" aria-hidden="true" />
+                </div>
+                <div className="brand-card__content">
+                  <div className="brand-card__badge">Wrestling Entertainment</div>
+                  <h3 className="brand-card__name">
+                    Wrestle <span>Loco</span>
+                  </h3>
+                  <p className="brand-card__tagline">
+                    Live wrestling. Crowd action. Fan refs.
+                  </p>
+                  <p className="brand-card__desc">
+                    Five wrestlers vs five wrestlers in a night of multi-round matches scored by wins. Between rounds the crowd takes over: kids screaming matches that earn weapons, fans becoming the ref, phones lighting up the big screens.
+                  </p>
+                  <a href="https://wrestleloco.com" className="btn btn-pink btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
+                    Visit wrestleloco.com →
+                  </a>
+                </div>
               </article>
 
               {/* COMEDY LOCO */}
               <article className="brand-card brand-card--comedy">
-                <div className="brand-card__badge">Live Comedy Night</div>
-                <h3 className="brand-card__name">
-                  Comedy <span>Loco</span>
-                </h3>
-                <p className="brand-card__tagline">
-                  2 teams. Celebrity Superstars. Cheers choose the winner.
-                </p>
-                <p className="brand-card__desc">
-                  Competitive Comedy: Whose Line Is It Anyway energy, team vs team. 2 teams face off in games — scenes, line games, singing games — while the audience shouts the suggestions and votes the winners from their phones.
-                </p>
-                <a href="https://comedyloco.com" className="btn btn-amber btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
-                  Visit comedyloco.com →
-                </a>
+                <div className="brand-card__media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/comedy-loco/images/hero.jpg"
+                    alt="Comedy Loco — competitive comedy game show with celebrity superstars"
+                    width={800}
+                    height={450}
+                  />
+                  <div className="brand-card__media-veil" aria-hidden="true" />
+                </div>
+                <div className="brand-card__content">
+                  <div className="brand-card__badge">Live Comedy Night</div>
+                  <h3 className="brand-card__name">
+                    Comedy <span>Loco</span>
+                  </h3>
+                  <p className="brand-card__tagline">
+                    2 teams. Celebrity Superstars. Cheers choose the winner.
+                  </p>
+                  <p className="brand-card__desc">
+                    Competitive Comedy: Whose Line Is It Anyway energy, team vs team. 2 teams face off in games — scenes, line games, singing games — while the audience shouts the suggestions and votes the winners from their phones.
+                  </p>
+                  <a href="https://comedyloco.com" className="btn btn-amber btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
+                    Visit comedyloco.com →
+                  </a>
+                </div>
               </article>
 
               {/* HEADCASE */}
               <article className="brand-card brand-card--headcase">
-                <div className="brand-card__badge">AI-Powered Party Show</div>
-                <h3 className="brand-card__name">
-                  Head<span>Case</span>
-                </h3>
-                <p className="brand-card__tagline">
-                  One comedian. One giant head. The crowd holds the remote.
-                </p>
-                <p className="brand-card__desc">
-                  HeadCase is live comedy rebuilt for the screen age: the comedian's head is a TV, the face on it changes on cue, and every gag is scripted, timed, and fired from a show console like a lighting rig. 855 bits. Phones vote. Zero chill.
-                </p>
-                <a href="https://headcaseai.com" className="btn btn-violet btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
-                  Visit headcaseai.com →
-                </a>
+                <div className="brand-card__media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/head-case/images/hero.jpg"
+                    alt="HeadCase — AI-powered comedy with a TV-headed comedian and crowd control"
+                    width={800}
+                    height={450}
+                  />
+                  <div className="brand-card__media-veil" aria-hidden="true" />
+                </div>
+                <div className="brand-card__content">
+                  <div className="brand-card__badge">AI-Powered Party Show</div>
+                  <h3 className="brand-card__name">
+                    Head<span>Case</span>
+                  </h3>
+                  <p className="brand-card__tagline">
+                    One comedian. One giant head. The crowd holds the remote.
+                  </p>
+                  <p className="brand-card__desc">
+                    HeadCase is live comedy rebuilt for the screen age: the comedian's head is a TV, the face on it changes on cue, and every gag is scripted, timed, and fired from a show console like a lighting rig. 855 bits. Phones vote. Zero chill.
+                  </p>
+                  <a href="https://headcaseai.com" className="btn btn-violet btn-lg brand-card__cta" target="_blank" rel="noopener noreferrer">
+                    Visit headcaseai.com →
+                  </a>
+                </div>
               </article>
             </div>
           </div>
