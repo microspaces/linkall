@@ -37,6 +37,7 @@ const CHROMELESS_LANDINGS = [
   "/wrestle-loco",
   "/comedy-loco",
   "/head-case",
+  "/fun-first",
 ];
 
 const CHROMELESS_HOSTS = [
@@ -48,6 +49,8 @@ const CHROMELESS_HOSTS = [
   "www.comedyloco.com",
   "headcaseai.com",
   "www.headcaseai.com",
+  "funfirst.fun",
+  "www.funfirst.fun",
 ];
 
 function isOperatorPath(pathname: string) {
