@@ -1,0 +1,460 @@
+/* FunFirst Umbrella Landing — shared tokens + page styles */
+/* Matches the visual language of Battle Loco / Wrestle Loco / Comedy Loco / HeadCase */
+
+:root {
+  /* Shared palette */
+  --bg: #0a0a0a;
+  --fg: #f5f5f5;
+  --muted: rgba(245, 245, 245, 0.65);
+  --card: #111111;
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Brand accents */
+  --neon-blue: #3b82f6;
+  --neon-pink: #ec4899;
+  --neon-amber: #f59e0b;
+  --neon-violet: #8b5cf6;
+  --neon-orange: #f97316;
+
+  /* Buttons */
+  --btn-height: 48px;
+  --btn-radius: 9999px;
+}
+
+/* Base */
+.ff-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.ff-body {
+  background: var(--bg);
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 8px 16px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 100;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
+/* Noise + orbs (shared visual motif) */
+.noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: screen;
+}
+
+.orb {
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.orb-a {
+  top: -200px;
+  right: -100px;
+  background: var(--neon-pink);
+}
+
+.orb-b {
+  bottom: -200px;
+  left: -150px;
+  background: var(--neon-blue);
+}
+
+/* Hero */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10,10,10,0.4) 0%,
+    rgba(10,10,10,0.85) 60%,
+    rgba(10,10,10,0.95) 100%
+  );
+  z-index: 1;
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero__location {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--neon-pink);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hero__brand {
+  font-size: clamp(56px, 8vw, 88px);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  margin-bottom: 16px;
+}
+
+.hero__brand span {
+  color: var(--neon-pink);
+}
+
+.hero__tagline {
+  font-size: clamp(18px, 2.5vw, 24px);
+  line-height: 1.4;
+  color: var(--muted);
+  max-width: 36ch;
+}
+
+.hero__scroll {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  z-index: 2;
+}
+
+.hero__scroll-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--muted), transparent);
+}
+
+/* Sections */
+.section {
+  padding: 96px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.section-about {
+  background: #0f0f0f;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neon-pink);
+  margin-bottom: 12px;
+}
+
+.eyebrow--center {
+  text-align: center;
+}
+
+.section-title {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+/* Stats */
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.stat-card__num {
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-card__label {
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Brand cards */
+.brands-grid {
+  display: grid;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .brands-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .brands-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.brand-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.brand-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.brand-card__badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  margin-bottom: 16px;
+  align-self: flex-start;
+}
+
+.brand-card__name {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.brand-card__name span {
+  color: var(--neon-pink);
+}
+
+.brand-card--battle .brand-card__name span { color: var(--neon-blue); }
+.brand-card--wrestle .brand-card__name span { color: var(--neon-pink); }
+.brand-card--comedy .brand-card__name span { color: var(--neon-amber); }
+.brand-card--headcase .brand-card__name span { color: var(--neon-violet); }
+
+.brand-card__tagline {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.brand-card__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  flex: 1;
+  margin-bottom: 24px;
+}
+
+.brand-card__cta {
+  margin-top: auto;
+}
+
+/* Buttons (matching brand conventions) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--btn-height);
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--btn-radius);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-lg {
+  height: 56px;
+  padding: 0 36px;
+  font-size: 16px;
+}
+
+.btn-blue {
+  background: var(--neon-blue);
+  color: white;
+}
+
+.btn-blue:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-pink {
+  background: var(--neon-pink);
+  color: white;
+}
+
+.btn-pink:hover {
+  background: #db2777;
+  transform: translateY(-1px);
+}
+
+.btn-amber {
+  background: var(--neon-amber);
+  color: #111;
+}
+
+.btn-amber:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.btn-violet {
+  background: var(--neon-violet);
+  color: white;
+}
+
+.btn-violet:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.btn-orange {
+  background: var(--neon-orange);
+  color: white;
+}
+
+.btn-orange:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: #0a0a0a;
+  position: relative;
+  z-index: 2;
+}
+
+.brand-mark {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  color: var(--fg);
+}
+
+.brand-mark--sm {
+  font-size: 16px;
+}
+
+.brand-mark__fun,
+.brand-mark__first {
+  color: var(--fg);
+}
+
+.footer-link {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: var(--fg);
+}
+
+/* Responsive tweaks */
+@media (max-width: 640px) {
+  .section {
+    padding: 64px 0;
+  }
+
+  .brand-card {
+    padding: 24px;
+  }
+}

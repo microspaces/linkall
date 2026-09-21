@@ -69,6 +69,26 @@
         }
       ],
       "destination": "/head-case"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "funfirst.fun"
+        }
+      ],
+      "destination": "/fun-first"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.funfirst.fun"
+        }
+      ],
+      "destination": "/fun-first"
     }
   ]
 }
