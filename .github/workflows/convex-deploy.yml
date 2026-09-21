@@ -11,6 +11,7 @@ on:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     name: Deploy ${{ matrix.app }}
     runs-on: ubuntu-latest
     strategy:

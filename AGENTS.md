@@ -20,26 +20,27 @@
 - Committed to branch in `test-screenshots/` — visible in PR file listing
 - Also posted to Discord inline via `MEDIA:` directive
 
-### Preview Deployment
+### Deployment Policy
 - Push branch to origin
-- Vercel auto-creates a preview deployment on branch push
-- If using Convex: push preview deployment (`npx convex deploy --preview-run` or rely on Vercel integration)
-- Capture the preview URL for the PR and Discord
+- Vercel and Convex use production deployments only; do not create preview deployments
+- Vercel Git deployments are enabled only for `main` in each app's `vercel.json`
+- GitHub deployment workflows run only from `main`, including manual runs
+- Validate changes locally before PR review; verify production after an approved merge
 
 ### Pull Request
 - Open PR from your branch → `main`
 - Fill out the PR template completely
-- Include preview URL
+- Include local validation results; no preview URL is required
 - Screenshots in `test-screenshots/` are visible in the PR
 
 ### Discord Delivery
 When posting results to Discord, include:
 - **Summary** of what was done
 - **Screenshots** inline (`MEDIA:<path>`)
-- **Vercel preview link**
+- **Production link** after deployment, when applicable
 - **GitHub PR link**
 
 ### Production Deploy
 - PR review → merge to `main` → Vercel auto-deploys to production
-- For Convex repos: run `npx convex deploy` after merge if backend changes were made
+- Backend changes trigger the production Convex workflow after merge; check its result before considering any manual redeploy
 - Delete branch after merge
