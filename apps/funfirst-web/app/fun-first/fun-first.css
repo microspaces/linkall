@@ -254,6 +254,35 @@
   letter-spacing: 0.05em;
 }
 
+/* "and counting" styling for the live shows stat */
+.stat-card--shows .stat-card__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-card__counting {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--neon-pink);
+  background: linear-gradient(90deg, var(--neon-pink), #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  animation: counting-shimmer 3s ease-in-out infinite;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+@keyframes counting-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 200% 50%; }
+}
+
 /* Brand cards — poster style with media */
 .brands-grid {
   display: grid;
@@ -399,6 +428,37 @@
 
 .brand-card--comedy:hover {
   box-shadow: 0 20px 60px rgba(245, 158, 11, 0.15);
+}
+
+/* Comedy Loco ambient brand glow on card background */
+.brand-card--comedy::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 20%,
+    rgba(255, 176, 32, 0.06) 0%,
+    rgba(155, 45, 138, 0.04) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.brand-card--comedy:hover::before {
+  opacity: 1;
+}
+
+.brand-card--comedy .brand-card__media {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-card--comedy .brand-card__content {
+  position: relative;
+  z-index: 1;
 }
 
 .brand-card--headcase:hover {

@@ -36,8 +36,8 @@ export default function FunFirstPage() {
           <div className="hero__media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/group-photos/80134b92-8f5e-45d5-a516-498dd7486c69.jpg"
-              alt="Four FunFirst brands colliding under neon lights: wrestling ring, esports arena, comedy stage, and TV-headed comedian"
+              src="/battle-loco/images/hero.jpg"
+              alt="Packed HyperX Arena under neon blue and pink lights with a roaring Las Vegas crowd — Battle Loco live show energy"
               width={1920}
               height={1080}
               fetchPriority="high"
@@ -89,9 +89,12 @@ export default function FunFirstPage() {
             </div>
 
             <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <div className="stat-card">
+              <div className="stat-card stat-card--shows">
                 <div className="stat-card__num">4</div>
-                <div className="stat-card__label">Live shows</div>
+                <div className="stat-card__label">
+                  Live shows
+                  <span className="stat-card__counting">and counting</span>
+                </div>
               </div>
               <div className="stat-card">
                 <div className="stat-card__num">100%</div>
