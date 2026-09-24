@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@linkall/ui", "@linkall/brands", "@linkall/backend"],
-  // Named shows: homeshow.com → /homeshow, weddingloco.com → /wedding-loco,
-  // barloco.com → /bar-loco.
+  // Named show: homeshow.com → /homeshow.
+  // (Wedding Loco and Bar Loco moved to apps/funfirst-web.)
   // Formats live at /{slug}/{performances,performance,designer,player,games}.
   async rewrites() {
     return [
@@ -16,26 +16,6 @@ const nextConfig: NextConfig = {
         source: "/",
         has: [{ type: "host", value: "www.homeshow.com" }],
         destination: "/homeshow",
-      },
-      {
-        source: "/",
-        has: [{ type: "host", value: "weddingloco.com" }],
-        destination: "/wedding-loco",
-      },
-      {
-        source: "/",
-        has: [{ type: "host", value: "www.weddingloco.com" }],
-        destination: "/wedding-loco",
-      },
-      {
-        source: "/",
-        has: [{ type: "host", value: "barloco.com" }],
-        destination: "/bar-loco",
-      },
-      {
-        source: "/",
-        has: [{ type: "host", value: "www.barloco.com" }],
-        destination: "/bar-loco",
       },
     ];
   },
