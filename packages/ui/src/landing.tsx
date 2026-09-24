@@ -4,10 +4,13 @@ import Link from "next/link";
 import { locoPaths, LOCOS } from "@linkall/backend/convex/locos";
 import { useBrand } from "./brand-context";
 import { useCurrentUser } from "./current-user";
+import { SurroundShowHome } from "./surroundshow-home";
 
 export function Landing() {
   const brand = useBrand();
   const { user } = useCurrentUser();
+
+  if (brand.id === "surroundshow") return <SurroundShowHome />;
 
   const featureCards = [
     brand.features.shows && {
@@ -17,14 +20,8 @@ export function Landing() {
     },
     LOCOS.some((l) => l.brand === brand.id) && {
       href: "/locos",
-      title:
-        brand.id === "surroundshow"
-          ? "HomeShow, Ceremony, Reception & Bar Loco"
-          : "Locos",
-      body:
-        brand.id === "surroundshow"
-          ? "Holiday house bits, a chapel ceremony set list, a DJ reception set list, and the pop-up bar night."
-          : "Competitions and set lists — open a format to run its performances.",
+      title: "Locos",
+      body: "Competitions and set lists — open a format to run its performances.",
     },
     brand.features.marketplace && {
       href: "/market",
