@@ -420,7 +420,15 @@ function SocialChrome({
           "min-[790px]:mr-52"
         }
       >
-        <div className="mx-auto max-w-3xl">{children}</div>
+        <div
+          className={
+            brand.id === "surroundshow" && pathname === "/"
+              ? "mx-auto max-w-5xl"
+              : "mx-auto max-w-3xl"
+          }
+        >
+          {children}
+        </div>
       </main>
 
       <footer className="ml-16 border-t border-gray-200 bg-white py-4 md:ml-52 min-[790px]:mr-52">
