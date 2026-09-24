@@ -507,7 +507,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "weddingceremony",
     slug: "wedding-ceremony",
     name: "Wedding Ceremony",
-    brand: "surroundshow",
+    brand: "funfirst",
     mode: "setlist",
     blurb:
       "Immersive chapel — wrap-around HD theme, aisle music, vows, rings, kiss, first dance in the room. Pick a theme like Elvis, flowers, forest, neon, or MARRY-OKE.",
@@ -568,7 +568,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "weddingreception",
     slug: "wedding-reception",
     name: "Wedding Reception",
-    brand: "surroundshow",
+    brand: "funfirst",
     mode: "setlist",
     blurb:
       "DJ reception — a music list with a splatter of interludes: speeches, dances, and games. Guest comments and photos on the screens come later.",
@@ -627,7 +627,7 @@ export const LOCOS: LocoConfig[] = [
     tag: "barloco",
     slug: "bar-loco",
     name: "Bar Loco",
-    brand: "surroundshow",
+    brand: "funfirst",
     mode: "setlist",
     blurb:
       "Christmas pop-up bar night — doors, welcome pour, classics, hosts, games, Bad Elf, best dressed, carols or karaoke, last call.",

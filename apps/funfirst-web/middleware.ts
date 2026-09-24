@@ -40,6 +40,18 @@ export default convexAuthNextjsMiddleware(
     ) {
       return NextResponse.rewrite(new URL("/fun-first", request.url));
     }
+    if (
+      (host === "weddingloco.com" || host === "www.weddingloco.com") &&
+      request.nextUrl.pathname === "/"
+    ) {
+      return NextResponse.rewrite(new URL("/wedding-loco", request.url));
+    }
+    if (
+      (host === "barloco.com" || host === "www.barloco.com") &&
+      request.nextUrl.pathname === "/"
+    ) {
+      return NextResponse.rewrite(new URL("/bar-loco", request.url));
+    }
 
     // Clean branded URLs: strip the slug prefix on known format routes so
     // battleloco.com/performances serves /battle-loco/performances, etc.
@@ -56,6 +68,8 @@ export default convexAuthNextjsMiddleware(
       "www.headcaseai.com": "head-case",
       "funfirst.fun": "fun-first",
       "www.funfirst.fun": "fun-first",
+      "barloco.com": "bar-loco",
+      "www.barloco.com": "bar-loco",
     };
     const strippedSegments = [
       "performances",
@@ -86,6 +100,47 @@ export default convexAuthNextjsMiddleware(
         return NextResponse.rewrite(
           new URL(
             `/${brandSlug}${request.nextUrl.pathname}${request.nextUrl.search}`,
+            request.url,
+          ),
+        );
+      }
+    }
+
+    const weddingHosts = ["weddingloco.com", "www.weddingloco.com"];
+    if (weddingHosts.includes(host) && request.nextUrl.pathname !== "/") {
+      // Legacy physical wedding routes on the branded host: redirect to the
+      // clean segment route so the address bar stays consistent.
+      if (request.nextUrl.pathname === "/wedding-loco") {
+        return NextResponse.redirect(new URL("/", request.url), 308);
+      }
+      const weddingCleanMap: Record<string, string> = {
+        "wedding-ceremony": "ceremony",
+        "wedding-reception": "reception",
+      };
+      const segment = request.nextUrl.pathname.split("/")[1] ?? "";
+      if (weddingCleanMap[segment]) {
+        return NextResponse.redirect(
+          new URL(
+            `/${weddingCleanMap[segment]}${request.nextUrl.pathname.slice(segment.length + 1)}${request.nextUrl.search}`,
+            request.url,
+          ),
+          308,
+        );
+      }
+      if (segment === "ceremony" || segment === "reception") {
+        return NextResponse.rewrite(
+          new URL(
+            `/wedding-${segment}${request.nextUrl.pathname.slice(segment.length + 1)}${request.nextUrl.search}`,
+            request.url,
+          ),
+        );
+      }
+      if (strippedSegments.includes(segment)) {
+        // weddingloco.com defaults to the reception card (mirrors the legacy
+        // /wedding-loco/* redirects).
+        return NextResponse.rewrite(
+          new URL(
+            `/wedding-reception${request.nextUrl.pathname}${request.nextUrl.search}`,
             request.url,
           ),
         );

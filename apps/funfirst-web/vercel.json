@@ -89,6 +89,46 @@
         }
       ],
       "destination": "/fun-first"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "weddingloco.com"
+        }
+      ],
+      "destination": "/wedding-loco"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.weddingloco.com"
+        }
+      ],
+      "destination": "/wedding-loco"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "barloco.com"
+        }
+      ],
+      "destination": "/bar-loco"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.barloco.com"
+        }
+      ],
+      "destination": "/bar-loco"
     }
   ]
 }
