@@ -103,7 +103,7 @@ export function GroupDetail({ groupId }: { groupId: Id<"groups"> }) {
   if (group === null) return <EmptyState title="Group not found" hint=" " />;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
       <div>
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <div className="flex items-start justify-between gap-4">
@@ -155,7 +155,7 @@ export function GroupDetail({ groupId }: { groupId: Id<"groups"> }) {
         </div>
       </div>
 
-      <aside>
+      <aside className="lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:self-start lg:overflow-y-auto">
         <h2 className="text-lg font-semibold text-gray-900">Members</h2>
         <div className="mt-4 space-y-3">
           {members?.map((m) => (

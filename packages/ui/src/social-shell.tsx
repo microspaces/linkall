@@ -13,11 +13,14 @@ import { DocumentTitle } from "./document-title";
 import { ThemeProvider, ThemeToggle, useTheme } from "./theme";
 
 /**
- * Legacy 3-column social layout (Surroundshow _Layout + responsive-menu.js).
+ * 3-column social layout.
  *
- * - Left sidebar: Top / Hot / Info / Favorites — shrinks to icon-only below 768px
- * - Right sidebar: Favorites / Followed / Not Followed — fixed ≥790px, hamburger <790px
- * - Center: page content with margins that track the sidebars
+ * - Header stays full-width.
+ * - ≥790px: left sidebar + center + right sidebar sit in one centered
+ *   max-w-[1265px] shell (Twitter/X-style). Sidebars are sticky on that
+ *   container, not fixed to the viewport edges.
+ * - <790px: icon-only left rail (labels from md), right sidebar hidden,
+ *   groups menu via the header hamburger.
  */
 
 type SidebarGroup = Doc<"groups"> & { isMember: boolean; isFavorite: boolean };
@@ -133,15 +136,16 @@ function LeftSidebar() {
 
   if (!sidebar) {
     return (
-      <aside className="fixed bottom-0 left-0 top-14 z-30 w-16 border-r border-gray-200 bg-gray-50 md:w-52" />
+      <aside className="sticky top-14 z-30 h-[calc(100vh-3.5rem)] w-16 shrink-0 self-start overflow-y-auto border-r border-gray-200 bg-gray-50 md:w-52" />
     );
   }
 
   return (
     <aside
       className={
-        "fixed bottom-0 left-0 top-14 z-30 overflow-y-auto border-r border-gray-200 bg-gray-50 " +
-        "w-16 px-1 py-3 transition-[width] duration-200 md:w-52 md:px-3"
+        "sticky top-14 z-30 h-[calc(100vh-3.5rem)] w-16 shrink-0 self-start overflow-y-auto " +
+        "border-r border-gray-200 bg-gray-50 px-1 py-3 transition-[width] duration-200 " +
+        "md:w-52 md:px-3"
       }
     >
       {brand.features.shows && (
@@ -264,8 +268,8 @@ function RightSidebar() {
     return (
       <aside
         className={
-          "fixed bottom-0 right-0 top-14 z-30 hidden w-52 overflow-y-auto " +
-          "border-l border-gray-200 bg-gray-50 min-[790px]:block"
+          "sticky top-14 z-30 hidden h-[calc(100vh-3.5rem)] w-52 shrink-0 self-start " +
+          "overflow-y-auto border-l border-gray-200 bg-gray-50 min-[790px]:block"
         }
       >
         <p className="p-3 text-xs text-gray-400">
@@ -278,8 +282,8 @@ function RightSidebar() {
   return (
     <aside
       className={
-        "fixed bottom-0 right-0 top-14 z-30 hidden w-52 overflow-y-auto " +
-        "border-l border-gray-200 bg-gray-50 min-[790px]:block"
+        "sticky top-14 z-30 hidden h-[calc(100vh-3.5rem)] w-52 shrink-0 self-start " +
+        "overflow-y-auto border-l border-gray-200 bg-gray-50 min-[790px]:block"
       }
     >
       <RightSidebarPanel
@@ -416,32 +420,28 @@ function SocialChrome({
         </div>
       </header>
 
-      <LeftSidebar />
-      <RightSidebar />
-
-      <main
-        className={
-          "flex-1 py-4 transition-[margin] duration-200 " +
-          "ml-16 px-2 md:ml-52 md:px-4 " +
-          "min-[790px]:mr-52"
-        }
-      >
-        <div
-          className={
-            brand.id === "surroundshow" && pathname === "/"
-              ? "mx-auto max-w-5xl"
-              : "mx-auto max-w-3xl"
-          }
-        >
-          {children}
+      <div className="mx-auto flex w-full max-w-[1265px] flex-1">
+        <LeftSidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="flex-1 px-2 py-4 md:px-4">
+            <div
+              className={
+                brand.id === "surroundshow" && pathname === "/"
+                  ? "mx-auto max-w-5xl"
+                  : "mx-auto max-w-3xl"
+              }
+            >
+              {children}
+            </div>
+          </main>
+          <footer className="border-t border-gray-200 bg-white py-4">
+            <div className="px-4 text-sm text-gray-400">
+              {brand.name} · {brand.tagline}
+            </div>
+          </footer>
         </div>
-      </main>
-
-      <footer className="ml-16 border-t border-gray-200 bg-white py-4 md:ml-52 min-[790px]:mr-52">
-        <div className="px-4 text-sm text-gray-400">
-          {brand.name} · {brand.tagline}
-        </div>
-      </footer>
+        <RightSidebar />
+      </div>
     </div>
   );
 }
