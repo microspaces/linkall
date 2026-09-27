@@ -95,17 +95,7 @@
       "has": [
         {
           "type": "host",
-          "value": "weddingloco.com"
-        }
-      ],
-      "destination": "/wedding-loco"
-    },
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.weddingloco.com"
+          "value": "app.weddingloco.com"
         }
       ],
       "destination": "/wedding-loco"

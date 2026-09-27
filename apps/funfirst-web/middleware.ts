@@ -41,7 +41,7 @@ export default convexAuthNextjsMiddleware(
       return NextResponse.rewrite(new URL("/fun-first", request.url));
     }
     if (
-      (host === "weddingloco.com" || host === "www.weddingloco.com") &&
+      (host === "app.weddingloco.com") &&
       request.nextUrl.pathname === "/"
     ) {
       return NextResponse.rewrite(new URL("/wedding-loco", request.url));
@@ -106,7 +106,7 @@ export default convexAuthNextjsMiddleware(
       }
     }
 
-    const weddingHosts = ["weddingloco.com", "www.weddingloco.com"];
+    const weddingHosts = ["app.weddingloco.com"];
     if (weddingHosts.includes(host) && request.nextUrl.pathname !== "/") {
       // Legacy physical wedding routes on the branded host: redirect to the
       // clean segment route so the address bar stays consistent.
@@ -136,7 +136,7 @@ export default convexAuthNextjsMiddleware(
         );
       }
       if (strippedSegments.includes(segment)) {
-        // weddingloco.com defaults to the reception card (mirrors the legacy
+        // app.weddingloco.com defaults to the reception card (mirrors the legacy
         // /wedding-loco/* redirects).
         return NextResponse.rewrite(
           new URL(

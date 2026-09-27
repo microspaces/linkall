@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   //   wrestleloco.com → /wrestle-loco
   //   comedyloco.com  → /comedy-loco
   //   headcaseai.com  → /head-case
-  //   weddingloco.com → /wedding-loco
+  //   app.weddingloco.com → /wedding-loco (apex + www moved to standalone
+  //     wedding-loco Vercel project — the Wedding Loco launch site)
   //   barloco.com     → /bar-loco
   // Add custom domains in Vercel project settings for funfirst-web.
   // Formats live at /{slug}/{performances,performance,games}.
@@ -133,17 +134,7 @@ const nextConfig: NextConfig = {
         has: [
           {
             type: "host",
-            value: "weddingloco.com",
-          },
-        ],
-        destination: "/wedding-loco",
-      },
-      {
-        source: "/",
-        has: [
-          {
-            type: "host",
-            value: "www.weddingloco.com",
+            value: "app.weddingloco.com",
           },
         ],
         destination: "/wedding-loco",
